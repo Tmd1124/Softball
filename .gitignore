@@ -9,3 +9,7 @@ dist/
 __pycache__/
 .venv/
 .claude/settings.local.json
+.playwright-mcp/
+*.tsbuildinfo
+public/api/config.php
+public/api/*.sqlite
