@@ -56,11 +56,11 @@ export default function App() {
   const openId = open?.id
 
   return (
-    <div className="mx-auto min-h-[calc(100dvh-3.25rem)] max-w-md bg-slate-950 text-slate-100">
+    <div className="mx-auto min-h-[calc(100dvh-3.8rem)] max-w-md bg-slate-950 md:max-w-5xl text-slate-100">
       {sync !== 'synced' && (
         <p
           role="status"
-          className={`sticky top-[3.25rem] z-20 px-4 py-2 text-center text-xs font-semibold ${
+          className={`sticky top-[3.8rem] z-20 md:top-[7.3rem] px-4 py-2 text-center text-xs font-semibold ${
             sync === 'pending' ? 'bg-slate-800 text-slate-300' : 'bg-amber-500 text-slate-950'
           }`}
         >
@@ -76,7 +76,7 @@ export default function App() {
           )}
         </p>
       )}
-      <main>
+      <main className="md:pt-16">
         {tab === 'schedule' ? (
           <DaySchedule
             program={program}

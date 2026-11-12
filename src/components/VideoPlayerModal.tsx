@@ -57,7 +57,7 @@ export default function VideoPlayerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center">
+    <div className="fixed inset-0 z-40 flex items-end justify-center md:items-center md:p-6">
       <button
         type="button"
         aria-label="Close"
@@ -69,7 +69,7 @@ export default function VideoPlayerModal({
         role="dialog"
         aria-modal="true"
         aria-label={exercise.name}
-        className="sheet-up relative flex max-h-[94dvh] w-full max-w-md flex-col rounded-t-3xl border-t border-slate-800 bg-slate-950"
+        className="sheet-up relative flex max-h-[94dvh] w-full max-w-md flex-col rounded-t-3xl border-t border-slate-800 bg-slate-950 md:max-h-[90dvh] md:max-w-4xl md:rounded-3xl md:border"
       >
         <header className="flex items-start justify-between gap-3 px-5 pt-5">
           <div className="min-w-0">
@@ -91,9 +91,9 @@ export default function VideoPlayerModal({
           </button>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-36 pt-4">
+        <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-36 pt-4 md:grid md:grid-cols-[18rem_minmax(0,1fr)] md:content-start md:gap-4 md:space-y-0 md:pb-6">
           {item && (
-            <section aria-label="Set logger" className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+            <section aria-label="Set logger" className="rounded-2xl border border-slate-800 bg-slate-900 p-4 md:col-start-2">
               <div className="flex items-baseline justify-between">
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Sets</p>
                 <p className="text-xs text-slate-400">
@@ -148,7 +148,7 @@ export default function VideoPlayerModal({
           )}
 
           <div
-            className={`relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 ${
+            className={`relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 md:col-start-1 md:row-span-3 md:row-start-1 md:self-start ${
               video === 'ok' ? 'mx-auto aspect-[9/16] max-h-[56dvh]' : ''
             }`}
           >
@@ -176,7 +176,7 @@ export default function VideoPlayerModal({
             )}
           </div>
 
-          <section aria-label="Coaching focus" className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+          <section aria-label="Coaching focus" className="rounded-2xl border border-slate-800 bg-slate-900 p-4 md:col-start-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Catcher focus</p>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-200">{exercise.focus}</p>
             <p className="mt-3 text-xs text-slate-400">
@@ -184,7 +184,9 @@ export default function VideoPlayerModal({
             </p>
           </section>
 
-          <TempoCoach tempo={exercise.tempo} />
+          <div className="md:col-start-2">
+            <TempoCoach tempo={exercise.tempo} />
+          </div>
         </div>
       </div>
     </div>

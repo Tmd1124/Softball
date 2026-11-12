@@ -30,8 +30,9 @@ export default function DaySchedule({
   const anyProgress = day.items.some((i) => getSets(day.id, i.id) > 0)
 
   return (
-    <div>
-      <div className="px-4 pt-5">
+    <div className="md:grid md:grid-cols-[19rem_minmax(0,1fr)] md:items-start md:gap-8 md:px-6">
+      <div className="md:sticky md:top-32 md:self-start">
+      <div className="px-4 pt-5 md:px-0">
         <h1 className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
           Catcher Strength &amp; Mobility
         </h1>
@@ -61,7 +62,7 @@ export default function DaySchedule({
       <div
         role="tablist"
         aria-label="Workout day"
-        className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-4 pb-1 md:flex-col md:overflow-visible md:px-0"
       >
         {programDays.map((d) => {
           const on = d.id === day.id
@@ -72,7 +73,7 @@ export default function DaySchedule({
               role="tab"
               aria-selected={on}
               onClick={() => onDay(d.id)}
-              className={`min-h-12 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition-colors ${
+              className={`min-h-12 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition-colors md:whitespace-normal md:rounded-2xl md:py-3 md:text-left ${
                 on
                   ? 'border-amber-500 bg-amber-500/15 text-amber-300'
                   : 'border-slate-700 text-slate-300 active:bg-slate-800'
@@ -84,7 +85,7 @@ export default function DaySchedule({
         })}
       </div>
 
-      <section className="px-4 pt-5" aria-label="Day progress">
+      <section className="px-4 pt-5 md:px-0" aria-label="Day progress">
         <h2 className="text-2xl font-bold leading-tight tracking-tight text-slate-50">{day.title}</h2>
         <div className="mt-4 flex items-center gap-3">
           <div
@@ -118,8 +119,9 @@ export default function DaySchedule({
           </button>
         </div>
       </section>
+      </div>
 
-      <ul className="space-y-3 px-4 pb-40 pt-2">
+      <ul className="space-y-3 px-4 pb-40 pt-2 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:px-0 md:pb-16 md:pt-5">
         {day.items.map((item, i) => (
           <ExerciseCard
             key={`${day.id}-${item.id}`}

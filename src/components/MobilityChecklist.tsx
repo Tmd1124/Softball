@@ -90,7 +90,8 @@ export default function MobilityChecklist({ onOpen, isDone, onDone }: Props) {
   const paused = current !== null && !cd.running
 
   return (
-    <div className="px-4 pb-32 pt-5">
+    <div className="px-4 pb-32 pt-5 md:grid md:grid-cols-[24rem_minmax(0,1fr)] md:items-start md:gap-8 md:px-6">
+      <div className="md:sticky md:top-32">
       <h1 className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Daily mobility</h1>
       <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-50">10-Min Pre-Practice Routine</h2>
       <p className="mt-1 text-sm text-slate-400">
@@ -200,7 +201,10 @@ export default function MobilityChecklist({ onOpen, isDone, onDone }: Props) {
         />
       </label>
 
-      <div className="mt-6 flex items-baseline justify-between">
+      </div>
+
+      <div>
+      <div className="mt-6 md:mt-0 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-500">Checklist</h3>
         <p className="text-sm font-semibold tabular-nums text-slate-300">
           {doneCount}/{steps.length} done
@@ -262,6 +266,7 @@ export default function MobilityChecklist({ onOpen, isDone, onDone }: Props) {
           )
         })}
       </ul>
+      </div>
     </div>
   )
 }

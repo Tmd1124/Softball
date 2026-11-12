@@ -46,7 +46,7 @@ export default function RestTimerBar({ request, onDismiss }: Props) {
     <div
       role="timer"
       aria-live="off"
-      className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-md px-3 pb-2"
+      className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-w-md px-3 pb-2 md:inset-x-auto md:bottom-6 md:right-6 md:mx-0 md:w-96 md:px-0 md:pb-0"
     >
       <div
         className={`overflow-hidden rounded-2xl border shadow-2xl shadow-black/60 backdrop-blur ${

@@ -104,7 +104,8 @@ export default function HistoryView({ entries: todayEntries }: { entries: Entrie
   const completed = rows.filter((r) => r.completedAt).length
 
   return (
-    <div className="px-4 pb-32 pt-5">
+    <div className="px-4 pb-32 pt-5 md:grid md:grid-cols-[20rem_minmax(0,1fr)] md:items-start md:gap-8 md:px-6">
+      <div className="md:sticky md:top-32">
       <h1 className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">History</h1>
       <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-50">What I Did</h2>
 
@@ -120,7 +121,7 @@ export default function HistoryView({ entries: todayEntries }: { entries: Entrie
       </label>
 
       {recent.length > 0 && (
-        <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
+        <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
           {recent.map((r) => (
             <button
               key={r.date}
@@ -139,7 +140,10 @@ export default function HistoryView({ entries: todayEntries }: { entries: Entrie
         </div>
       )}
 
-      <p className="mt-5 text-lg font-bold text-slate-100">{fmtDate(date)}</p>
+      </div>
+
+      <div>
+      <p className="mt-5 md:mt-0 text-lg font-bold text-slate-100">{fmtDate(date)}</p>
 
       {view.state === 'loading' && <p className="mt-3 text-sm text-slate-400">Loading…</p>}
       {view.state === 'error' && (
@@ -189,6 +193,7 @@ export default function HistoryView({ entries: todayEntries }: { entries: Entrie
             </ul>
           </section>
         ))}
+      </div>
       </div>
     </div>
   )
