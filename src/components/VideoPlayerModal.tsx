@@ -31,7 +31,7 @@ export default function VideoPlayerModal({
 }: Props) {
   const [video, setVideo] = useState<VideoState>('loading')
   const closeRef = useRef<HTMLButtonElement>(null)
-  const src = `${import.meta.env.BASE_URL}videos/${exercise.id}.mp4`
+  const src = `/softball/videos/${exercise.id}.mp4`
 
   useEffect(() => {
     const prev = document.body.style.overflow

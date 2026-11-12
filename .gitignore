@@ -13,3 +13,6 @@ __pycache__/
 *.tsbuildinfo
 public/api/config.php
 public/api/*.sqlite
+.env.deploy
+.initial-credentials.txt
+.local/

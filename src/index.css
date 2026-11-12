@@ -4,8 +4,40 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+html.theme-home {
+  --color-slate-950: #0b1226;
+  --color-slate-900: #121a33;
+  --color-slate-800: #1b2644;
+  --color-slate-700: #2a3760;
+  --color-slate-600: #3d4d80;
+}
+
+html.theme-softball {
+  --color-slate-950: #06130b;
+  --color-slate-900: #0d2214;
+  --color-slate-800: #153220;
+  --color-slate-700: #20472f;
+  --color-slate-600: #2e6342;
+  --color-amber-300: #e8f58a;
+  --color-amber-400: #dcee57;
+  --color-amber-500: #cde62b;
+  --color-amber-600: #aebf1c;
+}
+
+html.theme-basketball {
+  --color-slate-950: #120a05;
+  --color-slate-900: #1e130b;
+  --color-slate-800: #2e1d11;
+  --color-slate-700: #44291a;
+  --color-slate-600: #62402a;
+  --color-amber-300: #fdba74;
+  --color-amber-400: #fb923c;
+  --color-amber-500: #f97316;
+  --color-amber-600: #ea580c;
+}
+
 html {
-  background: #020617;
+  background: var(--color-slate-950);
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }

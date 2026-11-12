@@ -2,7 +2,7 @@
 """Compile 9:16 (1080x1920) H.264 exercise clips from keyframe PNGs.
 
 Reads  assets/frames/{exercise_id}_1.png, _2.png, _3.png
-Writes public/videos/{exercise_id}.mp4
+Writes public/softball/videos/{exercise_id}.mp4
 
 Exercise names, coaching cues and tempo come from src/data/exercises.json,
 the same file the web app uses, so the video and the app never disagree.
@@ -224,7 +224,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("ids", nargs="*", help="exercise ids to build (default: all with frames)")
     ap.add_argument("--frames", type=Path, default=ROOT / "assets" / "frames")
-    ap.add_argument("--out", type=Path, default=ROOT / "public" / "videos")
+    ap.add_argument("--out", type=Path, default=ROOT / "public" / "softball" / "videos")
     ap.add_argument("--data", type=Path, default=ROOT / "src" / "data" / "exercises.json")
     ap.add_argument("--fps", type=int, default=24)
     ap.add_argument("--force", action="store_true", help="rebuild clips that already exist")

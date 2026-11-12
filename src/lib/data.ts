@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { readJSON, todayKey, writeJSON } from './storage'
-import { enqueue, fetchEntries, flush, pendingOps } from './sync'
+import { SPORT, currentUserId, enqueue, fetchEntries, flush, pendingOps } from './sync'
 import type { Entry, Op, ServerEntry } from './sync'
 
 export type Entries = Record<string, Record<string, Entry>>
@@ -10,7 +10,7 @@ interface Snapshot {
   entries: Entries
 }
 
-const CACHE_KEY = 'catcher.cache.v2'
+const cacheKey = () => `catcher.cache.v3.${currentUserId()}`
 export const MOBILITY_DAY = 'mobility'
 
 export function utcNow(): string {
@@ -37,7 +37,7 @@ function applyOp(snap: Snapshot, op: Op): Snapshot {
 
 function initial(): Snapshot {
   const date = todayKey()
-  const cached = readJSON<Snapshot | null>(CACHE_KEY, null)
+  const cached = readJSON<Snapshot | null>(cacheKey(), null)
   const base: Snapshot = { date, entries: cached && cached.date === date ? cached.entries : {} }
   return pendingOps().reduce(applyOp, base)
 }
@@ -55,7 +55,7 @@ export function useAthleteData() {
   const ref = useRef(snap)
   ref.current = snap
 
-  useEffect(() => writeJSON(CACHE_KEY, snap), [snap])
+  useEffect(() => writeJSON(cacheKey(), snap), [snap])
 
   const load = useCallback(async () => {
     const date = todayKey()
@@ -92,13 +92,13 @@ export function useAthleteData() {
       const sets = patch.sets ?? cur?.sets ?? 0
       const weight = patch.weight !== undefined ? patch.weight : (cur?.weight ?? null)
       const completedAt = sets >= total ? (cur?.completedAt ?? utcNow()) : null
-      dispatch({ action: 'log', date, dayId, exerciseId, sets, weight, completedAt })
+      dispatch({ action: 'log', sport: SPORT, date, dayId, exerciseId, sets, weight, completedAt })
     },
     [dispatch],
   )
 
   const resetDay = useCallback(
-    (dayId: string) => dispatch({ action: 'reset', date: todayKey(), dayId }),
+    (dayId: string) => dispatch({ action: 'reset', sport: SPORT, date: todayKey(), dayId }),
     [dispatch],
   )
 

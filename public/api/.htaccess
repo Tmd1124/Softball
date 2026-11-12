@@ -1,4 +1,4 @@
-<FilesMatch "^(config|config\.example|lib)\.php$|\.(sql|sqlite)$">
+<FilesMatch "^(config|config\.example|lib|seed_users)\.php$|\.(sql|sqlite)$">
   Require all denied
 </FilesMatch>
 Options -Indexes

@@ -45,15 +45,36 @@ Tempo strings in `exercises.json` look like `"3 LOWER|3 PAUSE|EXPLODE"`. Segment
 
 `--placeholders` clips look like numbered slides. Do not use it for the clips you ship unless you want them to replace the in-app form breakdown.
 
+## Site layout (everharris.com)
+
+| URL | What |
+|---|---|
+| `/` | Main page: header, hero, sport cards, combined Status and Highlights, footer |
+| `/softball/` | Softball page (softball theme): hero, Status, Highlights |
+| `/softball/workouts/` | The catcher workout app (PWA, scope limited to this path); needs a login (`sports` or `admin`) |
+| `/basketball/` | Basketball page (basketball theme): hero, Status, Highlights (tracking not built yet) |
+| `/admin/` | User management, `admin` login only |
+
+Vite multi-page build: `index.html`, `softball/index.html`, `softball/workouts/index.html`, `basketball/index.html`, `admin/index.html`; page entries live in `src/pages/`, shared pieces in `src/site/`. Themes are CSS variable overrides on the `<html>` class (`theme-home`, `theme-softball`, `theme-basketball`) in `src/index.css`.
+
+Images: `public/img/softball.svg` and `basketball.svg` are the header icons; `hero-home.svg`, `hero-softball.svg`, `hero-basketball.svg` are placeholder heroes. Replace them with real images (keep the file names, or change the paths in `src/pages/*.tsx`). Softball exercise videos go in `public/softball/videos/`.
+
 ## Data storage (PHP + MySQL)
 
-- API: `public/api/index.php` (+ `lib.php`). Table `workout_log` is created automatically on the first request.
-- Config: copy `public/api/config.example.php` to `public/api/config.php` (gitignored) and fill in the DB DSN/user/password, or set env vars `SOFTBALL_DB_DSN`, `SOFTBALL_DB_USER`, `SOFTBALL_DB_PASS`. The API refuses to run with placeholder values. `api/.htaccess` blocks web access to config and lib files.
-- There is no login. Each browser gets a random athlete key (stored in `localStorage`, sent as `X-Athlete-Key`, hashed with SHA-256 in the DB). Data is per browser; clearing site data or switching phones starts a new log.
-- Local dev: `php -S localhost:8000 -t public` in one terminal and `npm run dev` in another (Vite proxies `/api`). HostGator's MySQL is not reachable from outside, so test locally with `SOFTBALL_DB_DSN=sqlite:/path/test.sqlite`.
+- One database (`aycjztte_everharris`), tables created automatically on first request by `public/api/lib.php`: `users`, `activity_log` (keyed by user and `sport`, so softball and basketball stay separate but can be combined), `sessions`, `login_attempts`.
+- Roles: `admin` can do everything (user management in `api/users.php`, plus all sports features); `sports` can do everything except manage users. Enforced on the server. Sign-in is a PHP session cookie (HttpOnly, SameSite=Lax, 30 days, stored in the DB); POSTs need the `X-Requested-With: fetch` header; logins are throttled (5 failures per user / 20 per IP per 15 minutes); passwords are bcrypt; deactivating a user or resetting their password ends their sessions.
+- Logins are email addresses (stored lowercase). Passwords must be 8+ characters.
+- Seed the first users once from a shell: set `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_SPORTS_EMAIL`, `SEED_SPORTS_PASSWORD`, then `php api/seed_users.php` (CLI only, skips users that exist). Never write these into a file.
+- Config: `public/api/config.php` (gitignored; template in `config.example.php`) or env `EVERHARRIS_DB_DSN`, `EVERHARRIS_DB_USER`, `EVERHARRIS_DB_PASS`. The API refuses to run with placeholders. `api/.htaccess` blocks web access to config, lib and seed files.
+- Local testing: `npm run dev:local` starts PHP (:8000, SQLite file `.local/dev.sqlite`, gitignored) and Vite (:5173); open http://localhost:5173. HostGator MySQL is not reachable from outside, so local data is separate from the live site. The first time, create the local accounts with the seed variables above and `EVERHARRIS_DB_DSN=sqlite:<repo>/.local/dev.sqlite php public/api/seed_users.php`.
+
+## Deploy
+
+`bash scripts/deploy.sh [--dry-run]` builds, saves a dated backup of the docroot on the server (`~/backups/everharris-<timestamp>.tgz`), then uploads `dist/` over SSH to `~/public_html/everharris`. It uses the SSH key `~/.ssh/id_ed25519_hostgator` (`ssh -p 2222 aycjztte@50.6.161.39`). Rollback: extract that tarball inside the docroot.
 
 ## Pick up here
 
-- State: six workouts, mobility timer, rest timer, tempo coach, set logger with weight, History tab (pick a date), PHP API, PWA. `npm run build` passes with zero TypeScript errors. API and UI tested end to end locally on SQLite.
-- Not done: never run against the real HostGator MySQL `aycjztte_softball` (not deployed yet); no keyframe images/videos; FTP deploy to `everharris.softball.com` (needs the FTP password as an env var).
+- State (2026-11-12): deployed to the server docroot `~/public_html/everharris` (backup `~/backups/everharris-20261112-150149.tgz`). Live smoke test passed via https://everharris.com.ayc.jzt.temporary.site (pages, blocked config files, both logins, role checks, data write/read/cleanup). Live users: the admin (`tmd1124@outlook.com`) and the sports user (`ever.harris@outlook.com`).
+- Open: public DNS for everharris.com did not resolve on 2026-11-12, so use the temporary URL until it does. Both passwords are weak or reused (the admin password equals the old DB password; the sports password is short and contains the site name): change them in `/admin/`. Rotate the DB password too (it was pasted in chat; update `public/api/config.php` and redeploy). Real hero/header images, basketball tracking, softball keyframes/videos are not done. Old DB `aycjztte_softball`, the empty `workout_log` table in `aycjztte_everharris`, and the old site folder `~/public_html/products/softball` are still on the server (remove only when Travis says so).
+- Decisions (Travis, 2026-11-12): logins are email addresses; `admin` can do everything, `sports` everything except user management; "trailer" is the footer; password minimum is 8 characters.
 - Remotes: `origin` (GitHub `Tmd1124/Softball`) and `azure` (Azure DevOps `EWO360/Softball`). Push to both.

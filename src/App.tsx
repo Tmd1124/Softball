@@ -56,17 +56,24 @@ export default function App() {
   const openId = open?.id
 
   return (
-    <div className="mx-auto min-h-dvh max-w-md bg-slate-950 text-slate-100">
+    <div className="mx-auto min-h-[calc(100dvh-3.25rem)] max-w-md bg-slate-950 text-slate-100">
       {sync !== 'synced' && (
         <p
           role="status"
-          className={`sticky top-0 z-20 px-4 py-2 text-center text-xs font-semibold ${
-            sync === 'offline' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+          className={`sticky top-[3.25rem] z-20 px-4 py-2 text-center text-xs font-semibold ${
+            sync === 'pending' ? 'bg-slate-800 text-slate-300' : 'bg-amber-500 text-slate-950'
           }`}
         >
-          {sync === 'offline'
-            ? 'Not saved to the server yet. Kept on this device and retrying.'
-            : 'Saving…'}
+          {sync === 'offline' && 'Not saved to the server yet. Kept on this device and retrying.'}
+          {sync === 'pending' && 'Saving…'}
+          {sync === 'auth' && (
+            <>
+              Your session expired. Changes are kept on this device.{' '}
+              <button type="button" onClick={() => window.location.reload()} className="font-extrabold underline">
+                Sign in again
+              </button>
+            </>
+          )}
         </p>
       )}
       <main>

@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+const SPORTS = ['softball', 'basketball'];
+const SESSION_DAYS = 30;
+
 function respond(int $status, array $body): never
 {
     http_response_code($status);
@@ -12,11 +15,15 @@ function respond(int $status, array $body): never
 
 function db(): PDO
 {
+    static $pdo = null;
+    if ($pdo !== null) {
+        return $pdo;
+    }
     $env = fn(string $k) => getenv($k) !== false ? getenv($k) : null;
     $file = is_file(__DIR__ . '/config.php') ? require __DIR__ . '/config.php' : [];
-    $dsn  = $env('SOFTBALL_DB_DSN')  ?? $file['dsn']  ?? '';
-    $user = $env('SOFTBALL_DB_USER') ?? $file['user'] ?? '';
-    $pass = $env('SOFTBALL_DB_PASS') ?? $file['pass'] ?? '';
+    $dsn  = $env('EVERHARRIS_DB_DSN')  ?? $file['dsn']  ?? '';
+    $user = $env('EVERHARRIS_DB_USER') ?? $file['user'] ?? '';
+    $pass = $env('EVERHARRIS_DB_PASS') ?? $file['pass'] ?? '';
 
     if ($dsn === '' || str_contains($dsn . $user . $pass, 'REPLACE_ME')) {
         respond(500, ['error' => 'Database is not configured']);
@@ -31,9 +38,31 @@ function db(): PDO
         respond(503, ['error' => 'Database unavailable']);
     }
 
+    ensure_schema($pdo);
+    return $pdo;
+}
+
+function ensure_schema(PDO $pdo): void
+{
+    $pk = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+        ? 'INTEGER PRIMARY KEY AUTOINCREMENT'
+        : 'INT AUTO_INCREMENT PRIMARY KEY';
+
     $pdo->exec(
-        'CREATE TABLE IF NOT EXISTS workout_log (
-            key_hash CHAR(64) NOT NULL,
+        "CREATE TABLE IF NOT EXISTS users (
+            id $pk,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            role VARCHAR(16) NOT NULL,
+            active INT NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL,
+            last_login_at DATETIME NULL
+        )"
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS activity_log (
+            user_id INT NOT NULL,
+            sport VARCHAR(16) NOT NULL,
             work_date CHAR(10) NOT NULL,
             day_id VARCHAR(24) NOT NULL,
             exercise_id VARCHAR(64) NOT NULL,
@@ -41,19 +70,138 @@ function db(): PDO
             weight_lb DECIMAL(6,1) NULL,
             completed_at DATETIME NULL,
             updated_at DATETIME NOT NULL,
-            PRIMARY KEY (key_hash, work_date, day_id, exercise_id)
+            PRIMARY KEY (user_id, sport, work_date, day_id, exercise_id)
         )'
     );
-    return $pdo;
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS sessions (
+            id VARCHAR(128) NOT NULL PRIMARY KEY,
+            data TEXT NOT NULL,
+            expires_at INT NOT NULL
+        )'
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS login_attempts (
+            ip VARCHAR(45) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            attempted_at DATETIME NOT NULL
+        )'
+    );
 }
 
-function athlete_hash(): string
+final class DbSessionHandler implements SessionHandlerInterface
 {
-    $key = $_SERVER['HTTP_X_ATHLETE_KEY'] ?? '';
-    if (!preg_match('/^[a-f0-9]{32,64}$/', $key)) {
-        respond(401, ['error' => 'Missing or invalid athlete key']);
+    public function __construct(private PDO $pdo) {}
+
+    public function open(string $path, string $name): bool
+    {
+        return true;
     }
-    return hash('sha256', $key);
+
+    public function close(): bool
+    {
+        return true;
+    }
+
+    public function read(string $id): string|false
+    {
+        $q = $this->pdo->prepare('SELECT data FROM sessions WHERE id = ? AND expires_at > ?');
+        $q->execute([$id, time()]);
+        $v = $q->fetchColumn();
+        return $v === false ? '' : (string) $v;
+    }
+
+    public function write(string $id, string $data): bool
+    {
+        $exp = time() + SESSION_DAYS * 86400;
+        $u = $this->pdo->prepare('UPDATE sessions SET data = ?, expires_at = ? WHERE id = ?');
+        $u->execute([$data, $exp, $id]);
+        if ($u->rowCount() === 0) {
+            $exists = $this->pdo->prepare('SELECT COUNT(*) FROM sessions WHERE id = ?');
+            $exists->execute([$id]);
+            if ((int) $exists->fetchColumn() === 0) {
+                $this->pdo->prepare('INSERT INTO sessions (id, data, expires_at) VALUES (?, ?, ?)')->execute([$id, $data, $exp]);
+            }
+        }
+        return true;
+    }
+
+    public function destroy(string $id): bool
+    {
+        $this->pdo->prepare('DELETE FROM sessions WHERE id = ?')->execute([$id]);
+        return true;
+    }
+
+    public function gc(int $max_lifetime): int|false
+    {
+        return $this->pdo->prepare('DELETE FROM sessions WHERE expires_at < ?')->execute([time()]) ? 1 : false;
+    }
+}
+
+function start_session(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+    $https = ($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    session_set_save_handler(new DbSessionHandler(db()), true);
+    session_name('ev_session');
+    session_set_cookie_params([
+        'lifetime' => SESSION_DAYS * 86400,
+        'path' => '/',
+        'secure' => $https,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    ini_set('session.use_strict_mode', '1');
+    session_start();
+}
+
+function require_same_origin_post(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        return;
+    }
+    if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') !== 'fetch') {
+        respond(403, ['error' => 'Forbidden']);
+    }
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($origin !== '') {
+        $host = strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]);
+        if (strtolower((string) parse_url($origin, PHP_URL_HOST)) !== $host) {
+            respond(403, ['error' => 'Forbidden']);
+        }
+    }
+}
+
+function current_user(): ?array
+{
+    start_session();
+    $id = $_SESSION['uid'] ?? null;
+    if (!is_int($id)) {
+        return null;
+    }
+    $q = db()->prepare('SELECT id, email, role, active FROM users WHERE id = ?');
+    $q->execute([$id]);
+    $u = $q->fetch();
+    if (!$u || (int) $u['active'] !== 1) {
+        $_SESSION = [];
+        return null;
+    }
+    return ['id' => (int) $u['id'], 'email' => $u['email'], 'role' => $u['role']];
+}
+
+function require_role(string ...$roles): array
+{
+    require_same_origin_post();
+    $u = current_user();
+    if ($u === null) {
+        respond(401, ['error' => 'Sign in required']);
+    }
+    if (!in_array($u['role'], $roles, true)) {
+        respond(403, ['error' => 'Your account does not have access to this']);
+    }
+    return $u;
 }
 
 function valid_date(mixed $d): string
@@ -72,9 +220,12 @@ function valid_id(mixed $v, string $what): string
     return $v;
 }
 
-function now(): string
+function valid_sport(mixed $v): string
 {
-    return gmdate('Y-m-d H:i:s');
+    if (!is_string($v) || !in_array($v, SPORTS, true)) {
+        respond(400, ['error' => 'Invalid sport']);
+    }
+    return $v;
 }
 
 function valid_completed_at(mixed $v): ?string
@@ -97,4 +248,43 @@ function valid_weight(mixed $v): ?float
         respond(400, ['error' => 'Invalid weight']);
     }
     return round((float) $v, 1);
+}
+
+function valid_email(mixed $v): string
+{
+    $e = is_string($v) ? strtolower(trim($v)) : '';
+    if (strlen($e) > 254 || filter_var($e, FILTER_VALIDATE_EMAIL) === false) {
+        respond(400, ['error' => 'Enter a valid email address']);
+    }
+    return $e;
+}
+
+function valid_password(mixed $v): string
+{
+    if (!is_string($v) || strlen($v) < 8 || strlen($v) > 200) {
+        respond(400, ['error' => 'Password must be at least 8 characters']);
+    }
+    return $v;
+}
+
+function valid_role(mixed $v): string
+{
+    if (!is_string($v) || !in_array($v, ['admin', 'sports'], true)) {
+        respond(400, ['error' => 'Invalid role']);
+    }
+    return $v;
+}
+
+function json_body(): array
+{
+    $in = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($in)) {
+        respond(400, ['error' => 'Invalid JSON']);
+    }
+    return $in;
+}
+
+function now(): string
+{
+    return gmdate('Y-m-d H:i:s');
 }
