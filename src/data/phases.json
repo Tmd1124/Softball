@@ -3,5 +3,150 @@
   "Hip Hinge Setup",
   "Mid-Pull Drive",
   "Full Hip Lockout"
+ ],
+ "tempo-goblet-squat": [
+  "Braced Top Stance",
+  "3-Sec Deep Pause",
+  "Explosive Ascent"
+ ],
+ "copenhagen-plank": [
+  "Bench Side Setup",
+  "Hip Lift Alignment",
+  "Isometric Hold"
+ ],
+ "bulgarian-split-squat": [
+  "Split Stance Setup",
+  "Deep Lunge Control",
+  "Front-Heel Drive"
+ ],
+ "seated-calf-raises": [
+  "Deep Heel Drop",
+  "Mid-Range Press",
+  "Peak Soleus Hold"
+ ],
+ "landmine-press": [
+  "Shoulder Rack",
+  "45-Deg Press Arc",
+  "Overhead Lockout"
+ ],
+ "chest-supported-row": [
+  "Full Scap Stretch",
+  "Mid-Row Pull",
+  "Upper-Back Squeeze"
+ ],
+ "half-kneeling-pulldown": [
+  "Overhead Reach",
+  "Lat Drive Down",
+  "Rib-Level Lock"
+ ],
+ "face-pulls": [
+  "Extended Grip",
+  "High Elbow Pull",
+  "External Rotation"
+ ],
+ "pallof-press": [
+  "Sternum Center",
+  "Mid-Press Brace",
+  "Full Anti-Rotation"
+ ],
+ "catcher-box-jumps": [
+  "Catcher Crouch",
+  "Triple Extension",
+  "Soft Quiet Land"
+ ],
+ "lateral-skater-bounds": [
+  "Single-Leg Load",
+  "Lateral Flight",
+  "Single-Leg Stick"
+ ],
+ "romanian-deadlift": [
+  "Top Hip Lock",
+  "Mid-Shin Stretch",
+  "Glute Snap Return"
+ ],
+ "heavy-sled-pushes": [
+  "45-Deg Lean",
+  "High Knee Drive",
+  "Full Rear Extension"
+ ],
+ "dead-bugs": [
+  "90/90 Tabletop",
+  "Right Leg Reach",
+  "Left Leg Reach"
+ ],
+ "med-ball-scoop-toss": [
+  "Back-Hip Coil",
+  "Hip-Torso Whip",
+  "Wall Release"
+ ],
+ "push-up-plus": [
+  "High Plank",
+  "Chest Hover",
+  "Scapular Protract"
+ ],
+ "neutral-grip-pullups": [
+  "Packed Dead Hang",
+  "Mid-Pull Drive",
+  "Chin Over Bar"
+ ],
+ "bottoms-up-kb-carry": [
+  "90-Deg Rack",
+  "Braced Stride",
+  "Cuff Stabilization"
+ ],
+ "band-ytw-raises": [
+  "Overhead Y",
+  "Horizontal T",
+  "External W"
+ ],
+ "trap-bar-jump-shrugs": [
+  "Quarter-Squat Dip",
+  "Explosive Shrug",
+  "Soft Athletic Catch"
+ ],
+ "inverted-rows": [
+  "Rigid Hang",
+  "Mid-Row Pull",
+  "Top Chest Squeeze"
+ ],
+ "side-plank-abduction": [
+  "Side Plank Base",
+  "Top Leg Raise",
+  "Glute Med Hold"
+ ],
+ "med-ball-slams": [
+  "Overhead Reach",
+  "Right Side Slam",
+  "Left Side Slam"
+ ],
+ "single-leg-rdl": [
+  "Single-Leg Balance",
+  "Horizontal T-Hinge",
+  "Hip Snap Return"
+ ],
+ "hip-90-90": [
+  "Left 90/90 Base",
+  "Open Bear Switch",
+  "Right 90/90 Base"
+ ],
+ "ankle-rocks": [
+  "Half-Kneel Start",
+  "Forward Knee Drive",
+  "End-Range Hold"
+ ],
+ "adductor-rock-backs": [
+  "Quadruped Leg-Out",
+  "Mid-Rock Back",
+  "Deep Groin Stretch"
+ ],
+ "open-book-rotations": [
+  "Side-Lying Closed",
+  "Mid-Sweep Reach",
+  "Full Open Chest"
+ ],
+ "shoulder-stretch": [
+  "Arm Across Chest",
+  "Gentle Elbow Hook",
+  "Posterior Release"
  ]
 }

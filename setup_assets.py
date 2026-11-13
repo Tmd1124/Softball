@@ -1,5 +1,24 @@
-﻿import argparse
+"""Build the exercise demo videos.
+
+Art lives in assets/frames/{id}_{1,2,3}_raw.png. Missing art is generated from the athlete
+reference photo (assets/athlete_ref.png) with OpenAI; existing art is never regenerated unless
+you pass --force with --ids. The title, coaching cue and tempo are burned in as {id}_{n}.png and
+the three frames are cross-faded into public/softball/videos/{id}.mp4 (1080x1920, H.264).
+
+To use your own art:
+  * drop it over assets/frames/{id}_{n}_raw.png  -> the overlay is re-applied, or
+  * drop it over assets/frames/{id}_{n}.png      -> used exactly as you made it (no overlay).
+
+  python setup_assets.py                  rebuild every video
+  python setup_assets.py --ids landmine-press ankle-rocks
+  python setup_assets.py --ids landmine-press --force   regenerate that art (costs API credits)
+  python setup_assets.py --list           show frame/video status, change nothing
+
+Set the key in your shell, never in this file:  $env:OPENAI_API_KEY='sk-...'
+"""
+import argparse
 import base64
+import hashlib
 import io
 import json
 import mimetypes
@@ -8,15 +27,26 @@ import time
 import urllib.error
 import urllib.request
 import uuid
-from PIL import Image, ImageDraw
-from moviepy import ImageClip, concatenate_videoclips
+from pathlib import Path
 
-os.makedirs("assets/frames", exist_ok=True)
-os.makedirs("public/videos", exist_ok=True)
-os.makedirs("scripts", exist_ok=True)
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+from moviepy import CompositeVideoClip, ImageClip, concatenate_videoclips, vfx
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
-ATHLETE_REF_PATH = "assets/athlete_ref.png"
+ROOT = Path(__file__).resolve().parent
+FRAMES = ROOT / "assets" / "frames"
+VIDEOS = ROOT / "public" / "softball" / "videos"
+PROMPTS_JSON = ROOT / "scripts" / "image_prompts.json"
+PHASES_JSON = ROOT / "src" / "data" / "phases.json"
+MANIFEST = FRAMES / ".manifest.json"
+ATHLETE_REF_PATH = ROOT / "assets" / "athlete_ref.png"
+
+W, H = 1080, 1920
+PHASE_SECONDS = 2.0
+FADE_SECONDS = 0.45
+AMBER = (245, 158, 11, 255)
+WHITE = (248, 250, 252, 255)
+MUTED = (148, 163, 184, 255)
 
 STYLE_PREFIX = (
     "Keep the exact same female softball athlete from the reference image (same face, hair, "
@@ -389,11 +419,14 @@ EXERCISES = [
     }
 ]
 
-with open("scripts/image_prompts.json", "w") as f:
-    json.dump({"style_prefix": STYLE_PREFIX, "exercises": EXERCISES}, f, indent=2)
 
+def generate_openai_edit(prompt: str, out_path: Path) -> None:
+    key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not key:
+        raise SystemExit("ERROR: art is missing. Set $env:OPENAI_API_KEY='sk-...' first.")
+    if not ATHLETE_REF_PATH.exists():
+        raise SystemExit(f"ERROR: missing reference photo at {ATHLETE_REF_PATH}")
 
-def generate_openai_edit(prompt: str, out_path: str) -> bool:
     boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
     body = bytearray()
 
@@ -406,100 +439,196 @@ def generate_openai_edit(prompt: str, out_path: str) -> bool:
     add_field("size", "1024x1536")
     add_field("quality", "medium")
 
-
-    mime_type = mimetypes.guess_type(ATHLETE_REF_PATH)[0] or "image/png"
-    with open(ATHLETE_REF_PATH, "rb") as f:
-        file_bytes = f.read()
-
+    mime_type = mimetypes.guess_type(str(ATHLETE_REF_PATH))[0] or "image/png"
     body.extend(f"--{boundary}\r\n".encode("utf-8"))
     body.extend(
-        f'Content-Disposition: form-data; name="image"; filename="{os.path.basename(ATHLETE_REF_PATH)}"\r\n'
+        f'Content-Disposition: form-data; name="image"; filename="{ATHLETE_REF_PATH.name}"\r\n'
         f"Content-Type: {mime_type}\r\n\r\n".encode("utf-8")
     )
-    body.extend(file_bytes)
+    body.extend(ATHLETE_REF_PATH.read_bytes())
     body.extend(f"\r\n--{boundary}--\r\n".encode("utf-8"))
 
     req = urllib.request.Request(
         "https://api.openai.com/v1/images/edits",
         data=bytes(body),
-        headers={
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": f"multipart/form-data; boundary={boundary}",
-        },
+        headers={"Authorization": f"Bearer {key}", "Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            b64 = data["data"][0]["b64_json"]
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                b64 = json.loads(resp.read().decode("utf-8"))["data"][0]["b64_json"]
             img = Image.open(io.BytesIO(base64.b64decode(b64))).convert("RGB")
-            img = img.resize((1080, 1920), Image.Resampling.LANCZOS)
-            img.save(out_path)
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8", errors="ignore")
-        raise SystemExit(f"\nOPENAI API ERROR (HTTP {e.code}):\n{err_body}\n") from e
-    return True
+            img.resize((W, H), Image.Resampling.LANCZOS).save(out_path)
+            return
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", errors="ignore")
+            if e.code in (429, 500, 502, 503, 504) and attempt < 3:
+                print(f"HTTP {e.code}, retrying in {attempt * 10}s...")
+                time.sleep(attempt * 10)
+                continue
+            raise SystemExit(f"\nOPENAI API ERROR (HTTP {e.code}):\n{detail}\n") from e
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            if attempt < 3:
+                print(f"Network error ({e}), retrying in {attempt * 10}s...")
+                time.sleep(attempt * 10)
+                continue
+            raise
+
+
+
+FONT_CANDIDATES = [
+    "C:/Windows/Fonts/segoeuib.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/Library/Fonts/Arial Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+]
+_font_cache = {}
+
+
+def font(size: int):
+    if size not in _font_cache:
+        path = next((p for p in FONT_CANDIDATES if Path(p).exists()), None)
+        _font_cache[size] = ImageFont.truetype(path, size) if path else ImageFont.load_default(size)
+    return _font_cache[size]
+
+
+def wrap(draw: ImageDraw.ImageDraw, text: str, f, max_w: int) -> list:
+    lines, cur = [], ""
+    for word in text.split():
+        trial = f"{cur} {word}".strip()
+        if draw.textlength(trial, font=f) <= max_w:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def cover(img: Image.Image) -> Image.Image:
+    img = img.convert("RGB")
+    scale = max(W / img.width, H / img.height)
+    img = img.resize((round(img.width * scale), round(img.height * scale)), Image.Resampling.LANCZOS)
+    left, top = (img.width - W) // 2, (img.height - H) // 2
+    return img.crop((left, top, left + W, top + H))
 
 
 def build_frame_with_overlay(raw_img: Image.Image, ex: dict, phase: str, idx: int) -> Image.Image:
-    W, H = 1080, 1920
-    img = raw_img.resize((W, H), Image.Resampling.LANCZOS).convert("RGBA")
+    img = cover(raw_img).convert("RGBA")
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
+    d = ImageDraw.Draw(overlay)
 
-    draw.rectangle([0, 0, W, 220], fill=(15, 23, 42, 225))
-    draw.rectangle([0, 214, W, 220], fill=(245, 158, 11, 255))
-    draw.text((50, 48), ex["name"].upper(), fill=(248, 250, 252, 255))
-    draw.text((50, 118), f"TEMPO: {ex['tempo']}   |   PHASE {idx}/3: {phase}", fill=(245, 158, 11, 255))
+    d.rectangle([0, 0, W, 190], fill=(15, 23, 42, 225))
+    d.rectangle([0, 184, W, 190], fill=AMBER)
+    name, nf = ex["name"].upper(), font(58)
+    while d.textlength(name, font=nf) > W - 100 and nf.size > 34:
+        nf = font(nf.size - 4)
+    d.text((50, 26), name, font=nf, fill=WHITE)
+    title = phase.split(". ", 1)[-1].upper()
+    d.text((50, 112), f"PHASE {idx}/3  \u00b7  {title}", font=font(34), fill=AMBER)
 
-    draw.rectangle([0, H - 240, W, H], fill=(2, 6, 23, 230))
-    draw.rectangle([0, H - 240, W, H - 234], fill=(245, 158, 11, 255))
-    draw.text((50, H - 190), "CATCHER COACHING FOCUS:", fill=(245, 158, 11, 255))
-    draw.text((50, H - 125), ex["cue"], fill=(248, 250, 252, 255))
+    bar = 300
+    d.rectangle([0, H - bar, W, H], fill=(2, 6, 23, 230))
+    d.rectangle([0, H - bar, W, H - bar + 6], fill=AMBER)
+    d.text((50, H - bar + 30), "CATCHER COACHING FOCUS", font=font(30), fill=AMBER)
+    y, cf = H - bar + 82, font(44)
+    for line in wrap(d, ex["cue"], cf, W - 100)[:3]:
+        d.text((50, y), line, font=cf, fill=WHITE)
+        y += 58
+    d.text((50, H - 46), "TEMPO: " + ex["tempo"].replace("\u2022", "\u00b7"), font=font(30), fill=MUTED, anchor="lm")
 
     return Image.alpha_composite(img, overlay).convert("RGB")
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--only", type=str, default="", help="Generate only a single exercise ID")
-    args = parser.parse_args()
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
-    if not OPENAI_API_KEY:
-        raise SystemExit("ERROR: Set $env:OPENAI_API_KEY='sk-...' first.")
-    if not os.path.exists(ATHLETE_REF_PATH):
-        raise SystemExit(f"ERROR: Place your athlete reference photo at {ATHLETE_REF_PATH} first.")
 
-    print(f"Using reference photo: {ATHLETE_REF_PATH} with OpenAI gpt-image-2.5-sunburst")
+def write_data_files() -> None:
+    PROMPTS_JSON.parent.mkdir(parents=True, exist_ok=True)
+    PROMPTS_JSON.write_text(
+        json.dumps({"style_prefix": STYLE_PREFIX, "exercises": EXERCISES}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    PHASES_JSON.parent.mkdir(parents=True, exist_ok=True)
+    PHASES_JSON.write_text(
+        json.dumps({e["id"]: [p.split(". ", 1)[-1] for p in e["phases"]] for e in EXERCISES}, indent=1, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
-    target_exercises = [e for e in EXERCISES if not args.only or e["id"] == args.only]
-    if not target_exercises:
-        raise SystemExit(f"ERROR: Exercise ID '{args.only}' not found.")
 
-    for ex in target_exercises:
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Build exercise demo videos.")
+    ap.add_argument("--ids", nargs="*", help="only these exercise ids")
+    ap.add_argument("--force", action="store_true", help="regenerate the AI art for --ids (costs API credits)")
+    ap.add_argument("--list", action="store_true", help="show status and exit")
+    args = ap.parse_args()
+
+    if args.force and not args.ids:
+        raise SystemExit("--force needs --ids so you do not regenerate all 90 images by accident.")
+    unknown = set(args.ids or []) - {e["id"] for e in EXERCISES}
+    if unknown:
+        raise SystemExit(f"Unknown exercise id(s): {', '.join(sorted(unknown))}")
+    exercises = [e for e in EXERCISES if not args.ids or e["id"] in args.ids]
+
+    if args.list:
+        for e in exercises:
+            art = sum((FRAMES / f"{e['id']}_{n}_raw.png").exists() for n in (1, 2, 3))
+            vid = "yes" if (VIDEOS / f"{e['id']}.mp4").exists() else "no "
+            print(f"{e['id']:26} art {art}/3  video {vid}")
+        return
+
+    FRAMES.mkdir(parents=True, exist_ok=True)
+    VIDEOS.mkdir(parents=True, exist_ok=True)
+    write_data_files()
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
+
+    for ex in exercises:
         clips = []
         for idx, (phase, prompt_body) in enumerate(zip(ex["phases"], ex["prompts"]), start=1):
-            raw_path = f"assets/frames/{ex['id']}_{idx}_raw.png"
-            final_frame_path = f"assets/frames/{ex['id']}_{idx}.png"
+            raw_path = FRAMES / f"{ex['id']}_{idx}_raw.png"
+            final_path = FRAMES / f"{ex['id']}_{idx}.png"
 
-            if not os.path.exists(raw_path):
-                full_prompt = f"{STYLE_PREFIX}, {prompt_body}"
-                print(f"Generating frame {idx}/3 for {ex['id']}...")
-                generate_openai_edit(full_prompt, raw_path)
+            if args.force or not raw_path.exists():
+                print(f"Generating {raw_path.name}")
+                generate_openai_edit(f"{STYLE_PREFIX}, {prompt_body}", raw_path)
                 time.sleep(0.5)
 
-            raw_img = Image.open(raw_path)
-            composited = build_frame_with_overlay(raw_img, ex, phase, idx)
-            composited.save(final_frame_path)
-            clips.append(ImageClip(final_frame_path).with_duration(1.8))
+            recorded = manifest.get(final_path.name)
+            if not args.force and final_path.exists() and recorded and sha(final_path) != recorded:
+                print(f"Using your image {final_path.name} as-is")
+                frame = cover(Image.open(final_path))
+            else:
+                frame = build_frame_with_overlay(Image.open(raw_path), ex, phase, idx)
+                frame.save(final_path)
+                manifest[final_path.name] = sha(final_path)
 
-        video_path = f"public/videos/{ex['id']}.mp4"
-        final_clip = concatenate_videoclips(clips, method="compose")
-        final_clip.write_videofile(video_path, fps=24, codec="libx264", audio=False, logger=None)
-        print(f"Compiled video: {video_path}")
+            clip = ImageClip(np.asarray(frame)).with_duration(PHASE_SECONDS)
+            if idx > 1:
+                clip = clip.with_effects([vfx.CrossFadeIn(FADE_SECONDS)])
+            clips.append(clip)
 
-    print("Done!")
+        merged = concatenate_videoclips(clips, padding=-FADE_SECONDS, method="compose")
+        final = CompositeVideoClip([merged.with_position("center")], size=(W, H))
+        video_path = VIDEOS / f"{ex['id']}.mp4"
+        final.write_videofile(
+            str(video_path),
+            fps=24,
+            codec="libx264",
+            audio=False,
+            ffmpeg_params=["-pix_fmt", "yuv420p", "-profile:v", "baseline", "-level", "3.1", "-movflags", "+faststart"],
+            logger=None,
+        )
+        final.close()
+        merged.close()
+        print(f"Compiled video: {video_path.relative_to(ROOT)}")
+
+    MANIFEST.write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+    print(f"Done. {len(exercises)} video(s) in {VIDEOS.relative_to(ROOT)}.")
 
 
 if __name__ == "__main__":
     main()
-

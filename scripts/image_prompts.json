@@ -4,7 +4,7 @@
     {
       "id": "trap-bar-deadlift",
       "name": "Trap Bar Deadlift",
-      "tempo": "2s PULL \u2022 1s LOCK \u2022 2s LOWER",
+      "tempo": "2s PULL • 1s LOCK • 2s LOWER",
       "cue": "Flat spine, push the floor away, lock hips at top.",
       "phases": [
         "1. Hip Hinge Setup",
@@ -20,7 +20,7 @@
     {
       "id": "tempo-goblet-squat",
       "name": "Tempo Goblet Squat",
-      "tempo": "3s LOWER \u2022 3s PAUSE \u2022 EXPLODE",
+      "tempo": "3s LOWER • 3s PAUSE • EXPLODE",
       "cue": "Elbows inside knees, heels flat, hold deep catcher stance.",
       "phases": [
         "1. Braced Top Stance",
@@ -52,7 +52,7 @@
     {
       "id": "bulgarian-split-squat",
       "name": "Bulgarian Split Squat",
-      "tempo": "3s LOWER \u2022 1s PAUSE \u2022 DRIVE",
+      "tempo": "3s LOWER • 1s PAUSE • DRIVE",
       "cue": "Shin vertical, drive hard through front heel.",
       "phases": [
         "1. Split Stance Setup",
@@ -68,7 +68,7 @@
     {
       "id": "seated-calf-raises",
       "name": "Seated Calf Raises",
-      "tempo": "2s STRETCH \u2022 2s SQUEEZE",
+      "tempo": "2s STRETCH • 2s SQUEEZE",
       "cue": "Full ankle range to stabilize heels in deep crouch.",
       "phases": [
         "1. Deep Heel Drop",
@@ -84,7 +84,7 @@
     {
       "id": "landmine-press",
       "name": "Landmine Press",
-      "tempo": "1s PRESS \u2022 2s CONTROL LOWER",
+      "tempo": "1s PRESS • 2s CONTROL LOWER",
       "cue": "45-degree arc allows safe upward scapular rotation.",
       "phases": [
         "1. Shoulder Rack",
@@ -100,7 +100,7 @@
     {
       "id": "chest-supported-row",
       "name": "Chest-Supported DB Row",
-      "tempo": "1s ROW \u2022 2s SQUEEZE \u2022 2s LOWER",
+      "tempo": "1s ROW • 2s SQUEEZE • 2s LOWER",
       "cue": "Drive elbows to ribs, pinch shoulder blades together.",
       "phases": [
         "1. Full Scap Stretch",
@@ -116,7 +116,7 @@
     {
       "id": "half-kneeling-pulldown",
       "name": "Half-Kneeling Pulldown",
-      "tempo": "1s PULL \u2022 2s LOWER",
+      "tempo": "1s PULL • 2s LOWER",
       "cue": "Ribs down, pull elbow tight to hip without leaning.",
       "phases": [
         "1. Overhead Reach",
@@ -132,7 +132,7 @@
     {
       "id": "face-pulls",
       "name": "Face Pulls + Ext Rotation",
-      "tempo": "1s PULL \u2022 2s HOLD \u2022 2s RETURN",
+      "tempo": "1s PULL • 2s HOLD • 2s RETURN",
       "cue": "Thumbs back at ears to armor rotator cuff.",
       "phases": [
         "1. Extended Grip",
@@ -148,7 +148,7 @@
     {
       "id": "pallof-press",
       "name": "Pallof Press",
-      "tempo": "2s PRESS \u2022 3s HOLD \u2022 2s RETURN",
+      "tempo": "2s PRESS • 3s HOLD • 2s RETURN",
       "cue": "Resist cable rotation; keep sternum squared.",
       "phases": [
         "1. Sternum Center",
@@ -164,7 +164,7 @@
     {
       "id": "catcher-box-jumps",
       "name": "Catcher Crouch Box Jumps",
-      "tempo": "2s CROUCH \u2022 EXPLODE \u2022 SOFT LAND",
+      "tempo": "2s CROUCH • EXPLODE • SOFT LAND",
       "cue": "Start from low catcher stance; explode onto box.",
       "phases": [
         "1. Catcher Crouch",
@@ -180,7 +180,7 @@
     {
       "id": "lateral-skater-bounds",
       "name": "Lateral Skater Bounds",
-      "tempo": "EXPLODE LATERALLY \u2022 2s STICK",
+      "tempo": "EXPLODE LATERALLY • 2s STICK",
       "cue": "Push off outside edge for fast dirt-ball blocks.",
       "phases": [
         "1. Single-Leg Load",
@@ -196,7 +196,7 @@
     {
       "id": "romanian-deadlift",
       "name": "Romanian Deadlift (RDL)",
-      "tempo": "3s HINGE \u2022 1s STRETCH \u2022 1s DRIVE",
+      "tempo": "3s HINGE • 1s STRETCH • 1s DRIVE",
       "cue": "Push hips straight back; keep bar close to shins.",
       "phases": [
         "1. Top Hip Lock",
@@ -212,7 +212,7 @@
     {
       "id": "heavy-sled-pushes",
       "name": "Heavy Sled Pushes",
-      "tempo": "MAX DRIVE \u2022 20 YARDS",
+      "tempo": "MAX DRIVE • 20 YARDS",
       "cue": "45-degree torso lean, punch knees fast.",
       "phases": [
         "1. 45-Deg Lean",
@@ -228,7 +228,7 @@
     {
       "id": "dead-bugs",
       "name": "Weighted Dead Bugs",
-      "tempo": "3s EXTEND \u2022 1s HOLD \u2022 2s RETURN",
+      "tempo": "3s EXTEND • 1s HOLD • 2s RETURN",
       "cue": "Press lower back flat into floor; zero rib flare.",
       "phases": [
         "1. 90/90 Tabletop",
@@ -244,7 +244,7 @@
     {
       "id": "med-ball-scoop-toss",
       "name": "Med Ball Scoop Toss",
-      "tempo": "COIL \u2022 EXPLOSIVE HIP WHIP",
+      "tempo": "COIL • EXPLOSIVE HIP WHIP",
       "cue": "Fire back hip first to replicate 2B throw-downs.",
       "phases": [
         "1. Back-Hip Coil",
@@ -260,7 +260,7 @@
     {
       "id": "push-up-plus",
       "name": "Push-Up Plus",
-      "tempo": "2s LOWER \u2022 1s PRESS \u2022 2s PLUS",
+      "tempo": "2s LOWER • 1s PRESS • 2s PLUS",
       "cue": "Push floor away at top to protract shoulder blades.",
       "phases": [
         "1. High Plank",
@@ -276,7 +276,7 @@
     {
       "id": "neutral-grip-pullups",
       "name": "Neutral-Grip Pull-Ups",
-      "tempo": "1s PULL \u2022 3s CONTROL LOWER",
+      "tempo": "1s PULL • 3s CONTROL LOWER",
       "cue": "Chest to bar, shoulders packed away from ears.",
       "phases": [
         "1. Packed Dead Hang",
@@ -308,7 +308,7 @@
     {
       "id": "band-ytw-raises",
       "name": "Band Y-T-W Raises",
-      "tempo": "10 Y \u2022 10 T \u2022 10 W REPS",
+      "tempo": "10 Y • 10 T • 10 W REPS",
       "cue": "Light tension; target lower traps and rhomboids.",
       "phases": [
         "1. Overhead Y",
@@ -324,7 +324,7 @@
     {
       "id": "trap-bar-jump-shrugs",
       "name": "Trap Bar Jump Shrugs",
-      "tempo": "DIP \u2022 EXPLOSIVE TRIPLE EXTEND",
+      "tempo": "DIP • EXPLOSIVE TRIPLE EXTEND",
       "cue": "Light load, maximum bar velocity and shrug.",
       "phases": [
         "1. Quarter-Squat Dip",
@@ -340,7 +340,7 @@
     {
       "id": "inverted-rows",
       "name": "TRX / Inverted Rows",
-      "tempo": "1s ROW \u2022 1s PAUSE \u2022 2s LOWER",
+      "tempo": "1s ROW • 1s PAUSE • 2s LOWER",
       "cue": "Body rigid like a plank; pull chest to handles.",
       "phases": [
         "1. Rigid Hang",
@@ -372,7 +372,7 @@
     {
       "id": "med-ball-slams",
       "name": "Side-to-Side Med Ball Slams",
-      "tempo": "REACH \u2022 ROTATIONAL SLAM",
+      "tempo": "REACH • ROTATIONAL SLAM",
       "cue": "Slam outside each foot with full core rotation.",
       "phases": [
         "1. Overhead Reach",
@@ -388,7 +388,7 @@
     {
       "id": "single-leg-rdl",
       "name": "Single-Leg RDL",
-      "tempo": "3s HINGE \u2022 1s BALANCE \u2022 DRIVE",
+      "tempo": "3s HINGE • 1s BALANCE • DRIVE",
       "cue": "Keep hips level to floor; hinge on slightly bent knee.",
       "phases": [
         "1. Single-Leg Balance",
