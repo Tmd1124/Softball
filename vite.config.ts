@@ -33,7 +33,7 @@ export default defineConfig({
             urlPattern: /\/softball\/videos\/.*\.mp4$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'videos',
+              cacheName: 'videos-2026-11-13',
               rangeRequests: true,
               cacheableResponse: { statuses: [200] },
               expiration: { maxEntries: 40 },

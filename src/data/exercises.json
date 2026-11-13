@@ -43,7 +43,7 @@
       "Drive through the front heel to stand. Keep hips square."
     ]
   },
-  "seated-calf-raise": {
+  "seated-calf-raises": {
     "name": "Seated Calf Raise",
     "category": "strength",
     "focus": "Strong calves and soleus keep the ankles healthy and let you sit in the crouch longer without the lower leg tightening.",
@@ -65,7 +65,7 @@
       "Press up and slightly forward to a long arm. Shoulder blade glides around the ribcage."
     ]
   },
-  "chest-supported-db-row": {
+  "chest-supported-row": {
     "name": "Chest-Supported Dumbbell Row",
     "category": "strength",
     "focus": "Pulling strength for the rear shoulder and upper back, the muscles that decelerate the arm after every throw.",
@@ -76,7 +76,7 @@
       "Lower slowly to a full stretch. No shrugging."
     ]
   },
-  "half-kneeling-cable-pulldown": {
+  "half-kneeling-pulldown": {
     "name": "Half-Kneeling Cable Pull-Down",
     "category": "strength",
     "focus": "Lat strength from a stable half-kneel. Builds the pull for the throwing arm while the position trains hip stability.",
@@ -87,7 +87,7 @@
       "Control the handle up to a full reach. Keep the glute tight."
     ]
   },
-  "face-pull-er": {
+  "face-pulls": {
     "name": "Face Pulls w/ External Rotation",
     "category": "strength",
     "focus": "Rotator cuff and rear delt work that keeps the throwing shoulder healthy through a long season of throws to second.",
@@ -109,7 +109,7 @@
       "Bring hands back to the chest slowly without twisting."
     ]
   },
-  "box-jump-catcher-crouch": {
+  "catcher-box-jumps": {
     "name": "Box Jumps from Catcher Crouch",
     "category": "strength",
     "focus": "Explosive hip extension from your actual game position. Trains the first step out of the crouch for blocking, bunt coverage and throw-downs.",
@@ -120,7 +120,7 @@
       "Jump up and land softly in a quarter squat on the whole box. Step down, reset."
     ]
   },
-  "lateral-skater-bound": {
+  "lateral-skater-bounds": {
     "name": "Lateral Skater Bounds",
     "category": "strength",
     "focus": "Lateral power and landing control for blocking balls in the dirt and sliding to cover wide pitches.",
@@ -142,7 +142,7 @@
       "Drive the hips forward and squeeze the glutes. Do not lean back at the top."
     ]
   },
-  "heavy-sled-push": {
+  "heavy-sled-pushes": {
     "name": "Heavy Sled Pushes",
     "category": "strength",
     "focus": "Builds leg drive and conditioning with no eccentric load, so you recover fast for the next session.",
@@ -153,7 +153,7 @@
       "Finish the 20 yards, stand up tall, walk back to recover."
     ]
   },
-  "banded-dead-bug": {
+  "dead-bugs": {
     "name": "Weighted / Banded Dead Bugs",
     "category": "strength",
     "focus": "Deep core control that keeps the low back flat and protected while the arms and legs move, which matters in a long, repeated crouch.",
@@ -186,7 +186,7 @@
       "Press up, then keep pushing the floor away so the shoulder blades spread wide."
     ]
   },
-  "chin-up": {
+  "neutral-grip-pullups": {
     "name": "Chin-Ups / Neutral-Grip Pull-Ups",
     "category": "strength",
     "focus": "Upper-back and lat strength, along with the shoulder health that comes from hanging and pulling, for the arm that throws every pitch.",
@@ -208,7 +208,7 @@
       "Finish the 30 yards, lower the bell with control, switch arms."
     ]
   },
-  "band-ytw": {
+  "band-ytw-raises": {
     "name": "Band Y-T-W Raises",
     "category": "strength",
     "focus": "Light, high-quality work for the lower traps and rear delts. Keeps the shoulder blades moving well after repeated throws.",
@@ -219,7 +219,7 @@
       "Lower slowly. Keep the neck relaxed and do not shrug."
     ]
   },
-  "trap-bar-jump-shrug": {
+  "trap-bar-jump-shrugs": {
     "name": "Light Trap Bar Jump Shrugs",
     "category": "strength",
     "focus": "Fast triple extension without heavy loading, which keeps your power high while your legs recover for games.",
@@ -239,7 +239,8 @@
       "Dumbbell at the chest, elbows in, feet shoulder-width, brace.",
       "Sit down between the hips and pause. Chest tall, knees out.",
       "Stand up fast through the heels."
-    ]
+    ],
+    "video": "tempo-goblet-squat"
   },
   "half-kneeling-landmine-press": {
     "name": "Half-Kneeling Landmine Press",
@@ -250,9 +251,10 @@
       "Down knee under the hip, glute squeezed, bar at the shoulder, ribs down.",
       "Lower the bar slowly back to the shoulder. Stay tall.",
       "Press up and forward to a long arm without leaning back."
-    ]
+    ],
+    "video": "landmine-press"
   },
-  "inverted-row": {
+  "inverted-rows": {
     "name": "TRX / Inverted Row",
     "category": "strength",
     "focus": "Pulls the shoulder blades back and balances all the forward-reaching you do as a catcher. Easy on the joints in-season.",
@@ -263,7 +265,7 @@
       "Lower slowly to full arm extension. Keep hips up."
     ]
   },
-  "side-plank-hip-abduction": {
+  "side-plank-abduction": {
     "name": "Side Plank w/ Hip Abduction",
     "category": "strength",
     "focus": "Lateral hip and core strength for stable knees and hips in the crouch and for sliding to block.",
@@ -274,7 +276,7 @@
       "Lower the leg slowly. Keep the hips high for the whole set."
     ]
   },
-  "med-ball-side-slam": {
+  "med-ball-slams": {
     "name": "Med Ball Side-to-Side Slams",
     "category": "strength",
     "focus": "Light rotational power for midweek that primes the hips and trunk without taxing the legs.",
@@ -305,7 +307,8 @@
       "Light band at chest height, arms straight, shoulder blades relaxed.",
       "Pull the band apart to the chest, then rotate the forearms outward with elbows at the sides.",
       "Return slowly. Keep the ribs down and the neck relaxed."
-    ]
+    ],
+    "video": null
   },
   "hip-switch-couch-stretch": {
     "name": "90/90 Hip Switches & Couch Stretch",
@@ -316,9 +319,10 @@
       "Sit in 90/90, torso tall. Then set a back knee against the wall for the couch stretch.",
       "Squeeze the glute of the back leg and breathe slowly through the front of the hip.",
       "Switch sides smoothly and repeat."
-    ]
+    ],
+    "video": "hip-90-90"
   },
-  "mob-90-90-hip-transition": {
+  "hip-90-90": {
     "name": "90/90 Hip Transitions",
     "category": "mobility",
     "focus": "Rotation in both hips for a deep, comfortable crouch and for smoother transitions into the throwing position.",
@@ -329,7 +333,7 @@
       "Reset tall and repeat. Ten smooth switches."
     ]
   },
-  "mob-ankle-rock": {
+  "ankle-rocks": {
     "name": "Half-Kneeling Ankle Dorsiflexion Rocks",
     "category": "mobility",
     "focus": "Ankle mobility is what keeps your heels down in the crouch. It is also the first thing that tightens during a long stretch of catching.",
@@ -340,7 +344,7 @@
       "Rock back and repeat ten times each side."
     ]
   },
-  "mob-adductor-rock-back": {
+  "adductor-rock-backs": {
     "name": "Adductor Rock-Backs",
     "category": "mobility",
     "focus": "Opens the inner thighs so the wide receiving stance does not feel pinched and the groin stays healthy.",
@@ -351,7 +355,7 @@
       "Return forward and repeat ten times each side."
     ]
   },
-  "mob-open-book": {
+  "open-book-rotations": {
     "name": "Open-Book Thoracic Rotations",
     "category": "mobility",
     "focus": "Upper-back rotation that lets the shoulders turn freely when you throw, without borrowing motion from the low back.",
@@ -362,7 +366,7 @@
       "Return and repeat eight times each side."
     ]
   },
-  "mob-sleeper-stretch": {
+  "shoulder-stretch": {
     "name": "Sleeper / Cross-Body Shoulder Stretch",
     "category": "mobility",
     "focus": "Post-game only. Restores the back of the throwing shoulder after a heavy throwing day. Gentle, never painful.",

@@ -1,4 +1,5 @@
 import library from './exercises.json'
+import phases from './phases.json'
 
 export type Program = 'off' | 'in'
 export type Category = 'strength' | 'mobility'
@@ -10,6 +11,7 @@ export interface ExerciseInfo {
   focus: string
   tempo: string
   cues: [string, string, string]
+  video: string | null
 }
 
 export interface WorkoutItem {
@@ -35,12 +37,20 @@ export interface MobilityStep {
   postGame?: boolean
 }
 
-const lib = library as unknown as Record<string, Omit<ExerciseInfo, 'id'>>
+const lib = library as unknown as Record<string, Omit<ExerciseInfo, 'id' | 'video'> & { video?: string | null }>
 
 export function getExercise(id: string): ExerciseInfo {
   const e = lib[id]
   if (!e) throw new Error(`Unknown exercise id: ${id}`)
-  return { id, ...e }
+  return { id, ...e, video: e.video === undefined ? id : e.video }
+}
+
+export const videoSrc = (e: ExerciseInfo): string | null => (e.video ? `/softball/videos/${e.video}.mp4` : null)
+
+const phaseLib = phases as unknown as Record<string, [string, string, string]>
+
+export function phaseTitlesFor(e: ExerciseInfo): [string, string, string] {
+  return phaseLib[e.id] ?? phaseTitles[e.category]
 }
 
 export interface TempoSegment {
@@ -82,7 +92,7 @@ export const days: WorkoutDay[] = [
       { id: 'tempo-goblet-squat', sets: 3, reps: '6', rest: 90 },
       { id: 'copenhagen-plank', sets: 3, reps: '20-30s/side', rest: 60 },
       { id: 'bulgarian-split-squat', sets: 3, reps: '8/leg', rest: 90 },
-      { id: 'seated-calf-raise', sets: 3, reps: '15', rest: 60 },
+      { id: 'seated-calf-raises', sets: 3, reps: '15', rest: 60 },
     ],
   },
   {
@@ -92,9 +102,9 @@ export const days: WorkoutDay[] = [
     title: 'Upper Body Push/Pull & Arm Care',
     items: [
       { id: 'landmine-press', sets: 4, reps: '6/arm', rest: 90 },
-      { id: 'chest-supported-db-row', sets: 4, reps: '8-10', rest: 90 },
-      { id: 'half-kneeling-cable-pulldown', sets: 3, reps: '10/arm', rest: 60 },
-      { id: 'face-pull-er', sets: 3, reps: '15', rest: 60 },
+      { id: 'chest-supported-row', sets: 4, reps: '8-10', rest: 90 },
+      { id: 'half-kneeling-pulldown', sets: 3, reps: '10/arm', rest: 60 },
+      { id: 'face-pulls', sets: 3, reps: '15', rest: 60 },
       { id: 'pallof-press', sets: 3, reps: '12/side', rest: 60 },
     ],
   },
@@ -104,11 +114,11 @@ export const days: WorkoutDay[] = [
     pill: 'Day 3: Explosive Pop',
     title: 'Lower Body Explosiveness & Agility',
     items: [
-      { id: 'box-jump-catcher-crouch', sets: 4, reps: '4', rest: 90 },
-      { id: 'lateral-skater-bound', sets: 3, reps: '6/side', rest: 60 },
+      { id: 'catcher-box-jumps', sets: 4, reps: '4', rest: 90 },
+      { id: 'lateral-skater-bounds', sets: 3, reps: '6/side', rest: 60 },
       { id: 'romanian-deadlift', sets: 3, reps: '8', rest: 90 },
-      { id: 'heavy-sled-push', sets: 4, reps: '20 yds', rest: 90 },
-      { id: 'banded-dead-bug', sets: 3, reps: '10/side', rest: 60 },
+      { id: 'heavy-sled-pushes', sets: 4, reps: '20 yds', rest: 90 },
+      { id: 'dead-bugs', sets: 3, reps: '10/side', rest: 60 },
     ],
   },
   {
@@ -119,9 +129,9 @@ export const days: WorkoutDay[] = [
     items: [
       { id: 'med-ball-scoop-toss', sets: 4, reps: '5/side', rest: 60 },
       { id: 'push-up-plus', sets: 3, reps: '12', rest: 60 },
-      { id: 'chin-up', sets: 3, reps: 'AMRAP', rest: 90 },
+      { id: 'neutral-grip-pullups', sets: 3, reps: 'AMRAP', rest: 90 },
       { id: 'bottoms-up-kb-carry', sets: 3, reps: '30 yds/arm', rest: 60 },
-      { id: 'band-ytw', sets: 2, reps: '10 each', rest: 60 },
+      { id: 'band-ytw-raises', sets: 2, reps: '10 each', rest: 60 },
     ],
   },
   {
@@ -130,11 +140,11 @@ export const days: WorkoutDay[] = [
     pill: 'Workout A: Early Week',
     title: 'Early Week: Power & Strength Maintenance',
     items: [
-      { id: 'trap-bar-jump-shrug', sets: 3, reps: '4', rest: 90 },
+      { id: 'trap-bar-jump-shrugs', sets: 3, reps: '4', rest: 90 },
       { id: 'goblet-squat-pause', sets: 3, reps: '5', rest: 60 },
       { id: 'half-kneeling-landmine-press', sets: 3, reps: '6/arm', rest: 60 },
-      { id: 'inverted-row', sets: 3, reps: '10', rest: 60 },
-      { id: 'side-plank-hip-abduction', sets: 2, reps: '20s/side', rest: 60 },
+      { id: 'inverted-rows', sets: 3, reps: '10', rest: 60 },
+      { id: 'side-plank-abduction', sets: 2, reps: '20s/side', rest: 60 },
     ],
   },
   {
@@ -143,7 +153,7 @@ export const days: WorkoutDay[] = [
     pill: 'Workout B: Mid-Week',
     title: 'Mid-Week Recovery & Rotation',
     items: [
-      { id: 'med-ball-side-slam', sets: 3, reps: '5/side', rest: 60 },
+      { id: 'med-ball-slams', sets: 3, reps: '5/side', rest: 60 },
       { id: 'single-leg-rdl', sets: 3, reps: '6/leg', rest: 60 },
       { id: 'band-pull-apart-er', sets: 3, reps: '15 each', rest: 60 },
       { id: 'hip-switch-couch-stretch', sets: 2, reps: '45s/side', rest: 60 },
@@ -152,11 +162,11 @@ export const days: WorkoutDay[] = [
 ]
 
 export const mobilityRoutine: MobilityStep[] = [
-  { id: 'mob-90-90-hip-transition', reps: '10 reps', seconds: 45, sides: 2 },
-  { id: 'mob-ankle-rock', reps: '10/side', seconds: 45, sides: 2 },
-  { id: 'mob-adductor-rock-back', reps: '10/side', seconds: 45, sides: 2 },
-  { id: 'mob-open-book', reps: '8/side', seconds: 45, sides: 2 },
-  { id: 'mob-sleeper-stretch', reps: '30s/side', seconds: 30, sides: 2, postGame: true },
+  { id: 'hip-90-90', reps: '10 reps', seconds: 45, sides: 2 },
+  { id: 'ankle-rocks', reps: '10/side', seconds: 45, sides: 2 },
+  { id: 'adductor-rock-backs', reps: '10/side', seconds: 45, sides: 2 },
+  { id: 'open-book-rotations', reps: '8/side', seconds: 45, sides: 2 },
+  { id: 'shoulder-stretch', reps: '30s/side', seconds: 30, sides: 2, postGame: true },
 ]
 
 export const phaseTitles: Record<Category, [string, string, string]> = {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { phaseTitles, formatTempo } from '../data/workouts'
+import { formatTempo, phaseTitlesFor } from '../data/workouts'
 import type { ExerciseInfo } from '../data/workouts'
 import { prefersReducedMotion } from '../lib/audio'
 
@@ -8,7 +8,7 @@ const STEP_MS = 3000
 export default function FormBreakdown({ exercise }: { exercise: ExerciseInfo }) {
   const [step, setStep] = useState(0)
   const [auto, setAuto] = useState(() => !prefersReducedMotion())
-  const titles = phaseTitles[exercise.category]
+  const titles = phaseTitlesFor(exercise)
 
   useEffect(() => {
     if (!auto) return

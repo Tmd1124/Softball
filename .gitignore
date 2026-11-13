@@ -16,3 +16,5 @@ public/api/*.sqlite
 .env.deploy
 .initial-credentials.txt
 .local/
+assets/frames/*
+!assets/frames/.gitkeep

@@ -1,0 +1,505 @@
+﻿import argparse
+import base64
+import io
+import json
+import mimetypes
+import os
+import time
+import urllib.error
+import urllib.request
+import uuid
+from PIL import Image, ImageDraw
+from moviepy import ImageClip, concatenate_videoclips
+
+os.makedirs("assets/frames", exist_ok=True)
+os.makedirs("public/videos", exist_ok=True)
+os.makedirs("scripts", exist_ok=True)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+ATHLETE_REF_PATH = "assets/athlete_ref.png"
+
+STYLE_PREFIX = (
+    "Keep the exact same female softball athlete from the reference image (same face, hair, "
+    "build, and athletic outfit). Place her inside a clean modern indoor athletic strength "
+    "facility with dark slate rubber flooring and matte black squat racks in soft background blur, "
+    "vertical 9:16 framing, 3/4 front-side camera angle, crisp overhead studio gym lighting, "
+    "anatomically accurate biomechanics, clean instructional fitness photography, no text or watermarks"
+)
+
+EXERCISES = [
+    {
+        "id": "trap-bar-deadlift",
+        "name": "Trap Bar Deadlift",
+        "tempo": "2s PULL • 1s LOCK • 2s LOWER",
+        "cue": "Flat spine, push the floor away, lock hips at top.",
+        "phases": ["1. Hip Hinge Setup", "2. Mid-Pull Drive", "3. Full Hip Lockout"],
+        "prompts": [
+            "athlete standing inside a hex trap bar with feet hip-width apart, hips hinged back, flat neutral spine, chest proud, hands gripping the high handles tightly, shins vertical, ready to pull.",
+            "athlete halfway through a hex trap bar deadlift, bar lifted just past knee height, quads and glutes visibly engaged, back completely flat, arms straight like hooks.",
+            "athlete standing tall at the top lockout of a hex trap bar deadlift, hips fully extended, shoulders pulled back and down, holding the hex bar at mid-thigh level."
+        ]
+    },
+    {
+        "id": "tempo-goblet-squat",
+        "name": "Tempo Goblet Squat",
+        "tempo": "3s LOWER • 3s PAUSE • EXPLODE",
+        "cue": "Elbows inside knees, heels flat, hold deep catcher stance.",
+        "phases": ["1. Braced Top Stance", "2. 3-Sec Deep Pause", "3. Explosive Ascent"],
+        "prompts": [
+            "athlete standing with feet slightly wider than shoulder-width, holding a heavy black dumbbell vertically against her upper chest with both hands, elbows tucked down, braced core.",
+            "athlete holding the bottom of a deep goblet squat, hip crease below parallel, elbows inside knees, heels planted flat on the floor, chest upright, holding the dumbbell at chest height.",
+            "athlete driving upward out of the bottom of a goblet squat, three-quarters of the way to standing, knees tracking over toes, torso upright, holding dumbbell securely at chest."
+        ]
+    },
+    {
+        "id": "copenhagen-plank",
+        "name": "Copenhagen Plank",
+        "tempo": "25s ISOMETRIC HOLD / SIDE",
+        "cue": "Stack hips squarely, squeeze top inner thigh on bench.",
+        "phases": ["1. Bench Side Setup", "2. Hip Lift Alignment", "3. Isometric Hold"],
+        "prompts": [
+            "athlete lying on her right side next to a flat black weight bench, right forearm planted on the floor under her shoulder, top left inner foot resting on top of the bench pad, bottom leg resting on the floor.",
+            "athlete holding a strict Copenhagen side plank, body lifted in a straight line from head to ankle supported by her right forearm on the floor and top left inner foot on a flat weight bench, bottom right leg hovering off the floor tucked under the bench.",
+            "slightly closer 3/4 angle of athlete holding a Copenhagen side plank on a weight bench, hips stacked squarely without sagging, core braced, left hand on hip."
+        ]
+    },
+    {
+        "id": "bulgarian-split-squat",
+        "name": "Bulgarian Split Squat",
+        "tempo": "3s LOWER • 1s PAUSE • DRIVE",
+        "cue": "Shin vertical, drive hard through front heel.",
+        "phases": ["1. Split Stance Setup", "2. Deep Lunge Control", "3. Front-Heel Drive"],
+        "prompts": [
+            "athlete in a split stance holding a dumbbell in each hand at her sides, left foot planted flat forward, top of right foot resting behind her on a low padded roller bench, torso upright.",
+            "athlete at the bottom of a Bulgarian split squat, front left thigh parallel to the floor, rear right knee hovering two inches above the ground, torso slightly hinged forward over the front mid-foot, holding dumbbells at sides.",
+            "athlete pushing strongly through her front left heel to rise out of a Bulgarian split squat, front leg nearly extended, dumbbells hanging straight down at sides, balanced posture."
+        ]
+    },
+    {
+        "id": "seated-calf-raises",
+        "name": "Seated Calf Raises",
+        "tempo": "2s STRETCH • 2s SQUEEZE",
+        "cue": "Full ankle range to stabilize heels in deep crouch.",
+        "phases": ["1. Deep Heel Drop", "2. Mid-Range Press", "3. Peak Soleus Hold"],
+        "prompts": [
+            "side-angle view of athlete seated on a weight bench with the balls of her feet elevated on a low aerobic step block and a heavy dumbbell resting across her lower thighs, heels dropped below the step level in a deep calf stretch.",
+            "side-angle view of athlete performing seated calf raises on a step block with a dumbbell on her knees, heels rising upward past neutral level, soleus and calf muscles contracted.",
+            "side-angle view of athlete at the top peak of a seated calf raise, balanced high on the balls of her feet on the edge of the step block, ankles fully plantarflexed, holding dumbbell steady on knees."
+        ]
+    },
+    {
+        "id": "landmine-press",
+        "name": "Landmine Press",
+        "tempo": "1s PRESS • 2s CONTROL LOWER",
+        "cue": "45-degree arc allows safe upward scapular rotation.",
+        "phases": ["1. Shoulder Rack", "2. 45-Deg Press Arc", "3. Overhead Lockout"],
+        "prompts": [
+            "athlete standing in a staggered athletic stance holding the end of an angled barbell loaded into a floor landmine attachment at her right shoulder with her right hand, core braced.",
+            "athlete pressing an angled landmine barbell upward and forward at a 45-degree angle with her right arm, elbow tracking smoothly, left hand braced on her ribcage.",
+            "athlete at full extension of a single-arm landmine press, right arm locked out overhead at a diagonal angle, shoulder blade upward-rotated cleanly, torso squared forward."
+        ]
+    },
+    {
+        "id": "chest-supported-row",
+        "name": "Chest-Supported DB Row",
+        "tempo": "1s ROW • 2s SQUEEZE • 2s LOWER",
+        "cue": "Drive elbows to ribs, pinch shoulder blades together.",
+        "phases": ["1. Full Scap Stretch", "2. Mid-Row Pull", "3. Upper-Back Squeeze"],
+        "prompts": [
+            "athlete lying face-down chest-supported on a 30-degree incline weight bench, holding a dumbbell in each hand with arms hanging straight down toward the floor, shoulder blades protracted.",
+            "athlete rowing two dumbbells upward while chest-supported on an incline bench, elbows driving past the torso at a 45-degree angle, neutral grip.",
+            "athlete at the top of a chest-supported dumbbell row on an incline bench, dumbbells pulled up to rib height, shoulder blades squeezed tightly together, neck neutral."
+        ]
+    },
+    {
+        "id": "half-kneeling-pulldown",
+        "name": "Half-Kneeling Pulldown",
+        "tempo": "1s PULL • 2s LOWER",
+        "cue": "Ribs down, pull elbow tight to hip without leaning.",
+        "phases": ["1. Overhead Reach", "2. Lat Drive Down", "3. Rib-Level Lock"],
+        "prompts": [
+            "athlete in a tall half-kneeling stance facing a high cable pulley machine, left knee down on a foam pad, right foot planted forward, right arm extended straight overhead gripping a single cable D-handle.",
+            "athlete pulling a single high-cable handle downward in a half-kneeling stance, right elbow driving down and inward toward her hip, torso tall without leaning back.",
+            "athlete at the bottom of a single-arm half-kneeling cable pulldown, right hand pulled down to shoulder height with elbow tucked tightly to her side, lat visibly engaged."
+        ]
+    },
+    {
+        "id": "face-pulls",
+        "name": "Face Pulls + Ext Rotation",
+        "tempo": "1s PULL • 2s HOLD • 2s RETURN",
+        "cue": "Thumbs back at ears to armor rotator cuff.",
+        "phases": ["1. Extended Grip", "2. High Elbow Pull", "3. External Rotation"],
+        "prompts": [
+            "athlete standing facing an eye-level cable pulley holding a double-rope attachment with thumbs pointing backward, arms extended straight in front of her, staggered foot stance.",
+            "athlete pulling a cable rope attachment toward her forehead while flaring her elbows out high and wide at shoulder height.",
+            "athlete at the finish position of a cable face pull, hands pulled beside her ears with knuckles rotated backward in a double-biceps pose, rear delts and upper back contracted."
+        ]
+    },
+    {
+        "id": "pallof-press",
+        "name": "Pallof Press",
+        "tempo": "2s PRESS • 3s HOLD • 2s RETURN",
+        "cue": "Resist cable rotation; keep sternum squared.",
+        "phases": ["1. Sternum Center", "2. Mid-Press Brace", "3. Full Anti-Rotation"],
+        "prompts": [
+            "athlete standing perpendicular to a chest-high cable machine in an athletic quarter-squat stance, holding a cable D-handle with both hands interlocked tightly against the center of her sternum.",
+            "athlete pressing a cable handle straight out from her chest perpendicular to the cable tension, resisting torso rotation, abs and glutes tightly braced.",
+            "athlete holding a cable handle with arms fully extended straight in front of her chest against lateral cable resistance, shoulders and hips completely square and motionless."
+        ]
+    },
+    {
+        "id": "catcher-box-jumps",
+        "name": "Catcher Crouch Box Jumps",
+        "tempo": "2s CROUCH • EXPLODE • SOFT LAND",
+        "cue": "Start from low catcher stance; explode onto box.",
+        "phases": ["1. Catcher Crouch", "2. Triple Extension", "3. Soft Quiet Land"],
+        "prompts": [
+            "athlete sitting in a deep softball catcher's squat crouch in front of a 24-inch black plyometric box, hips low, chest up, arms cocked back ready to explode.",
+            "action freeze-frame of athlete airborne leaping upward from a deep squat onto a 24-inch plyometric box, knees tucked high, arms swinging upward.",
+            "athlete landing softly in an athletic half-squat stance on top of a 24-inch plyometric box, both feet flat on the box surface, arms forward for balance."
+        ]
+    },
+    {
+        "id": "lateral-skater-bounds",
+        "name": "Lateral Skater Bounds",
+        "tempo": "EXPLODE LATERALLY • 2s STICK",
+        "cue": "Push off outside edge for fast dirt-ball blocks.",
+        "phases": ["1. Single-Leg Load", "2. Lateral Flight", "3. Single-Leg Stick"],
+        "prompts": [
+            "athlete loaded deeply onto her outside right leg in a low lateral athletic crouch, torso angled slightly forward, left leg lifted behind her, arms coiled to push laterally.",
+            "dynamic mid-air freeze-frame of athlete bounding sideways across the gym floor from right to left, body extended horizontally in flight, arms driving across.",
+            "athlete sticking a balanced single-leg landing on her left foot after a lateral bound, knee aligned over toes, absorbing force cleanly in an athletic hip hinge."
+        ]
+    },
+    {
+        "id": "romanian-deadlift",
+        "name": "Romanian Deadlift (RDL)",
+        "tempo": "3s HINGE • 1s STRETCH • 1s DRIVE",
+        "cue": "Push hips straight back; keep bar close to shins.",
+        "phases": ["1. Top Hip Lock", "2. Mid-Shin Stretch", "3. Glute Snap Return"],
+        "prompts": [
+            "athlete standing tall holding a loaded Olympic barbell at mid-thigh with an overhand grip, knees softly unlocked, shoulders pinned back.",
+            "side-3/4 view of athlete at the bottom of a Romanian deadlift, hips pushed far back, flat neutral spine parallel to the floor, barbell hovering right at mid-shin height close to legs.",
+            "athlete driving hips forward from a Romanian deadlift to return to standing, barbell gliding up the thighs, flat back maintained throughout."
+        ]
+    },
+    {
+        "id": "heavy-sled-pushes",
+        "name": "Heavy Sled Pushes",
+        "tempo": "MAX DRIVE • 20 YARDS",
+        "cue": "45-degree torso lean, punch knees fast.",
+        "phases": ["1. 45-Deg Lean", "2. High Knee Drive", "3. Full Rear Extension"],
+        "prompts": [
+            "side-angle view of athlete gripping the vertical poles of a weighted black prowler sled on indoor turf, arms locked out, body leaned forward at a strict 45-degree sprint angle.",
+            "side-angle action shot of athlete driving a heavy weighted prowler sled forward across green indoor turf, right knee driving high toward chest, left leg fully extended pushing off the ball of the foot.",
+            "side-angle action shot of athlete pushing a weighted prowler sled across indoor turf, left leg driving forward with low shin angle, flat spine aligned from head to rear heel."
+        ]
+    },
+    {
+        "id": "dead-bugs",
+        "name": "Weighted Dead Bugs",
+        "tempo": "3s EXTEND • 1s HOLD • 2s RETURN",
+        "cue": "Press lower back flat into floor; zero rib flare.",
+        "phases": ["1. 90/90 Tabletop", "2. Right Leg Reach", "3. Left Leg Reach"],
+        "prompts": [
+            "athlete lying flat on her back on a black exercise mat holding a light kettlebell straight up over her chest with both hands, legs raised in a 90-degree tabletop position, lower back pressed flat into the mat.",
+            "athlete lying on her back performing a weighted dead bug, holding a kettlebell straight above her chest while extending her right leg straight out two inches above the floor, left knee held at 90 degrees.",
+            "athlete lying on her back holding a kettlebell straight above her chest while extending her left leg straight out hovering above the floor, lower back completely flat with zero arch."
+        ]
+    },
+    {
+        "id": "med-ball-scoop-toss",
+        "name": "Med Ball Scoop Toss",
+        "tempo": "COIL • EXPLOSIVE HIP WHIP",
+        "cue": "Fire back hip first to replicate 2B throw-downs.",
+        "phases": ["1. Back-Hip Coil", "2. Hip-Torso Whip", "3. Wall Release"],
+        "prompts": [
+            "athlete standing sideways to a concrete throw wall in an athletic catcher's stance, holding an 8-lb black medicine ball loaded low outside her back right hip, torso coiled.",
+            "dynamic action shot of athlete pivoting her back right foot and rotating her hips explosively toward the wall, whipping the medicine ball forward from hip height.",
+            "follow-through freeze-frame of athlete releasing an 8-lb medicine ball horizontally into a concrete wall, hips and shoulders squared to the target, arms extended forward."
+        ]
+    },
+    {
+        "id": "push-up-plus",
+        "name": "Push-Up Plus",
+        "tempo": "2s LOWER • 1s PRESS • 2s PLUS",
+        "cue": "Push floor away at top to protract shoulder blades.",
+        "phases": ["1. High Plank", "2. Chest Hover", "3. Scapular Protract"],
+        "prompts": [
+            "athlete in a crisp high plank push-up position on the gym floor, hands directly under shoulders, body straight from head to heels.",
+            "athlete at the bottom of a strict push-up with elbows tucked at 45 degrees and chest hovering two inches off the floor, core tight.",
+            "athlete at the top of a push-up plus with arms locked out and upper back actively rounded upward to push the shoulder blades apart, engaging the serratus anterior."
+        ]
+    },
+    {
+        "id": "neutral-grip-pullups",
+        "name": "Neutral-Grip Pull-Ups",
+        "tempo": "1s PULL • 3s CONTROL LOWER",
+        "cue": "Chest to bar, shoulders packed away from ears.",
+        "phases": ["1. Packed Dead Hang", "2. Mid-Pull Drive", "3. Chin Over Bar"],
+        "prompts": [
+            "athlete hanging at full arm extension from parallel neutral-grip pull-up handles on a squat rack, shoulders packed down away from ears, legs straight.",
+            "athlete halfway up a neutral-grip pull-up, elbows driving down toward her ribs, torso upright without swinging.",
+            "athlete at the top of a neutral-grip pull-up with chin clearly above the parallel handles, chest lifted toward the bar, upper back fully contracted."
+        ]
+    },
+    {
+        "id": "bottoms-up-kb-carry",
+        "name": "Bottoms-Up KB Carry",
+        "tempo": "30 YARDS STEADY WALK / ARM",
+        "cue": "Crush handle, keep elbow at 90 degrees, wrist straight.",
+        "phases": ["1. 90-Deg Rack", "2. Braced Stride", "3. Cuff Stabilization"],
+        "prompts": [
+            "athlete standing tall holding a kettlebell inverted upside-down in her right hand with the heavy bell balanced straight up above her fist, elbow bent at 90 degrees at shoulder height.",
+            "athlete walking forward in a controlled farmer's carry while balancing an upside-down kettlebell vertically in her right hand at 90 degrees, shoulders level, left arm at side.",
+            "closer waist-up shot of athlete walking while holding an inverted bottoms-up kettlebell upright at shoulder level, wrist straight and neutral, forearm muscles engaged."
+        ]
+    },
+    {
+        "id": "band-ytw-raises",
+        "name": "Band Y-T-W Raises",
+        "tempo": "10 Y • 10 T • 10 W REPS",
+        "cue": "Light tension; target lower traps and rhomboids.",
+        "phases": ["1. Overhead Y", "2. Horizontal T", "3. External W"],
+        "prompts": [
+            "athlete standing in a slight athletic hinge pulling a light red resistance band anchored in front of her upward and outward into a wide overhead Y shape, thumbs pointing back.",
+            "athlete pulling a light resistance band straight out to her sides at shoulder height forming a horizontal T shape, squeezing shoulder blades together.",
+            "athlete pulling a resistance band back with elbows bent at 90 degrees and wrists rotated outward forming a W shape, lower traps engaged."
+        ]
+    },
+    {
+        "id": "trap-bar-jump-shrugs",
+        "name": "Trap Bar Jump Shrugs",
+        "tempo": "DIP • EXPLOSIVE TRIPLE EXTEND",
+        "cue": "Light load, maximum bar velocity and shrug.",
+        "phases": ["1. Quarter-Squat Dip", "2. Explosive Shrug", "3. Soft Athletic Catch"],
+        "prompts": [
+            "athlete holding a lightly loaded hex trap bar at mid-thigh, dipped into an athletic quarter-squat power position with flat back and loaded hips.",
+            "action shot of athlete exploding upward from a quarter-squat with a light hex trap bar, rising onto the balls of her feet with shoulders shrugging violently upward.",
+            "athlete landing softly back into an athletic quarter-squat position holding the hex trap bar at thigh level, absorbing impact cleanly."
+        ]
+    },
+    {
+        "id": "inverted-rows",
+        "name": "TRX / Inverted Rows",
+        "tempo": "1s ROW • 1s PAUSE • 2s LOWER",
+        "cue": "Body rigid like a plank; pull chest to handles.",
+        "phases": ["1. Rigid Hang", "2. Mid-Row Pull", "3. Top Chest Squeeze"],
+        "prompts": [
+            "athlete suspended beneath yellow-and-black TRX suspension straps at a 45-degree body angle, heels planted on the floor, arms straight, body rigid like a plank.",
+            "athlete pulling her chest upward toward TRX suspension handles, elbows driving straight back beside her torso, hips held high.",
+            "athlete at the top of a TRX inverted row with hands pulled right beside her lower ribs, shoulder blades pinched together, body in a straight line."
+        ]
+    },
+    {
+        "id": "side-plank-abduction",
+        "name": "Side Plank + Hip Abduction",
+        "tempo": "20s HOLD + SLOW LEG LIFTS",
+        "cue": "Keep hips stacked; lift top heel slightly back.",
+        "phases": ["1. Side Plank Base", "2. Top Leg Raise", "3. Glute Med Hold"],
+        "prompts": [
+            "athlete holding a standard right-elbow side plank on an exercise mat, feet stacked, hips lifted straight off the ground, left hand on hip.",
+            "athlete holding a right-elbow side plank while raising her top left leg straight upward to a 45-degree angle with foot flexed, engaging the glute medius.",
+            "athlete holding the peak top-leg abduction in a side plank, hips completely stacked and level without rolling backward."
+        ]
+    },
+    {
+        "id": "med-ball-slams",
+        "name": "Side-to-Side Med Ball Slams",
+        "tempo": "REACH • ROTATIONAL SLAM",
+        "cue": "Slam outside each foot with full core rotation.",
+        "phases": ["1. Overhead Reach", "2. Right Side Slam", "3. Left Side Slam"],
+        "prompts": [
+            "athlete standing with feet shoulder-width apart reaching straight overhead with a 10-lb rubber slam ball held in both hands, standing tall.",
+            "dynamic action shot of athlete rotating her torso to the right and slamming a 10-lb slam ball forcefully onto the floor just outside her right foot, hips hinged back.",
+            "dynamic action shot of athlete rotating to the left and slamming a 10-lb slam ball onto the gym floor outside her left foot in an athletic squat."
+        ]
+    },
+    {
+        "id": "single-leg-rdl",
+        "name": "Single-Leg RDL",
+        "tempo": "3s HINGE • 1s BALANCE • DRIVE",
+        "cue": "Keep hips level to floor; hinge on slightly bent knee.",
+        "phases": ["1. Single-Leg Balance", "2. Horizontal T-Hinge", "3. Hip Snap Return"],
+        "prompts": [
+            "athlete standing tall balanced on her left leg with a light dumbbell held in her right hand, right foot hovering slightly off the floor.",
+            "side-3/4 view of athlete at the bottom of a single-leg Romanian deadlift, torso and extended rear right leg forming a straight horizontal T-line parallel to the floor, dumbbell lowered to mid-shin.",
+            "athlete returning upright from a single-leg Romanian deadlift on her left leg, hips squared to the floor, core braced."
+        ]
+    },
+    {
+        "id": "hip-90-90",
+        "name": "90/90 Hip Transitions",
+        "tempo": "10 SMOOTH SWITCHES",
+        "cue": "Sit tall, rotate knees smoothly side to side.",
+        "phases": ["1. Left 90/90 Base", "2. Open Bear Switch", "3. Right 90/90 Base"],
+        "prompts": [
+            "athlete seated upright on a black exercise mat in a 90/90 hip position, front left leg bent at 90 degrees in front of her and rear right leg bent at 90 degrees out to her side, hands light on the floor.",
+            "athlete mid-transition in a 90/90 hip switch, seated on the floor with both knees splayed wide open and heels planted on the mat, chest lifted tall.",
+            "athlete rotated smoothly into the opposite 90/90 hip position on a mat, front right leg bent at 90 degrees in front and left leg bent at 90 degrees to the side."
+        ]
+    },
+    {
+        "id": "ankle-rocks",
+        "name": "Ankle Dorsiflexion Rocks",
+        "tempo": "10 ROCKS / SIDE (2s HOLD)",
+        "cue": "Drive knee past toes while keeping heel glued down.",
+        "phases": ["1. Half-Kneel Start", "2. Forward Knee Drive", "3. End-Range Hold"],
+        "prompts": [
+            "side-angle view of athlete in a half-kneeling stance on a mat with right foot planted flat forward at a 90-degree knee angle, hands resting on her front thigh.",
+            "side-angle view of athlete rocking her front right knee forward far past her toes while keeping her right heel planted firmly flat on the mat, stretching the ankle joint.",
+            "close-up side view of athlete's front ankle in deep dorsiflexion during a half-kneeling ankle rock, knee over toes, heel glued down to the floor."
+        ]
+    },
+    {
+        "id": "adductor-rock-backs",
+        "name": "Adductor Rock-Backs",
+        "tempo": "10 ROCKS / SIDE (2s HOLD)",
+        "cue": "Flat spine, sit hips back toward heel for groin stretch.",
+        "phases": ["1. Quadruped Leg-Out", "2. Mid-Rock Back", "3. Deep Groin Stretch"],
+        "prompts": [
+            "athlete on hands and knees in a quadruped tabletop position on a mat with her right leg extended straight out to the side, right foot planted flat on the floor.",
+            "athlete rocking her hips backward toward her left heel while keeping her right leg extended straight out to the side and spine completely flat.",
+            "athlete sitting her hips back onto her left heel in an adductor rock-back with her right leg extended straight out to the side, stretching the inner thigh and groin."
+        ]
+    },
+    {
+        "id": "open-book-rotations",
+        "name": "Open-Book Thoracic Rotations",
+        "tempo": "8 ROTATIONS / SIDE",
+        "cue": "Pin top knee to roller; open chest to ceiling.",
+        "phases": ["1. Side-Lying Closed", "2. Mid-Sweep Reach", "3. Full Open Chest"],
+        "prompts": [
+            "athlete lying on her right side on a mat with her top left knee bent at 90 degrees resting on a foam roller, both arms extended straight out in front of her chest with palms together.",
+            "athlete performing an open-book thoracic rotation on a mat, sweeping her top left arm up toward the ceiling while keeping her left knee pinned down on the foam roller.",
+            "athlete at the end range of an open-book thoracic rotation, left arm opened all the way across to the floor behind her, upper back rotated while knees stay stacked on the foam roller."
+        ]
+    },
+    {
+        "id": "shoulder-stretch",
+        "name": "Posterior Shoulder Stretch",
+        "tempo": "30s POST-GAME HOLD",
+        "cue": "Pull arm across chest while keeping shoulder down.",
+        "phases": ["1. Arm Across Chest", "2. Gentle Elbow Hook", "3. Posterior Release"],
+        "prompts": [
+            "waist-up shot of athlete standing tall in the gym bringing her right throwing arm horizontally across her chest at shoulder height.",
+            "waist-up shot of athlete hooking her left forearm gently behind her right elbow to draw her right arm across her chest, keeping her right shoulder blade depressed down away from her ear.",
+            "3/4 rear angle of athlete performing a cross-body posterior shoulder stretch, showing the back of her throwing shoulder lengthening cleanly without shrugging."
+        ]
+    }
+]
+
+with open("scripts/image_prompts.json", "w") as f:
+    json.dump({"style_prefix": STYLE_PREFIX, "exercises": EXERCISES}, f, indent=2)
+
+
+def generate_openai_edit(prompt: str, out_path: str) -> bool:
+    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
+    body = bytearray()
+
+    def add_field(name: str, value: str):
+        body.extend(f"--{boundary}\r\n".encode("utf-8"))
+        body.extend(f'Content-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode("utf-8"))
+
+    add_field("model", "gpt-image-2.5-sunburst")
+    add_field("prompt", prompt)
+    add_field("size", "1024x1536")
+    add_field("quality", "medium")
+
+
+    mime_type = mimetypes.guess_type(ATHLETE_REF_PATH)[0] or "image/png"
+    with open(ATHLETE_REF_PATH, "rb") as f:
+        file_bytes = f.read()
+
+    body.extend(f"--{boundary}\r\n".encode("utf-8"))
+    body.extend(
+        f'Content-Disposition: form-data; name="image"; filename="{os.path.basename(ATHLETE_REF_PATH)}"\r\n'
+        f"Content-Type: {mime_type}\r\n\r\n".encode("utf-8")
+    )
+    body.extend(file_bytes)
+    body.extend(f"\r\n--{boundary}--\r\n".encode("utf-8"))
+
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/images/edits",
+        data=bytes(body),
+        headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            b64 = data["data"][0]["b64_json"]
+            img = Image.open(io.BytesIO(base64.b64decode(b64))).convert("RGB")
+            img = img.resize((1080, 1920), Image.Resampling.LANCZOS)
+            img.save(out_path)
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore")
+        raise SystemExit(f"\nOPENAI API ERROR (HTTP {e.code}):\n{err_body}\n") from e
+    return True
+
+
+def build_frame_with_overlay(raw_img: Image.Image, ex: dict, phase: str, idx: int) -> Image.Image:
+    W, H = 1080, 1920
+    img = raw_img.resize((W, H), Image.Resampling.LANCZOS).convert("RGBA")
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    draw.rectangle([0, 0, W, 220], fill=(15, 23, 42, 225))
+    draw.rectangle([0, 214, W, 220], fill=(245, 158, 11, 255))
+    draw.text((50, 48), ex["name"].upper(), fill=(248, 250, 252, 255))
+    draw.text((50, 118), f"TEMPO: {ex['tempo']}   |   PHASE {idx}/3: {phase}", fill=(245, 158, 11, 255))
+
+    draw.rectangle([0, H - 240, W, H], fill=(2, 6, 23, 230))
+    draw.rectangle([0, H - 240, W, H - 234], fill=(245, 158, 11, 255))
+    draw.text((50, H - 190), "CATCHER COACHING FOCUS:", fill=(245, 158, 11, 255))
+    draw.text((50, H - 125), ex["cue"], fill=(248, 250, 252, 255))
+
+    return Image.alpha_composite(img, overlay).convert("RGB")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only", type=str, default="", help="Generate only a single exercise ID")
+    args = parser.parse_args()
+
+    if not OPENAI_API_KEY:
+        raise SystemExit("ERROR: Set $env:OPENAI_API_KEY='sk-...' first.")
+    if not os.path.exists(ATHLETE_REF_PATH):
+        raise SystemExit(f"ERROR: Place your athlete reference photo at {ATHLETE_REF_PATH} first.")
+
+    print(f"Using reference photo: {ATHLETE_REF_PATH} with OpenAI gpt-image-2.5-sunburst")
+
+    target_exercises = [e for e in EXERCISES if not args.only or e["id"] == args.only]
+    if not target_exercises:
+        raise SystemExit(f"ERROR: Exercise ID '{args.only}' not found.")
+
+    for ex in target_exercises:
+        clips = []
+        for idx, (phase, prompt_body) in enumerate(zip(ex["phases"], ex["prompts"]), start=1):
+            raw_path = f"assets/frames/{ex['id']}_{idx}_raw.png"
+            final_frame_path = f"assets/frames/{ex['id']}_{idx}.png"
+
+            if not os.path.exists(raw_path):
+                full_prompt = f"{STYLE_PREFIX}, {prompt_body}"
+                print(f"Generating frame {idx}/3 for {ex['id']}...")
+                generate_openai_edit(full_prompt, raw_path)
+                time.sleep(0.5)
+
+            raw_img = Image.open(raw_path)
+            composited = build_frame_with_overlay(raw_img, ex, phase, idx)
+            composited.save(final_frame_path)
+            clips.append(ImageClip(final_frame_path).with_duration(1.8))
+
+        video_path = f"public/videos/{ex['id']}.mp4"
+        final_clip = concatenate_videoclips(clips, method="compose")
+        final_clip.write_videofile(video_path, fps=24, codec="libx264", audio=False, logger=None)
+        print(f"Compiled video: {video_path}")
+
+    print("Done!")
+
+
+if __name__ == "__main__":
+    main()
+

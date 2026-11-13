@@ -9,8 +9,10 @@ import VideoPlayerModal from './components/VideoPlayerModal'
 import { days, getExercise } from './data/workouts'
 import type { Program, WorkoutItem } from './data/workouts'
 import HistoryView from './components/HistoryView'
+import RebuildVideos from './components/RebuildVideos'
 import { MOBILITY_DAY, useAthleteData } from './lib/data'
 import { useSyncStatus } from './lib/sync'
+import { useAuth } from './lib/auth'
 import { usePersisted } from './lib/storage'
 
 interface Selection {
@@ -31,6 +33,7 @@ export default function App() {
   const [sel, setSel] = usePersisted<Selection>('catcher.selection.v1', { program: 'off', dayId: 'off-1' })
   const { entries, getEntry, getSets, save, resetDay } = useAthleteData()
   const sync = useSyncStatus()
+  const isAdmin = useAuth().user?.role === 'admin'
 
   const day = days.find((d) => d.id === sel.dayId && d.program === sel.program) ?? days[0]
   const program = day.program
@@ -90,6 +93,8 @@ export default function App() {
               if (window.confirm(`Reset all progress for "${day.pill}"?`)) resetDay(day.id)
             }}
           />
+        ) : tab === 'rebuild' && isAdmin ? (
+          <RebuildVideos />
         ) : tab === 'history' ? (
           <HistoryView entries={entries} />
         ) : (
@@ -116,7 +121,7 @@ export default function App() {
       )}
 
       <RestTimerBar request={rest} onDismiss={dismissRest} />
-      <BottomNav tab={tab} onChange={setTab} />
+      <BottomNav tab={tab} onChange={setTab} showRebuild={isAdmin} />
     </div>
   )
 }

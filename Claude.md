@@ -1,27 +1,49 @@
-# CLAUDE.md — Softball Catcher Strength & Mobility Web App
+# CLAUDE.md: Everharris (softball + basketball)
 
-## Project Overview
-Build a mobile-first, Progressive Web App (PWA) for a softball catcher's strength, conditioning, and mobility schedule. The app must be ultra-fast, thumb-friendly for one-handed gym use, and deployable as a static website (no external backend database required; persist progress in `localStorage`).
+Live at https://everharris.com (HostGator). Softball is built; basketball has its page and data model but no workout tracking yet.
 
-## Tech Stack
-- **Framework:** React 18+ with Vite and TypeScript
-- **Styling:** Tailwind CSS (mobile-first, dark-mode high-contrast athletic UI)
-- **Icons:** `lucide-react`
-- **PWA Support:** `vite-plugin-pwa` (manifest + service worker for "Add to Home Screen" mobile install)
-- **Video Asset Pipeline:** Python 3 script (`scripts/build_videos.py`) using `moviepy` / `Pillow` to compile 9:16 vertical MP4 demonstration videos from keyframe PNGs in `assets/frames/` into `public/videos/`.
+## Stack
+- **Front end:** React 19, TypeScript, Vite 8 (multi-page), Tailwind CSS 4, `lucide-react`, `vite-plugin-pwa` (the PWA covers `/softball/workouts/` only).
+- **Back end:** PHP 8.1+ and MySQL on HostGator shared hosting, in `public/api/`. No framework, plain PDO.
+- **Video pipeline:** Python 3, `setup_assets.py` (moviepy + Pillow) builds the exercise demo MP4s.
 
-## Mobile-First UI & UX Guardrails
-1. **Viewport & Navigation:** Design primarily for mobile screens (`375px` to `430px` width) centered inside a sleek responsive container on desktop (`max-w-md mx-auto`). Use a fixed bottom navigation bar with large tap targets (`min-h-[48px]`).
-2. **Gym-Floor Usability:**
-   - High-contrast dark slate theme (`bg-slate-950`, cards `bg-slate-900`, primary accent `amber-500` or `emerald-500`) for easy reading under gym lights.
-   - Large, unmissable checkboxes to mark sets/exercises complete.
-   - Built-in sticky Rest Timer & Tempo Countdown overlay at the bottom of active workout screens.
-3. **Video Player Rules:**
-   - Every exercise card expands or opens a modal with a looping, muted, auto-playing HTML5 `<video playsInline loop muted>` player (`aspect-[9/16]` or `aspect-video` fallback).
-   - If the `.mp4` file in `public/videos/<slug>.mp4` is not yet generated, gracefully render an interactive **3-Phase Form Breakdown Card** (Start -> Midpoint/Pause -> Finish) with animated CSS transitions so the app is 100% functional out of the box before videos are rendered.
+## Site map
+| URL | Source | Notes |
+|---|---|---|
+| `/` | `index.html`, `src/pages/home.tsx` | header, hero, sport cards, combined Status and Highlights, footer |
+| `/softball/` | `softball/index.html`, `src/pages/softball.tsx` | softball theme |
+| `/softball/workouts/` | `softball/workouts/index.html`, `src/pages/workouts.tsx` + `src/App.tsx` | the workout app, needs login |
+| `/basketball/` | `basketball/index.html`, `src/pages/basketball.tsx` | basketball theme |
+| `/admin/` | `admin/index.html`, `src/pages/admin.tsx` | user management, admin only |
 
-## Directory Structure
-- `src/data/workouts.ts` — Complete structured dataset for Off-Season (Days 1–4), In-Season (Workouts A & B), and Daily 10-Min Mobility.
-- `src/components/` — `BottomNav.tsx`, `DaySchedule.tsx`, `ExerciseCard.tsx`, `VideoPlayerModal.tsx`, `RestTimerBar.tsx`, `MobilityChecklist.tsx`.
-- `scripts/build_videos.py` — Standalone Python pipeline to generate 9:16 MP4s with tempo countdown overlays and coaching cues.
-- `public/videos/` — Output directory for rendered `.mp4` exercise clips.
+Themes are CSS-variable overrides on `<html class="theme-home|theme-softball|theme-basketball">` in `src/index.css`. Shared page pieces live in `src/site/`.
+
+## Workout app rules (`/softball/workouts/`)
+- **Phone first** (375 to 430px): single column in `max-w-md`, fixed bottom tab bar (Schedule, Mobility, History, plus Rebuild Videos for admins), large tap targets (`min-h-12`), dark high-contrast theme with the amber/lime accent.
+- **Desktop and tablet** (`md`, 768px and up): sidebar plus two-column card grid, tabs move under the site header, the exercise popup is a centered two-column dialog, the rest timer sits bottom-right.
+- **Schedule:** Off-Season (4-day) and In-Season (2-day) toggle, day pills, per-exercise set circles, weight box, a completion checkbox, and a "Watch Form Video & Log Sets" button.
+- **Exercise popup:** plays `/softball/videos/<video-id>.mp4` (`playsInline loop muted autoPlay controls`) next to the 3-phase breakdown. If the file is missing it shows the animated form-breakdown card instead.
+- **Rest timer:** starts when a set is tapped (per-exercise 60s or 90s), with 60s, 90s, +15s and Skip. **Tempo coach** counts a rep. **Mobility** has an interval timer (45s a side, 30s for the shoulder stretch) with a chime.
+- **Saving:** every change is written to the database (see API) and cached in `localStorage`; changes made offline are queued and retried.
+
+## Exercises and videos
+- `src/data/exercises.json` is the exercise library (name, focus, tempo, 3 cues). `src/data/workouts.ts` is the program (days, sets, reps, rest, mobility routine).
+- **An exercise id is also its video file name:** `trap-bar-deadlift` is `public/softball/videos/trap-bar-deadlift.mp4` and `assets/frames/trap-bar-deadlift_{1,2,3}.png`. An optional `"video"` field overrides this (`goblet-squat-pause`, `half-kneeling-landmine-press` and `hip-switch-couch-stretch` reuse another video; `band-pull-apart-er` has none).
+- `src/data/phases.json` (phase titles) and `scripts/image_prompts.json` are written by `setup_assets.py`; do not edit them by hand. Its `EXERCISES` list is the source for the 30 videos.
+- **Changing an id** also changes what is stored in `activity_log.exercise_id`. Migrate existing rows before deploying.
+
+## Database (`aycjztte_everharris`)
+Tables are created on first request by `public/api/lib.php`: `users` (email login, role `admin` or `sports`), `activity_log` (user, **sport**, date, day, exercise, sets, weight, completed time), `sessions`, `login_attempts`. Softball and basketball rows stay separate through `sport` and are combined only for the home page summary.
+
+## API (`public/api/`)
+`auth.php` (login, logout, who am I), `users.php` (admin only), `activity.php` (log, reset, read by date, dates, summary), `seed_users.php` (CLI only). Rules: roles are enforced on the server; `admin` can do everything, `sports` everything except user management; POSTs need the `X-Requested-With: fetch` header; logins are throttled; passwords are bcrypt; DB sessions last 30 days. Config comes from `public/api/config.php` (gitignored) or `EVERHARRIS_DB_*` environment variables, and the API refuses to run with placeholders.
+
+## Commands
+- `npm run dev:local`: PHP :8000 (SQLite in `.local/`) plus Vite :5173. `npm run build`: type-check and build `dist/`. `bash scripts/deploy.sh [--dry-run]`: backup the docroot on the server, then upload over SSH.
+- `python setup_assets.py [--ids a b] [--list]`: rebuild the videos. It never regenerates existing art. Replace `assets/frames/<id>_<n>_raw.png` (overlay is re-applied) or `<id>_<n>.png` (used as-is), then run it and deploy. New AI art needs `OPENAI_API_KEY` or `REPLICATE_API_TOKEN`.
+
+## Conventions
+- No comments unless the why is non-obvious. Simplest thing that works. American spelling.
+- Never commit secrets (`config.php`, `.env.deploy`, `.local/`). `assets/frames/` is gitignored (about 400 MB); the MP4s are committed.
+- Before any deploy that changes data, take the dated backup (`scripts/deploy.sh` does for files) and note the rollback path.
+- Push to both remotes: `origin` (GitHub `Tmd1124/Softball`) and `azure` (Azure DevOps `EWO360/Softball`).

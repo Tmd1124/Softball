@@ -15,35 +15,18 @@ npm run preview    # serve dist/ locally to test the PWA / service worker
 
 Upload the contents of `dist/` to any static host. Install it on a phone with "Add to Home Screen".
 
-## Exercise videos (optional)
+## Exercise videos
 
-Every exercise opens a drawer that plays `public/videos/<exercise-id>.mp4`. If that file does not exist, the drawer shows an animated 3-phase form breakdown instead, so the app is fully usable without any videos.
-
-Exercise ids, names, coaching cues and tempo live in `src/data/exercises.json`. The program (sets, reps, rest, day order) lives in `src/data/workouts.ts`.
+Every exercise opens a popup that plays `public/softball/videos/<id>.mp4` next to its 3-phase breakdown. If a file is missing, the popup shows an animated form-breakdown card, so the app works without videos. An exercise id is also its video file name; `src/data/exercises.json` can point an exercise at another video with `"video"` (or `null` for none).
 
 ```bash
 pip install -r scripts/requirements.txt
-
-python scripts/build_videos.py --list                    # which exercises have keyframes
-python scripts/build_videos.py                           # build every exercise that has all 3 keyframes
-python scripts/build_videos.py tempo-goblet-squat        # build one
-python scripts/build_videos.py --force                   # rebuild existing clips
-python scripts/build_videos.py --placeholders            # fill missing keyframes with numbered placeholders
+python setup_assets.py                        # rebuild all 30 videos
+python setup_assets.py --ids landmine-press   # rebuild one
+python setup_assets.py --list                 # show what exists
 ```
 
-For each exercise put three keyframes in `assets/frames/`:
-
-```
-assets/frames/<exercise-id>_1.png   start / setup
-assets/frames/<exercise-id>_2.png   midpoint / pause
-assets/frames/<exercise-id>_3.png   finish
-```
-
-Any size works; frames are center-cropped to 9:16. Output is 1080x1920 H.264 (`yuv420p`, faststart) with a title banner, a coaching cue bar and a live tempo countdown (for example `3s LOWER → 3s PAUSE → EXPLODE`).
-
-Tempo strings in `exercises.json` look like `"3 LOWER|3 PAUSE|EXPLODE"`. Segment 1 eases frame 1 to frame 2, segment 2 holds frame 2, segment 3 eases frame 2 to frame 3. A segment with no number lasts 1 second.
-
-`--placeholders` clips look like numbered slides. Do not use it for the clips you ship unless you want them to replace the in-app form breakdown.
+`setup_assets.py` reads `assets/frames/<id>_<n>_raw.png`, adds the title, coaching cue and tempo as `<id>_<n>.png`, and writes `public/softball/videos/<id>.mp4` (1080x1920 H.264, 3 frames x 1.8 s). It never regenerates art that already exists. To use your own images, replace a `_raw.png` (the overlay is re-applied) or a finished `<id>_<n>.png` (used exactly as it is). Missing art is generated with `OPENAI_API_KEY` or `REPLICATE_API_TOKEN` if one is set. `assets/frames/` is gitignored (about 400 MB); the MP4s are committed. Admins also see a **Rebuild Videos** tab in the workout app that shows which videos are live and these commands.
 
 ## Site layout (everharris.com)
 
@@ -57,7 +40,7 @@ Tempo strings in `exercises.json` look like `"3 LOWER|3 PAUSE|EXPLODE"`. Segment
 
 Vite multi-page build: `index.html`, `softball/index.html`, `softball/workouts/index.html`, `basketball/index.html`, `admin/index.html`; page entries live in `src/pages/`, shared pieces in `src/site/`. Themes are CSS variable overrides on the `<html>` class (`theme-home`, `theme-softball`, `theme-basketball`) in `src/index.css`.
 
-Images: `public/img/softball.svg` and `basketball.svg` are the header icons; `hero-home.svg`, `hero-softball.svg`, `hero-basketball.svg` are placeholder heroes. Replace them with real images (keep the file names, or change the paths in `src/pages/*.tsx`). Softball exercise videos go in `public/softball/videos/`.
+Images: `public/img/softball.svg` and `basketball.svg` are the header icons; `hero-home.svg`, `hero-softball.svg`, `hero-basketball.svg` are placeholder heroes. Replace them with real images (keep the file names, or change the paths in `src/pages/*.tsx`). Softball exercise videos live in `public/softball/videos/`.
 
 ## Data storage (PHP + MySQL)
 

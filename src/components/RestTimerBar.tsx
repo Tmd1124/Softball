@@ -53,37 +53,61 @@ export default function RestTimerBar({ request, onDismiss }: Props) {
           finished ? 'border-emerald-500/60 bg-emerald-950/95' : 'border-amber-500/40 bg-slate-900/95'
         }`}
       >
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium uppercase tracking-widest text-slate-400">
-              {finished ? 'Rest over' : 'Rest'} · {request.label}
-            </p>
-            <p
-              className={`text-3xl font-bold tabular-nums leading-tight ${
-                finished ? 'text-emerald-400' : 'text-amber-400'
-              }`}
-            >
-              {finished ? 'Go!' : mmss(cd.seconds)}
-            </p>
+        <div className="px-4 pb-3 pt-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium uppercase tracking-widest text-slate-400">
+                {finished ? 'Rest over' : 'Rest'} · {request.label}
+              </p>
+              <p
+                className={`text-3xl font-bold tabular-nums leading-tight ${
+                  finished ? 'text-emerald-400' : 'text-amber-400'
+                }`}
+              >
+                {finished ? 'Go!' : mmss(cd.seconds)}
+              </p>
+            </div>
+            {finished && (
+              <button
+                type="button"
+                onClick={onDismiss}
+                className="flex min-h-12 items-center gap-1 rounded-xl bg-slate-800 px-4 text-sm font-semibold text-slate-200 active:bg-slate-700"
+              >
+                <SkipForward size={16} aria-hidden /> Close
+              </button>
+            )}
           </div>
           {!finished && (
-            <button
-              type="button"
-              onClick={() => cd.add(15)}
-              className="flex min-h-12 min-w-12 items-center justify-center gap-1 rounded-xl bg-slate-800 px-3 text-sm font-semibold text-slate-200 active:bg-slate-700"
-              aria-label="Add 15 seconds"
-            >
-              <Plus size={16} aria-hidden /> 15s
-            </button>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {[60, 90].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => cd.start(n)}
+                  aria-label={`Restart rest at ${n} seconds`}
+                  className="min-h-12 rounded-xl bg-slate-800 text-sm font-semibold text-slate-200 active:bg-slate-700"
+                >
+                  {n}s
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => cd.add(15)}
+                aria-label="Add 15 seconds"
+                className="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-slate-800 text-sm font-semibold text-slate-200 active:bg-slate-700"
+              >
+                <Plus size={16} aria-hidden /> 15s
+              </button>
+              <button
+                type="button"
+                onClick={onDismiss}
+                aria-label="Skip rest"
+                className="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-slate-800 text-sm font-semibold text-slate-200 active:bg-slate-700"
+              >
+                <SkipForward size={16} aria-hidden /> Skip
+              </button>
+            </div>
           )}
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="flex min-h-12 min-w-12 items-center justify-center gap-1 rounded-xl bg-slate-800 px-3 text-sm font-semibold text-slate-200 active:bg-slate-700"
-            aria-label={finished ? 'Dismiss' : 'Skip rest'}
-          >
-            <SkipForward size={16} aria-hidden /> {finished ? 'Close' : 'Skip'}
-          </button>
         </div>
         <div className="h-1.5 bg-slate-800">
           <div

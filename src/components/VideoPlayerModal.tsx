@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
-import { formatTempo } from '../data/workouts'
+import { formatTempo, videoSrc } from '../data/workouts'
 import type { ExerciseInfo, WorkoutItem } from '../data/workouts'
 import FormBreakdown from './FormBreakdown'
+import PhaseList from './PhaseList'
 import TempoCoach from './TempoCoach'
 import { unlockAudio } from '../lib/audio'
 
@@ -29,9 +30,9 @@ export default function VideoPlayerModal({
   onRest,
   onClose,
 }: Props) {
-  const [video, setVideo] = useState<VideoState>('loading')
+  const src = videoSrc(exercise)
+  const [video, setVideo] = useState<VideoState>(src ? 'loading' : 'failed')
   const closeRef = useRef<HTMLButtonElement>(null)
-  const src = `/softball/videos/${exercise.id}.mp4`
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -148,12 +149,12 @@ export default function VideoPlayerModal({
           )}
 
           <div
-            className={`relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 md:col-start-1 md:row-span-3 md:row-start-1 md:self-start ${
-              video === 'ok' ? 'mx-auto aspect-[9/16] max-h-[56dvh]' : ''
+            className={`relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 md:col-start-1 md:row-span-4 md:row-start-1 md:self-start ${
+              video === 'ok' ? 'mx-auto aspect-[9/16] w-full max-h-[65dvh]' : ''
             }`}
           >
             {video !== 'ok' && <FormBreakdown exercise={exercise} />}
-            {video !== 'failed' && (
+            {video !== 'failed' && src && (
               <video
                 src={src}
                 playsInline
@@ -175,6 +176,12 @@ export default function VideoPlayerModal({
               />
             )}
           </div>
+
+          {video === 'ok' && (
+            <div className="md:col-start-2">
+              <PhaseList exercise={exercise} />
+            </div>
+          )}
 
           <section aria-label="Coaching focus" className="rounded-2xl border border-slate-800 bg-slate-900 p-4 md:col-start-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Catcher focus</p>
