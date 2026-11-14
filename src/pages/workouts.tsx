@@ -25,7 +25,7 @@ function Gate() {
   if (!user)
     return (
       <div className="mx-auto max-w-sm px-4 py-10">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-50">Sign in to log workouts</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-50">Log in to log workouts</h1>
         <p className="mb-6 mt-2 text-sm text-slate-400">Your sets, weights and completion times are saved to your account.</p>
         <LoginForm autoFocus />
       </div>

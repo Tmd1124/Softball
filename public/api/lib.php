@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 const SPORTS = ['softball', 'basketball'];
 const SESSION_DAYS = 30;
+const SHORT_SESSION_HOURS = 12;
+const REMEMBER_COOKIE = 'ev_rem';
 
 function respond(int $status, array $body): never
 {
@@ -56,8 +58,31 @@ function ensure_schema(PDO $pdo): void
             role VARCHAR(16) NOT NULL,
             active INT NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL,
-            last_login_at DATETIME NULL
+            last_login_at DATETIME NULL,
+            must_change_password INT NOT NULL DEFAULT 0
         )"
+    );
+    add_column_if_missing($pdo, 'users', 'must_change_password', 'INT NOT NULL DEFAULT 0');
+    $big = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite' ? 'TEXT' : 'MEDIUMTEXT';
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS profiles (
+            user_id INT NOT NULL PRIMARY KEY,
+            display_name VARCHAR(60) NULL,
+            phone VARCHAR(30) NULL,
+            avatar_mime VARCHAR(16) NULL,
+            avatar_data $big NULL,
+            updated_at DATETIME NOT NULL
+        )"
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS password_resets (
+            token_hash CHAR(64) NOT NULL PRIMARY KEY,
+            user_id INT NOT NULL,
+            ip VARCHAR(45) NOT NULL,
+            created_at DATETIME NOT NULL,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME NULL
+        )'
     );
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS activity_log (
@@ -89,6 +114,19 @@ function ensure_schema(PDO $pdo): void
     );
 }
 
+function add_column_if_missing(PDO $pdo, string $table, string $column, string $definition): void
+{
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $cols = array_column($pdo->query("PRAGMA table_info($table)")->fetchAll(), 'name');
+        $has = in_array($column, $cols, true);
+    } else {
+        $has = $pdo->query("SHOW COLUMNS FROM $table LIKE '$column'")->fetch() !== false;
+    }
+    if (!$has) {
+        $pdo->exec("ALTER TABLE $table ADD COLUMN $column $definition");
+    }
+}
+
 final class DbSessionHandler implements SessionHandlerInterface
 {
     public function __construct(private PDO $pdo) {}
@@ -113,7 +151,7 @@ final class DbSessionHandler implements SessionHandlerInterface
 
     public function write(string $id, string $data): bool
     {
-        $exp = time() + SESSION_DAYS * 86400;
+        $exp = time() + (str_contains($data, 'rem|b:1;') ? SESSION_DAYS * 86400 : SHORT_SESSION_HOURS * 3600);
         $u = $this->pdo->prepare('UPDATE sessions SET data = ?, expires_at = ? WHERE id = ?');
         $u->execute([$data, $exp, $id]);
         if ($u->rowCount() === 0) {
@@ -147,7 +185,7 @@ function start_session(): void
     session_set_save_handler(new DbSessionHandler(db()), true);
     session_name('ev_session');
     session_set_cookie_params([
-        'lifetime' => SESSION_DAYS * 86400,
+        'lifetime' => isset($_COOKIE[REMEMBER_COOKIE]) ? SESSION_DAYS * 86400 : 0,
         'path' => '/',
         'secure' => $https,
         'httponly' => true,
@@ -174,6 +212,19 @@ function require_same_origin_post(): void
     }
 }
 
+function public_user(array $u): array
+{
+    return [
+        'id' => (int) $u['id'],
+        'email' => $u['email'],
+        'role' => $u['role'],
+        'displayName' => $u['display_name'] ?? null,
+        'hasAvatar' => ($u['avatar_mime'] ?? null) !== null,
+        'avatarV' => $u['profile_updated_at'] ? (int) strtotime($u['profile_updated_at'] . ' UTC') : 0,
+        'mustChangePassword' => (int) ($u['must_change_password'] ?? 0) === 1,
+    ];
+}
+
 function current_user(): ?array
 {
     start_session();
@@ -181,14 +232,17 @@ function current_user(): ?array
     if (!is_int($id)) {
         return null;
     }
-    $q = db()->prepare('SELECT id, email, role, active FROM users WHERE id = ?');
+    $q = db()->prepare(
+        'SELECT u.id, u.email, u.role, u.active, u.must_change_password, p.display_name, p.avatar_mime, p.updated_at AS profile_updated_at
+         FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.id = ?'
+    );
     $q->execute([$id]);
     $u = $q->fetch();
     if (!$u || (int) $u['active'] !== 1) {
         $_SESSION = [];
         return null;
     }
-    return ['id' => (int) $u['id'], 'email' => $u['email'], 'role' => $u['role']];
+    return public_user($u);
 }
 
 function require_role(string ...$roles): array
@@ -287,4 +341,65 @@ function json_body(): array
 function now(): string
 {
     return gmdate('Y-m-d H:i:s');
+}
+
+function site_url(): string
+{
+    $u = getenv('EVERHARRIS_SITE_URL');
+    return rtrim($u !== false && $u !== '' ? $u : 'https://everharris.com', '/');
+}
+
+function send_mail(string $to, string $subject, string $text): bool
+{
+    $log = getenv('EVERHARRIS_MAIL_LOG');
+    if ($log !== false && $log !== '') {
+        return file_put_contents($log, "To: $to
+Subject: $subject
+
+$text
+---
+", FILE_APPEND) !== false;
+    }
+    $from = 'no-reply@everharris.com';
+    $headers = "From: Everharris <$from>
+Reply-To: $from
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8";
+    return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $text, $headers, "-f$from");
+}
+
+function respond_then_continue(int $status, array $body): void
+{
+    ignore_user_abort(true);
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    $json = json_encode($body);
+    header('Content-Length: ' . strlen($json));
+    header('Connection: close');
+    echo $json;
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        @ob_end_flush();
+        flush();
+    }
+}
+
+function set_login_cookies(bool $remember): void
+{
+    $https = ($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    $base = ['path' => '/', 'secure' => $https, 'httponly' => true, 'samesite' => 'Lax'];
+    setcookie(session_name(), session_id(), $base + ['expires' => $remember ? time() + SESSION_DAYS * 86400 : 0]);
+    setcookie(REMEMBER_COOKIE, $remember ? '1' : '', $base + ['expires' => $remember ? time() + SESSION_DAYS * 86400 : time() - 3600]);
+}
+
+function drop_user_sessions(int $userId): void
+{
+    db()->prepare('DELETE FROM sessions WHERE data LIKE ?')->execute(['%uid|i:' . $userId . ';%']);
+}
+
+function hash_password(string $pw): string
+{
+    return password_hash($pw, PASSWORD_BCRYPT, ['cost' => 12]);
 }

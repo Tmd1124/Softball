@@ -28,13 +28,13 @@ function Notice({ state }: { state: SummaryState }) {
     )
   return (
     <div className="flex flex-col items-start gap-3 rounded-2xl border border-slate-700 bg-slate-900 p-5">
-      <p className="text-sm text-slate-300">Sign in to see your status and highlights.</p>
+      <p className="text-sm text-slate-300">Log in to see your status and highlights.</p>
       <button
         type="button"
         onClick={openLogin}
         className="min-h-12 rounded-full bg-amber-500 px-6 text-sm font-bold text-slate-950 active:bg-amber-400"
       >
-        Sign in
+        Log in
       </button>
     </div>
   )

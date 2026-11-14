@@ -1,58 +1,20 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { LogIn, LogOut, Users, X } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import LoginForm from './LoginForm'
+import Modal from './Modal'
+import ProfileDialog from './ProfileDialog'
+import ProfileMenu from './ProfileMenu'
 
 type Page = 'home' | 'softball' | 'basketball' | 'admin'
 
-const ShellCtx = createContext<{ openLogin: () => void }>({ openLogin: () => undefined })
+const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void }>({
+  openLogin: () => undefined,
+  openProfile: () => undefined,
+})
 export const useShell = () => useContext(ShellCtx)
 
-function LoginDialog({ onClose }: { onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prev
-    }
-  }, [onClose])
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close" tabIndex={-1} onClick={onClose} className="sheet-backdrop absolute inset-0 bg-black/70" />
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Sign in"
-        className="sheet-up relative w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900 p-6"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-50">Sign in</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="flex h-12 w-12 items-center justify-center rounded-full text-slate-300 active:bg-slate-800"
-          >
-            <X size={22} aria-hidden />
-          </button>
-        </div>
-        <LoginForm autoFocus onDone={onClose} />
-      </div>
-    </div>
-  )
-}
-
-export function SiteHeader({ page, openLogin }: { page: Page; openLogin: () => void }) {
-  const { user, status, logout } = useAuth()
-
+export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openLogin: () => void; openProfile: () => void }) {
   const sport = (id: 'softball' | 'basketball', label: string) => (
     <a
       href={`/${id}/`}
@@ -78,42 +40,7 @@ export function SiteHeader({ page, openLogin }: { page: Page; openLogin: () => v
         {sport('softball', 'Softball')}
         {sport('basketball', 'Basketball')}
         <span className="mx-1 h-6 w-px bg-slate-700" aria-hidden />
-        {status === 'ready' && user && (
-          <>
-            {user.role === 'admin' && (
-              <a
-                href="/admin/"
-                aria-label="Manage users"
-                title="Manage users"
-                className="flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-              >
-                <Users size={20} aria-hidden />
-                <span className="hidden sm:inline">Users</span>
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={() => void logout()}
-              aria-label={`Sign out ${user.email}`}
-              title={`Signed in as ${user.email}`}
-              className="flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-            >
-              <LogOut size={20} aria-hidden />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
-          </>
-        )}
-        {status === 'ready' && !user && (
-          <button
-            type="button"
-            onClick={openLogin}
-            aria-label="Sign in"
-            className="flex h-12 min-w-12 items-center justify-center gap-2 rounded-full bg-amber-500 px-3 text-sm font-bold text-slate-950 active:bg-amber-400"
-          >
-            <LogIn size={20} aria-hidden />
-            <span className="hidden sm:inline">Sign in</span>
-          </button>
-        )}
+        <ProfileMenu openLogin={openLogin} openProfile={openProfile} />
       </div>
     </header>
   )
@@ -142,20 +69,31 @@ export function SiteFooter() {
 
 export default function SiteShell({ page, children, footer = true }: { page: Page; children: ReactNode; footer?: boolean }) {
   const [login, setLogin] = useState(false)
+  const [profile, setProfile] = useState(false)
   const { user } = useAuth()
+  const mustChange = user?.mustChangePassword === true
 
   useEffect(() => {
     if (user) setLogin(false)
   }, [user])
 
+  useEffect(() => {
+    if (mustChange) setProfile(true)
+  }, [mustChange])
+
   return (
-    <ShellCtx.Provider value={{ openLogin: () => setLogin(true) }}>
+    <ShellCtx.Provider value={{ openLogin: () => setLogin(true), openProfile: () => setProfile(true) }}>
       <div className="flex min-h-dvh flex-col bg-slate-950 text-slate-100">
-        <SiteHeader page={page} openLogin={() => setLogin(true)} />
+        <SiteHeader page={page} openLogin={() => setLogin(true)} openProfile={() => setProfile(true)} />
         <div className="flex-1">{children}</div>
         {footer && <SiteFooter />}
       </div>
-      {login && <LoginDialog onClose={() => setLogin(false)} />}
+      {login && (
+        <Modal title="Log in" onClose={() => setLogin(false)}>
+          <LoginForm autoFocus onDone={() => setLogin(false)} />
+        </Modal>
+      )}
+      {profile && user && <ProfileDialog onClose={() => setProfile(false)} />}
     </ShellCtx.Provider>
   )
 }

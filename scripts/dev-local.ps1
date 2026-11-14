@@ -11,6 +11,8 @@ New-Item -ItemType Directory -Force .local | Out-Null
 $env:EVERHARRIS_DB_DSN = 'sqlite:' + (Join-Path $root '.local\dev.sqlite')
 $env:EVERHARRIS_DB_USER = ''
 $env:EVERHARRIS_DB_PASS = ''
+$env:EVERHARRIS_MAIL_LOG = Join-Path $root '.local\mail.log'
+$env:EVERHARRIS_SITE_URL = 'http://localhost:5173'
 
 $server = Start-Process $php -ArgumentList '-S', 'localhost:8000', '-t', 'public' -PassThru -WindowStyle Hidden
 try {

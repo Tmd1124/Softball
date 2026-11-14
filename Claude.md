@@ -15,6 +15,7 @@ Live at https://everharris.com (HostGator). Softball is built; basketball has it
 | `/softball/workouts/` | `softball/workouts/index.html`, `src/pages/workouts.tsx` + `src/App.tsx` | the workout app, needs login |
 | `/basketball/` | `basketball/index.html`, `src/pages/basketball.tsx` | basketball theme |
 | `/admin/` | `admin/index.html`, `src/pages/admin.tsx` | user management, admin only |
+| `/reset/` | `reset/index.html`, `src/pages/reset.tsx` | password reset from the emailed link (`?token=`), or the forgot form without one |
 
 Themes are CSS-variable overrides on `<html class="theme-home|theme-softball|theme-basketball">` in `src/index.css`. Shared page pieces live in `src/site/`.
 
@@ -33,10 +34,13 @@ Themes are CSS-variable overrides on `<html class="theme-home|theme-softball|the
 - **Changing an id** also changes what is stored in `activity_log.exercise_id`. Migrate existing rows before deploying.
 
 ## Database (`aycjztte_everharris`)
-Tables are created on first request by `public/api/lib.php`: `users` (email login, role `admin` or `sports`), `activity_log` (user, **sport**, date, day, exercise, sets, weight, completed time), `sessions`, `login_attempts`. Softball and basketball rows stay separate through `sport` and are combined only for the home page summary.
+Tables are created and migrated on first request by `public/api/lib.php`: `users` (email login, role `admin` or `sports`, `must_change_password`), `profiles` (display name, phone, avatar stored as base64 text), `password_resets` (sha256 token hash, 30 minutes, single use), `activity_log` (user, **sport**, date, day, exercise, sets, weight, completed time), `sessions`, `login_attempts`. Softball and basketball rows stay separate through `sport` and are combined only for the home page summary.
 
 ## API (`public/api/`)
-`auth.php` (login, logout, who am I), `users.php` (admin only), `activity.php` (log, reset, read by date, dates, summary), `seed_users.php` (CLI only). Rules: roles are enforced on the server; `admin` can do everything, `sports` everything except user management; POSTs need the `X-Requested-With: fetch` header; logins are throttled; passwords are bcrypt; DB sessions last 30 days. Config comes from `public/api/config.php` (gitignored) or `EVERHARRIS_DB_*` environment variables, and the API refuses to run with placeholders.
+`auth.php` (login with `remember`, logout, forgot, reset, who am I), `profile.php` (own details, picture, change password), `avatar.php` (own picture), `users.php` (admin only), `activity.php` (log, reset, read by date, dates, summary), `seed_users.php` (CLI only). Rules: roles are enforced on the server; `admin` can do everything, `sports` everything except user management; POSTs need the `X-Requested-With: fetch` header; logins are throttled; passwords are bcrypt; DB sessions last 30 days. Config comes from `public/api/config.php` (gitignored) or `EVERHARRIS_DB_*` environment variables, and the API refuses to run with placeholders.
+
+## Profile and sign-in
+The header shows a profile icon (the user's picture, or a default icon) that opens a menu: Log in when signed out; Profile, Manage users (admin) and Log out when signed in. Remember me keeps the session 30 days (cookie `ev_rem`); otherwise it is a browser-session cookie that also expires server-side after 12 hours. Forgot password emails a single-use link through PHP `mail()` (`EVERHARRIS_SITE_URL` sets the link host; `EVERHARRIS_MAIL_LOG` writes mails to a file instead, used by `npm run dev:local`). An admin reset or a new admin-created account sets `must_change_password`, which opens the profile dialog until the user picks their own password. Changing a password signs out the user's other devices.
 
 ## Commands
 - `npm run dev:local`: PHP :8000 (SQLite in `.local/`) plus Vite :5173. `npm run build`: type-check and build `dist/`. `bash scripts/deploy.sh [--dry-run]`: backup the docroot on the server, then upload over SSH.

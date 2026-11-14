@@ -8,13 +8,18 @@ export interface User {
   id: number
   email: string
   role: Role
+  displayName: string | null
+  hasAvatar: boolean
+  avatarV: number
+  mustChangePassword: boolean
 }
 
 interface Auth {
   status: 'loading' | 'ready'
   user: User | null
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, remember: boolean) => Promise<void>
   logout: () => Promise<void>
+  setUser: (user: User) => void
 }
 
 const Ctx = createContext<Auth | null>(null)
@@ -35,8 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const r = await api<{ user: User }>('auth.php', { action: 'login', email, password })
+  const login = useCallback(async (email: string, password: string, remember: boolean) => {
+    const r = await api<{ user: User }>('auth.php', { action: 'login', email, password, remember })
     setState({ status: 'ready', user: r.user })
   }, [])
 
@@ -45,7 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'ready', user: null })
   }, [])
 
-  const value = useMemo(() => ({ ...state, login, logout }), [state, login, logout])
+  const setUser = useCallback((user: User) => setState({ status: 'ready', user }), [])
+
+  const value = useMemo(() => ({ ...state, login, logout, setUser }), [state, login, logout, setUser])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

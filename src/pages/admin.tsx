@@ -190,7 +190,7 @@ function Admin() {
   if (!user)
     return (
       <div className="mx-auto max-w-sm px-4 py-10">
-        <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-slate-50">Admin sign in</h1>
+        <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-slate-50">Admin log in</h1>
         <LoginForm autoFocus />
       </div>
     )

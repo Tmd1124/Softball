@@ -43,8 +43,8 @@ switch ($in['action'] ?? '') {
         if ((int) $dup->fetchColumn() > 0) {
             respond(409, ['error' => 'An account with that email already exists']);
         }
-        $pdo->prepare('INSERT INTO users (email, password_hash, role, active, created_at) VALUES (?, ?, ?, 1, ?)')
-            ->execute([$email, password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]), $role, now()]);
+        $pdo->prepare('INSERT INTO users (email, password_hash, role, active, created_at, must_change_password) VALUES (?, ?, ?, 1, ?, 1)')
+            ->execute([$email, hash_password($password), $role, now()]);
         respond(200, ['users' => user_rows($pdo)]);
 
     case 'update':
@@ -71,12 +71,12 @@ switch ($in['action'] ?? '') {
         $pdo->prepare('UPDATE users SET role = ?, active = ? WHERE id = ?')->execute([$role, $active, $id]);
         $reset = array_key_exists('password', $in);
         if ($reset) {
-            $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-                ->execute([password_hash(valid_password($in['password']), PASSWORD_BCRYPT, ['cost' => 12]), $id]);
+            $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?')
+                ->execute([hash_password(valid_password($in['password'])), $id === $me['id'] ? 0 : 1, $id]);
         }
         if ($active === 0 || $reset) {
             // A deactivated user or a reset password must not keep an older sign-in alive.
-            $pdo->prepare('DELETE FROM sessions WHERE data LIKE ?')->execute(['%uid|i:' . $id . ';%']);
+            drop_user_sessions($id);
         }
         respond(200, ['users' => user_rows($pdo)]);
 

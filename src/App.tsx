@@ -73,7 +73,7 @@ export default function App() {
             <>
               Your session expired. Changes are kept on this device.{' '}
               <button type="button" onClick={() => window.location.reload()} className="font-extrabold underline">
-                Sign in again
+                Log in again
               </button>
             </>
           )}

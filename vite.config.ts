@@ -14,6 +14,7 @@ export default defineConfig({
         workouts: resolve(import.meta.dirname, 'softball/workouts/index.html'),
         basketball: resolve(import.meta.dirname, 'basketball/index.html'),
         admin: resolve(import.meta.dirname, 'admin/index.html'),
+        reset: resolve(import.meta.dirname, 'reset/index.html'),
       },
     },
   },
