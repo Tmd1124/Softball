@@ -66,8 +66,8 @@ export default function RebuildVideos() {
               </li>
               <li>Existing images are never regenerated. Re-running only rebuilds the overlays and the MP4s.</li>
               <li>
-                New art from an AI service needs <code className="text-slate-200">OPENAI_API_KEY</code> or{' '}
-                <code className="text-slate-200">REPLICATE_API_TOKEN</code> set before running.
+                New art is made from your athlete photo and needs <code className="text-slate-200">OPENAI_API_KEY</code> set in
+                your shell before running.
               </li>
               <li>
                 Then publish with <code className="text-slate-200">bash scripts/deploy.sh</code>.

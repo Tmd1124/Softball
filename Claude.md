@@ -40,7 +40,7 @@ Tables are created on first request by `public/api/lib.php`: `users` (email logi
 
 ## Commands
 - `npm run dev:local`: PHP :8000 (SQLite in `.local/`) plus Vite :5173. `npm run build`: type-check and build `dist/`. `bash scripts/deploy.sh [--dry-run]`: backup the docroot on the server, then upload over SSH.
-- `python setup_assets.py [--ids a b] [--list]`: rebuild the videos. It never regenerates existing art. Replace `assets/frames/<id>_<n>_raw.png` (overlay is re-applied) or `<id>_<n>.png` (used as-is), then run it and deploy. New AI art needs `OPENAI_API_KEY` or `REPLICATE_API_TOKEN`.
+- `python setup_assets.py [--ids a b] [--force] [--list]`: rebuild the videos (cross-faded). It never regenerates existing art unless `--force` is given with `--ids`. Replace `assets/frames/<id>_<n>_raw.png` (overlay is re-applied) or `<id>_<n>.png` (used as-is), then run it and deploy. New AI art uses `assets/athlete_ref.png` and needs `OPENAI_API_KEY` in the shell.
 
 ## Conventions
 - No comments unless the why is non-obvious. Simplest thing that works. American spelling.
