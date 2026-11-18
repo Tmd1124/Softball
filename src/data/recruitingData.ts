@@ -14,6 +14,7 @@ export interface VideoItem {
   blurb: string
   length: string
   embedUrl: string
+  videoUrl?: string
 }
 
 export interface ScheduleEvent {

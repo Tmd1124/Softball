@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'node:path'
+import { rmSync } from 'node:fs'
 
 export default defineConfig({
   server: { proxy: { '/api': 'http://localhost:8000' } },
@@ -24,6 +25,12 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: 'keep-uploads-out-of-dist',
+      closeBundle() {
+        rmSync(resolve(import.meta.dirname, 'dist/uploads'), { recursive: true, force: true })
+      },
+    },
     react(),
     tailwindcss(),
     VitePWA({

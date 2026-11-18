@@ -467,3 +467,67 @@ export function EventsTable({ onPick }: { onPick: (n: number) => void }) {
     </section>
   )
 }
+
+export function VideoUpload({ base }: { base: Path }) {
+  const { draft, setDraft } = useDraft()
+  const url = String(getAt(draft, [...base, 'videoUrl']) ?? '')
+  const [pct, setPct] = useState<number | null>(null)
+  const [error, setError] = useState('')
+  const input = useRef<HTMLInputElement>(null)
+  const send = (file: File) => {
+    setError('')
+    setPct(0)
+    const form = new FormData()
+    form.append('video', file)
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', '/api/video.php')
+    xhr.setRequestHeader('X-Requested-With', 'fetch')
+    xhr.upload.onprogress = (e) => e.lengthComputable && setPct(Math.round((e.loaded / e.total) * 100))
+    xhr.onerror = () => {
+      setPct(null)
+      setError('The upload failed. Check your connection and try again.')
+    }
+    xhr.onload = () => {
+      setPct(null)
+      let body: { url?: string; error?: string } = {}
+      try {
+        body = JSON.parse(xhr.responseText)
+      } catch {
+        body = { error: 'The server could not accept that video. Try a smaller file.' }
+      }
+      if (xhr.status === 200 && body.url) setDraft((d) => setAt(d, [...base, 'videoUrl'], body.url))
+      else setError(body.error ?? 'The upload failed.')
+    }
+    xhr.send(form)
+  }
+  return (
+    <div className="sm:col-span-2">
+      <p className="text-sm font-semibold text-slate-300">Video file from your computer (MP4, WebM or MOV)</p>
+      <input
+        ref={input}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) send(f)
+        }}
+      />
+      <div className="mt-1 flex flex-wrap items-center gap-3">
+        <button type="button" disabled={pct !== null} onClick={() => input.current?.click()} className="min-h-12 rounded-xl border border-slate-600 px-4 text-sm font-semibold text-slate-100 active:bg-slate-800 disabled:opacity-60">
+          {pct !== null ? `Uploading… ${pct}%` : url ? 'Replace video file' : 'Upload from my computer'}
+        </button>
+        {url && pct === null && (
+          <>
+            <span className="text-sm text-emerald-300">Video file uploaded. It plays on the page instead of the embed link.</span>
+            <button type="button" onClick={() => setDraft((d) => setAt(d, [...base, 'videoUrl'], ''))} className="min-h-12 rounded-xl border border-red-500/50 px-4 text-sm font-semibold text-red-200 active:bg-red-500/10">
+              Remove video file
+            </button>
+          </>
+        )}
+      </div>
+      {error && <p role="alert" className="mt-2 text-sm text-red-300">{error}</p>}
+    </div>
+  )
+}

@@ -75,8 +75,8 @@ export function sportGaps(id: string, s: SportData): Result {
     g.check('bio', `${m.label} value`, m.value)
     g.check('bio', `${m.label} verified date`, m.verified)
   })
-  g.check('film', 'Featured video link', s.featured.embedUrl)
-  s.clips.forEach((c) => g.check('film', `${c.title} link`, c.embedUrl))
+  g.check('film', 'Featured video link', s.featured.embedUrl || s.featured.videoUrl)
+  s.clips.forEach((c) => g.check('film', `${c.title} link`, c.embedUrl || c.videoUrl))
   s.schedule.forEach((e, i) => {
     g.check('schedule', `Event ${i + 1} date`, e.date)
     g.check('schedule', `Event ${i + 1} name`, e.event)

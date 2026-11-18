@@ -42,7 +42,9 @@ export function VideoEmbed({ video, large = false }: { video: VideoItem; large?:
   return (
     <figure className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
       <div className="aspect-video bg-slate-950">
-        {video.embedUrl ? (
+        {video.videoUrl ? (
+          <video src={video.videoUrl} title={video.title} controls playsInline preload="metadata" className="h-full w-full bg-black" />
+        ) : video.embedUrl ? (
           <iframe
             src={video.embedUrl}
             title={video.title}

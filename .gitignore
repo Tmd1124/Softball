@@ -18,3 +18,4 @@ public/api/*.sqlite
 .local/
 assets/frames/*
 !assets/frames/.gitkeep
+public/uploads/

@@ -73,6 +73,15 @@ function rows(mixed $v, int $max, callable $clean): array
     return array_map(fn($r) => $clean(obj($r)), $v);
 }
 
+function video_path(array $a): string
+{
+    $v = $a['videoUrl'] ?? '';
+    if (!is_string($v) || ($v !== '' && !preg_match('#^/uploads/videos/[a-f0-9]{32}\.(mp4|webm|mov)$#', $v))) {
+        respond(400, ['error' => 'Invalid videoUrl']);
+    }
+    return $v;
+}
+
 function clean_video(array $a): array
 {
     return [
@@ -80,6 +89,7 @@ function clean_video(array $a): array
         'blurb' => str($a, 'blurb', 200),
         'length' => str($a, 'length', 60),
         'embedUrl' => url($a, 'embedUrl', true),
+        'videoUrl' => video_path($a),
     ];
 }
 

@@ -10,7 +10,7 @@ import RecordCard from './RecordCard'
 import { FieldsTable, ListTable, SingleCard, useCards } from './cards'
 import type { FieldDef } from './cards'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -228,7 +228,7 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 }
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
-  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio'] : [])
+  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio'] : step === 'summary' ? ['summary'] : [])
   const teamsBox = useRef<HTMLElement>(null)
   const trainerBox = useRef<HTMLElement>(null)
   const scheduleBox = useRef<HTMLElement>(null)
@@ -249,7 +249,8 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
       <F id={first} path={[...base, 'title']} label="Title" />
       <F path={[...base, 'blurb']} label="Description" />
       <F path={[...base, 'length']} label="Length note" />
-      <F path={[...base, 'embedUrl']} label="Embed URL" placeholder="https://www.youtube.com/embed/VIDEO_ID" />
+      <F path={[...base, 'embedUrl']} label="Embed URL (or upload a file below)" placeholder="https://www.youtube.com/embed/VIDEO_ID" wide />
+      <VideoUpload base={base} />
     </>
   )
   const videoView = (base: string[]): FieldDef[] => [
@@ -257,6 +258,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
     ['Description', [...base, 'blurb']],
     ['Length note', [...base, 'length']],
     ['Embed URL', [...base, 'embedUrl']],
+    ['Uploaded video file', [...base, 'videoUrl'], (v) => (v ? 'Uploaded' : '')],
   ]
   if (step === 'film')
     return (
@@ -280,6 +282,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
             ['Description', String(r.blurb ?? '')],
             ['Length note', String(r.length ?? '')],
             ['Embed URL', String(r.embedUrl ?? '')],
+            ['Uploaded video file', r.videoUrl ? 'Uploaded' : ''],
           ]}
         />
         <ListTable title="All skill clips" listPath={['clips']} noun="clip" columns={[['Title', 'title'], ['Description', 'blurb'], ['Length', 'length']]} onPick={(n) => cards.pick('clips', n)} />
@@ -288,7 +291,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
   if (step === 'summary')
     return (
       <>
-        {one('summary', 'Scouting summary', 'Write {popTime} wherever the pop time metric value should appear.', [['Player profile text', ['summary']]], <F path={['summary']} label="Player profile text" area />)}
+        {one('summary', 'Scouting summary', 'Write {popTime} wherever the pop time metric value should appear.', [['Player profile text', ['summary']]], <F path={['summary']} label="Player profile text" area />, false)}
         <RecordCard
           title="Awards & honors"
           hint="Optional."
