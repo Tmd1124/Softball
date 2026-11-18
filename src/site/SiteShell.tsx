@@ -91,10 +91,11 @@ export function SiteFooter() {
   const recruiting = useRecruiting()
   if (!recruiting) return null
   const { athlete, contact } = recruiting
-  const link = 'inline-flex min-h-12 items-center hover:text-amber-400'
+  const link = 'block py-1 hover:text-amber-400 sm:py-0.5'
+  const head = 'mb-1 text-xs font-bold uppercase tracking-widest text-slate-400'
   return (
     <footer className="border-t border-slate-800 bg-slate-900/60">
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 text-sm text-slate-300 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-5xl gap-x-8 gap-y-5 px-4 py-6 text-sm leading-snug text-slate-300 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
         <div>
           <p className="text-base font-extrabold uppercase tracking-[0.14em] text-slate-50">
             Ever<span className="text-amber-400">harris</span>
@@ -104,26 +105,23 @@ export function SiteFooter() {
           </p>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Recruiting contact</p>
+          <p className={head}>Recruiting contact</p>
           <a href={`mailto:${contact.email}`} className={`${link} break-all`}>{contact.email}</a>
-          <br />
           <a href={telHref(contact.phone)} className={link}>{contact.phone}</a>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Parent / guardian</p>
-          <p className="mt-1">{contact.parent.name}</p>
+          <p className={head}>Parent / guardian</p>
+          <p className="py-1 sm:py-0.5">{contact.parent.name}</p>
           <a href={`mailto:${contact.parent.email}`} className={`${link} break-all`}>{contact.parent.email}</a>
-          <br />
           <a href={telHref(contact.parent.phone)} className={link}>{contact.parent.phone}</a>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Social</p>
+          <p className={head}>Social</p>
           <a href={contact.social.x.url} target="_blank" rel="noopener noreferrer" className={link}>X {contact.social.x.handle}</a>
-          <br />
           <a href={contact.social.instagram.url} target="_blank" rel="noopener noreferrer" className={link}>Instagram {contact.social.instagram.handle}</a>
         </div>
       </div>
-      <p className="border-t border-slate-800 px-4 py-4 text-center text-xs text-slate-500">&copy; {new Date().getFullYear()} Everharris</p>
+      <p className="border-t border-slate-800 px-4 py-3 text-center text-xs text-slate-500">&copy; {new Date().getFullYear()} Everharris</p>
     </footer>
   )
 }
