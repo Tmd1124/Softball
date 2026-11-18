@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /reset/
+Disallow: /api/
+Disallow: /softball/workouts/
+
+Sitemap: https://everharris.com/sitemap.xml
