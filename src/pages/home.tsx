@@ -72,7 +72,10 @@ function Home() {
           </Fact>
         </dl>
         <div className="mt-6">
-          <PdfButton href="/profile/?print=1">Download 1-Page Recruiting Profile (PDF)</PdfButton>
+          <div className="flex flex-wrap gap-3">
+            <PdfButton href="/profile/softball/?print=1">Softball Recruiting Profile (PDF)</PdfButton>
+            <PdfButton href="/profile/basketball/?print=1">Basketball Recruiting Profile (PDF)</PdfButton>
+          </div>
         </div>
       </div>
     </section>

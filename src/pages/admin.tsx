@@ -5,7 +5,7 @@ import LoginForm from '../site/LoginForm'
 import { useAuth } from '../lib/auth'
 import Content from '../admin/Content'
 import Users from '../admin/Users'
-import type { Section } from '../admin/Content'
+import type { Area } from '../admin/Content'
 
 function Admin() {
   const { status, user } = useAuth()
@@ -27,23 +27,30 @@ function Admin() {
   return <Panels meId={user.id} />
 }
 
-const TABS: { id: Section | 'users'; label: string }[] = [
-  { id: 'site', label: 'Site & contacts' },
+type Tab = Area | 'users'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'site', label: 'Athlete & contacts' },
   { id: 'softball', label: 'Softball' },
   { id: 'basketball', label: 'Basketball' },
   { id: 'users', label: 'Users' },
 ]
 
+function route() {
+  const [first, step = ''] = location.hash.slice(1).split('/')
+  return { tab: TABS.find((t) => t.id === first)?.id ?? 'overview', step }
+}
+
 function Panels({ meId }: { meId: number }) {
-  const fromHash = () => TABS.find((t) => t.id === location.hash.slice(1).split('/')[0])?.id ?? 'site'
-  const [tab, setTab] = useState<Section | 'users'>(fromHash)
+  const [{ tab, step }, setRoute] = useState(route)
   useEffect(() => {
-    const on = () => setTab(fromHash())
+    const on = () => setRoute(route())
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">Admin</p>
       <nav aria-label="Admin sections" className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
         {TABS.map((t) => (
@@ -57,7 +64,14 @@ function Panels({ meId }: { meId: number }) {
           </a>
         ))}
       </nav>
-      <div className="mt-6">{tab === 'users' ? <Users meId={meId} /> : <Content section={tab} />}</div>
+      <div className="mt-6" hidden={tab === 'users'}>
+        <Content area={tab === 'users' ? 'overview' : tab} step={step} />
+      </div>
+      {tab === 'users' && (
+        <div className="mx-auto mt-6 max-w-3xl">
+          <Users meId={meId} />
+        </div>
+      )}
     </div>
   )
 }

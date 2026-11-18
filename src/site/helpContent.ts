@@ -9,7 +9,7 @@ export const HELP: Record<string, HelpTopic> = {
     tips: [
       'The top card shows Ever’s school, teams, positions, height and academics at a glance.',
       'Use Softball, Basketball or Schedule below it to jump to full metrics, film and events.',
-      'Tap “Download 1-Page Recruiting Profile (PDF)”, then choose “Save as PDF” in the print window.',
+      'Tap Softball or Basketball Recruiting Profile (PDF) for that sport’s own one-page sheet, then choose “Save as PDF” in the print window.',
       'Ask a question in the Ask tab here and print the answer for your staff.',
     ],
   },
@@ -51,29 +51,41 @@ export const HELP: Record<string, HelpTopic> = {
     title: 'Admin sign-in',
     tips: ['Sign in with your admin account to edit the public pages and manage users.', 'Accounts without the Admin badge cannot open this area.'],
   },
-  'admin-site': {
-    title: 'Site & contacts',
+  'admin-overview': {
+    title: 'Recruiting profiles overview',
     tips: [
-      'Edit Ever’s name, school, jersey, GPA, courses, contacts and social links. Every public page and the footer use these.',
+      'Each card shows how much of that profile is filled in. Anything still showing a placeholder is listed, and each item links straight to its step.',
+      'Press Continue to work through an area step by step, or open a step from the list.',
+      'Printable profile opens the one-page sheet for that sport, ready to print or save as PDF.',
+    ],
+  },
+  'admin-site': {
+    title: 'Athlete & contacts',
+    tips: [
+      'Work left to right through Athlete, Academics and Contacts. The numbers on each step show how many fields still need real values; a check means it is done.',
+      'Name, school, jersey, GPA and contacts feed every public page, the footer and both printed profiles.',
       'Phone numbers format themselves as (999) 999-9999. Emails must look like name@example.com.',
-      'Press Save changes to publish. “Reset to placeholders” discards what you saved in this tab.',
+      'Weight, class rank, SAT, ACT and NCAA ID are optional and appear only once filled in.',
+      'The live preview shows the printed profile with your unsaved edits. Press Save changes to publish; Reset area discards what was saved.',
     ],
   },
   'admin-softball': {
-    title: 'Softball editor',
+    title: 'Softball profile',
     tips: [
-      'Choose positions from the checklist and bats/throws from the list.',
-      'Metrics: edit the value, unit and the month and year it was verified. Keep the Pop Time box if the summary uses {popTime}.',
-      'For video, paste the embed address (https://…) from YouTube, Vimeo or Hudl.',
-      'Use Add and Delete on events, coaches, clips and links. Save changes publishes everything on this tab.',
+      'Step through Bio & metrics, Film, Summary & honors, Schedule and Coaches & links. Next and Back buttons are at the bottom of each step.',
+      'Upload a photo of Ever under Bio. It appears on the sport page and in the printed profile header. Choose positions from the checklist and bats/throws from the list. Edit each metric’s value, unit and verified month and year.',
+      'For film, paste the embed address (https://…) from YouTube, Vimeo or Hudl.',
+      'Summary & honors also holds optional season stats and awards. They appear on the page and profile once you add them.',
+      'The live preview updates as you type. Save changes publishes to the public page and printable profile.',
     ],
   },
   'admin-basketball': {
-    title: 'Basketball editor',
+    title: 'Basketball profile',
     tips: [
-      'Pick a primary position and an optional secondary position.',
-      'Update the four metric boxes and their verified month and year.',
-      'Add game film with embed addresses, then add events, coaches and links. Save changes publishes the tab.',
+      'Step through Bio & metrics, Film, Summary & honors, Schedule and Coaches & links.',
+      'Pick a primary and optional secondary position, then update the four metric boxes and their verified dates.',
+      'Add season stats and awards under Summary & honors. They show only after you add rows.',
+      'The live preview shows the printed profile with your unsaved edits. Save changes publishes it.',
     ],
   },
   'admin-users': {

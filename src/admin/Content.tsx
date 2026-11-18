@@ -1,180 +1,378 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api } from '../lib/api'
 import { defaultSite, defaultSports } from '../data/recruitingData'
-import type { SiteData, SportData, SportId } from '../data/recruitingData'
+import type { RecruitingData, SiteData, SportData, SportId } from '../data/recruitingData'
+import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
-import { formatPhone } from '../lib/format'
+import ProfileSheet from '../recruit/ProfileSheet'
+import { BASKETBALL_POSITIONS, BATS_THROWS, Card, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS } from './fields'
+import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
+import type { Result } from './gaps'
 
 export type Section = 'site' | SportId
+export type Area = 'overview' | Section
 
-type Path = (string | number)[]
-type Node = Record<string, unknown>
+const SPORT_LABEL: Record<SportId, string> = { softball: 'Softball', basketball: 'Basketball' }
+export const AREA_LABEL: Record<Area, string> = { overview: 'Overview', site: 'Athlete & contacts', softball: 'Softball', basketball: 'Basketball' }
 
-const SOFTBALL_POSITIONS = ['Pitcher', 'Catcher', 'First Base', 'Second Base', 'Third Base', 'Shortstop', 'Left Field', 'Center Field', 'Right Field', 'Designated Player', 'Utility']
-const BATS_THROWS = ['Bats: R / Throws: R', 'Bats: L / Throws: L', 'Bats: R / Throws: L', 'Bats: L / Throws: R', 'Bats: S / Throws: R', 'Bats: S / Throws: L']
-const BASKETBALL_POSITIONS = ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center', 'Combo Guard', 'Wing', 'Forward']
+type Drafts = Partial<Record<Section, unknown>>
 
-const field = 'mt-1 w-full rounded-xl border border-slate-600 bg-slate-950 px-3 text-base text-slate-50 placeholder:text-slate-500'
-
-function getAt(o: unknown, path: Path): unknown {
-  return path.reduce<unknown>((a, k) => (a as Node | undefined)?.[k as string], o)
+function useWide() {
+  const q = '(min-width: 1024px)'
+  const [wide, setWide] = useState(() => matchMedia(q).matches)
+  useEffect(() => {
+    const m = matchMedia(q)
+    const on = () => setWide(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  return wide
 }
 
-function setAt<T>(o: T, path: Path, v: unknown): T {
-  const next = structuredClone(o)
-  let cur = next as Node
-  path.slice(0, -1).forEach((k) => (cur = cur[k as string] as Node))
-  cur[path[path.length - 1] as string] = v
-  return next
-}
-
-function Card({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function Preview({ data, id }: { data: RecruitingData; id: SportId }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(0.5)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => setZoom(Math.min(1, el.clientWidth / 816))
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
-    <fieldset className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
-      <legend className="px-2 text-lg font-bold text-slate-50">{title}</legend>
-      {hint && <p className="mb-3 text-sm text-slate-400">{hint}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
-    </fieldset>
-  )
-}
-
-const DraftCtx = createContext<{ draft: unknown; setDraft: Dispatch<SetStateAction<unknown>> }>({ draft: null, setDraft: () => undefined })
-const useDraft = () => useContext(DraftCtx)
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder }: { path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email'; placeholder?: string }) {
-  const { draft, setDraft } = useDraft()
-  const value = String(getAt(draft, path) ?? '')
-  const change = (v: string) => setDraft((d: unknown) => setAt(d, path, type === 'number' ? Number(v) : kind === 'phone' ? formatPhone(v) : v))
-  const bad = kind === 'email' && value !== '' && !EMAIL_RE.test(value)
-  return (
-    <label className={`block ${wide || area ? 'sm:col-span-2' : ''}`}>
-      <span className="text-sm font-semibold text-slate-300">{label}</span>
-      {area ? (
-        <textarea className={`${field} min-h-32 py-2`} value={value} onChange={(e) => change(e.target.value)} />
-      ) : (
-        <input
-          className={`${field} h-12 ${bad ? 'border-red-500' : ''}`}
-          type={kind === 'email' ? 'email' : kind === 'phone' ? 'tel' : type}
-          inputMode={kind === 'phone' ? 'tel' : kind === 'email' ? 'email' : undefined}
-          autoCapitalize={kind === 'email' ? 'none' : undefined}
-          maxLength={kind === 'phone' ? 14 : undefined}
-          aria-invalid={bad || undefined}
-          value={value}
-          placeholder={kind === 'phone' ? '(999) 999-9999' : kind === 'email' ? 'name@example.com' : placeholder}
-          onChange={(e) => change(e.target.value)}
-        />
-      )}
-      {bad && <span className="mt-1 block text-xs text-red-300">Enter an email like name@example.com</span>}
-    </label>
-  )
-}
-
-function Pick({ path, label, options, blank = 'Select…', wide = false }: { path: Path; label: string; options: string[]; blank?: string; wide?: boolean }) {
-  const { draft, setDraft } = useDraft()
-  const value = String(getAt(draft, path) ?? '')
-  return (
-    <label className={`block ${wide ? 'sm:col-span-2' : ''}`}>
-      <span className="text-sm font-semibold text-slate-300">{label}</span>
-      <select className={`${field} h-12`} value={options.includes(value) ? value : ''} onChange={(e) => setDraft((d: unknown) => setAt(d, path, e.target.value))}>
-        <option value="">{blank}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
-function PositionChecklist({ path, label, options }: { path: Path; label: string; options: string[] }) {
-  const { draft, setDraft } = useDraft()
-  const chosen = String(getAt(draft, path) ?? '').split(' / ').filter((x) => options.includes(x))
-  const toggle = (o: string) => {
-    const next = options.filter((x) => (x === o ? !chosen.includes(o) : chosen.includes(x)))
-    setDraft((d: unknown) => setAt(d, path, next.join(' / ')))
-  }
-  return (
-    <div className="sm:col-span-2">
-      <span className="text-sm font-semibold text-slate-300">{label}</span>
-      <details className="group relative mt-1">
-        <summary className={`${field} flex h-12 cursor-pointer list-none items-center justify-between`}>
-          <span className={chosen.length ? '' : 'text-slate-500'}>{chosen.length ? chosen.join(' / ') : 'Select positions…'}</span>
-          <span aria-hidden className="text-slate-400 group-open:rotate-180">▾</span>
-        </summary>
-        <div className="mt-1 grid gap-1 rounded-xl border border-slate-600 bg-slate-950 p-2 sm:grid-cols-2">
-          {options.map((o) => (
-            <label key={o} className="flex min-h-12 items-center gap-3 rounded-lg px-2 text-sm text-slate-100 hover:bg-slate-800">
-              <input type="checkbox" className="h-5 w-5 accent-amber-500" checked={chosen.includes(o)} onChange={() => toggle(o)} />
-              {o}
-            </label>
-          ))}
-        </div>
-      </details>
+    <div ref={box} className="overflow-hidden rounded-2xl border border-slate-700 bg-white">
+      <div style={{ zoom, width: '8.5in' }} aria-hidden>
+        <ProfileSheet data={data} id={id} />
+      </div>
     </div>
   )
 }
 
-function PositionPair({ path, label, options }: { path: Path; label: string; options: string[] }) {
-  const { draft, setDraft } = useDraft()
-  const [primary = '', secondary = ''] = String(getAt(draft, path) ?? '').split(' / ')
-  const set = (p: string, q: string) => setDraft((d: unknown) => setAt(d, path, p ? (q && q !== p ? `${p} / ${q}` : p) : ''))
-  const sel = (title: string, value: string, onChange: (v: string) => void, blank: string) => (
-    <label className="block">
-      <span className="text-sm font-semibold text-slate-300">{title}</span>
-      <select className={`${field} h-12`} value={options.includes(value) ? value : ''} onChange={(e) => onChange(e.target.value)} aria-label={`${label}: ${title}`}>
-        <option value="">{blank}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </label>
+function Chips({ steps, current, gaps, base }: { steps: { id: string; label: string }[]; current: string; gaps: Result['gaps']; base: string }) {
+  return (
+    <nav aria-label="Steps" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+      {steps.map((s, i) => {
+        const n = gaps.filter((g) => g.step === s.id).length
+        return (
+          <a
+            key={s.id}
+            href={`#${base}/${s.id}`}
+            aria-current={current === s.id ? 'step' : undefined}
+            className="flex min-h-12 shrink-0 items-center gap-2 rounded-full border border-slate-700 px-4 text-sm font-bold text-slate-300 aria-[current=step]:border-amber-500 aria-[current=step]:text-amber-400"
+          >
+            <span className="text-xs text-slate-500">{i + 1}</span>
+            {s.label}
+            {n > 0 ? (
+              <span className="rounded-full bg-amber-500/20 px-2 text-xs text-amber-300" title={`${n} still to fill in`}>{n}</span>
+            ) : (
+              <span className="text-emerald-400" title="Complete" aria-label="Complete">✓</span>
+            )}
+          </a>
+        )
+      })}
+    </nav>
   )
+}
+
+const hashGo = (h: string) => {
+  location.hash = h
+  window.scrollTo({ top: 0 })
+}
+
+function StepNav({ steps, current, base, label }: { steps: { id: string; label: string }[]; current: string; base: string; label: string }) {
+  const i = steps.findIndex((s) => s.id === current)
+  const prev = steps[i - 1]
+  const next = steps[i + 1]
+  const btn = 'min-h-12 rounded-xl border border-slate-600 px-5 text-sm font-bold text-slate-100 active:bg-slate-800'
+  return (
+    <div className="flex items-center justify-between gap-3 pt-2">
+      {prev ? (
+        <button type="button" className={btn} onClick={() => hashGo(`${base}/${prev.id}`)}>← {prev.label}</button>
+      ) : (
+        <span />
+      )}
+      {next ? (
+        <button type="button" className={`${btn} border-amber-500 text-amber-400`} onClick={() => hashGo(`${base}/${next.id}`)}>{next.label} →</button>
+      ) : (
+        <a href="#overview" className={`${btn} inline-flex items-center border-amber-500 text-amber-400`}>Done · {label} overview</a>
+      )}
+    </div>
+  )
+}
+
+function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
+  if (step === 'academics')
+    return (
+      <Card title="Academics" hint="GPA and courses always show. The extras below show on the profiles only when filled in.">
+        <F path={['academics', 'gpa']} label="GPA" />
+        <F path={['academics', 'courses']} label="Honors / advanced courses" />
+        <F path={['academics', 'classRank']} label="Class rank (optional)" placeholder="12 of 340" />
+        <F path={['academics', 'ncaaId']} label="NCAA Eligibility Center ID (optional)" />
+        <F path={['academics', 'sat']} label="SAT (optional)" />
+        <F path={['academics', 'act']} label="ACT (optional)" />
+      </Card>
+    )
+  if (step === 'contact')
+    return (
+      <>
+        <Card title="Recruiting contact" hint="Shown in the footer on every public page and on the profiles.">
+          <F path={['contact', 'email']} label="Email" kind="email" />
+          <F path={['contact', 'phone']} label="Phone" kind="phone" />
+        </Card>
+        <Card title="Parent / guardian">
+          <F path={['contact', 'parent', 'name']} label="Name" wide />
+          <F path={['contact', 'parent', 'email']} label="Email" kind="email" />
+          <F path={['contact', 'parent', 'phone']} label="Phone" kind="phone" />
+        </Card>
+        <Card title="Coach reference links" hint="Footer links. Use full web addresses.">
+          <F path={['contact', 'hsCoach', 'label']} label="High school link text" />
+          <F path={['contact', 'hsCoach', 'url']} label="High school link address" />
+          <F path={['contact', 'travelCoach', 'label']} label="Travel / AAU link text" />
+          <F path={['contact', 'travelCoach', 'url']} label="Travel / AAU link address" />
+        </Card>
+        <Card title="Social">
+          <F path={['contact', 'social', 'x', 'handle']} label="X / Twitter handle" />
+          <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" />
+          <F path={['contact', 'social', 'instagram', 'handle']} label="Instagram handle" />
+          <F path={['contact', 'social', 'instagram', 'url']} label="Instagram address" />
+        </Card>
+      </>
+    )
   return (
     <>
-      {sel('Primary position', primary, (v) => set(v, secondary), 'Select…')}
-      {sel('Secondary position', secondary, (v) => set(primary, v), 'None')}
+      <Card title="Athlete">
+        <F path={['athlete', 'name']} label="Name" />
+        <F path={['athlete', 'classYear']} label="Class year" type="number" />
+        <F path={['athlete', 'school']} label="School" />
+        <F path={['athlete', 'location']} label="City, state" />
+        <F path={['athlete', 'height']} label="Height" />
+        <F path={['athlete', 'weight']} label="Weight (optional)" placeholder="140 lb" />
+        <F path={['athlete', 'jersey']} label="Jersey number" />
+        <F path={['siteUrl']} label="Site address" />
+      </Card>
+      <QrCard url={siteUrl} hint="Links to the site address above. Use it on flyers and business cards." file="everharris-qr" />
     </>
   )
 }
 
-function List({ path, noun, blank, max, children }: { path: Path; noun: string; blank: Node; max: number; children: (i: number) => ReactNode }) {
-  const { draft, setDraft } = useDraft()
-  const rows = (getAt(draft, path) as Node[]) ?? []
+function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
+  const videoFields = (base: (string | number)[]) => (
+    <>
+      <F path={[...base, 'title']} label="Title" />
+      <F path={[...base, 'blurb']} label="Description" />
+      <F path={[...base, 'length']} label="Length note" />
+      <F path={[...base, 'embedUrl']} label="Embed URL" placeholder="https://www.youtube.com/embed/VIDEO_ID" />
+    </>
+  )
+  if (step === 'film')
+    return (
+      <>
+        <Card title="Featured video" hint="Use the embed address from YouTube, Vimeo or Hudl, starting with https://.">
+          {videoFields(['featured'])}
+        </Card>
+        <Card title="Skill clips">
+          <F path={['clipsTitle']} label="Section heading" wide />
+          <List path={['clips']} noun="clip" max={6} blank={{ title: '', blurb: '', length: '', embedUrl: '' }}>
+            {(i) => videoFields(['clips', i])}
+          </List>
+        </Card>
+      </>
+    )
+  if (step === 'summary')
+    return (
+      <>
+        <Card title="Scouting summary" hint="Write {popTime} wherever the pop time metric value should appear.">
+          <F path={['summary']} label="Player profile text" area />
+        </Card>
+        <Card title="Season stats" hint="Optional. Shows on the public page and the profile once you add a row.">
+          <List path={['stats']} noun="stat" max={16} blank={{ label: '', value: '', note: '' }}>
+            {(i) => (
+              <>
+                <F path={['stats', i, 'label']} label="Stat" placeholder="Batting average" />
+                <F path={['stats', i, 'value']} label="Value" placeholder=".412" />
+                <F path={['stats', i, 'note']} label="Season / context (optional)" placeholder="2026 spring" wide />
+              </>
+            )}
+          </List>
+        </Card>
+        <Card title="Awards & honors" hint="Optional.">
+          <List path={['awards']} noun="award" max={16} blank={{ title: '', year: '' }}>
+            {(i) => (
+              <>
+                <F path={['awards', i, 'title']} label="Award" />
+                <F path={['awards', i, 'year']} label="Year" />
+              </>
+            )}
+          </List>
+        </Card>
+      </>
+    )
+  if (step === 'schedule')
+    return (
+      <Card title="Schedule">
+        <F path={['scheduleTitle']} label="Section heading" wide />
+        <F path={['scheduleColumns', 'event']} label="Event column heading" />
+        <F path={['scheduleColumns', 'info']} label="Last column heading" />
+        <List path={['schedule']} noun="event" max={40} blank={{ date: '', event: '', location: '', team: '', info: '', infoUrl: '' }}>
+          {(i) => (
+            <>
+              <F path={['schedule', i, 'date']} label="Date" />
+              <F path={['schedule', i, 'event']} label="Event" />
+              <F path={['schedule', i, 'location']} label="Location" />
+              <F path={['schedule', i, 'team']} label="Team" />
+              <F path={['schedule', i, 'info']} label="Pool / field / court / stream text" />
+              <F path={['schedule', i, 'infoUrl']} label="Link for that text (optional)" />
+            </>
+          )}
+        </List>
+      </Card>
+    )
+  if (step === 'contacts')
+    return (
+      <>
+        <Card title="Coach references">
+          <List path={['coaches']} noun="coach" max={6} blank={{ role: '', name: '', phone: '', email: '' }}>
+            {(i) => (
+              <>
+                <F path={['coaches', i, 'role']} label="Role" />
+                <F path={['coaches', i, 'name']} label="Name" />
+                <F path={['coaches', i, 'phone']} label="Phone" kind="phone" />
+                <F path={['coaches', i, 'email']} label="Email" kind="email" />
+              </>
+            )}
+          </List>
+        </Card>
+        <Card title="Recruiting links" hint="Buttons next to the PDF download.">
+          <List path={['links']} noun="link" max={8} blank={{ label: '', url: '' }}>
+            {(i) => (
+              <>
+                <F path={['links', i, 'label']} label="Button text" />
+                <F path={['links', i, 'url']} label="Address" />
+              </>
+            )}
+          </List>
+        </Card>
+        <QrCard url={`${siteUrl}/${id}/`} hint={`Links to the ${id} page. It is also printed on the ${id} recruiting profile.`} file={`everharris-${id}-qr`} />
+      </>
+    )
   return (
-    <div className="space-y-3 sm:col-span-2">
-      {rows.map((_, i) => (
-        <div key={i} className="grid gap-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-4 sm:grid-cols-2">
-          {children(i)}
-          <button
-            type="button"
-            onClick={() => setDraft((d: unknown) => setAt(d, path, rows.filter((_, j) => j !== i)))}
-            className="min-h-12 rounded-xl border border-red-500/50 px-4 text-sm font-semibold text-red-200 active:bg-red-500/10 sm:col-span-2 sm:justify-self-end"
-          >
-            Delete this {noun}
-          </button>
-        </div>
-      ))}
-      {rows.length < max && (
-        <button type="button" onClick={() => setDraft((d: unknown) => setAt(d, path, [...rows, blank]))} className="min-h-12 rounded-xl border border-slate-600 px-4 text-sm font-semibold text-slate-100 active:bg-slate-800">
-          Add {noun}
-        </button>
-      )}
+    <>
+      <Card title="Bio">
+        {id === 'softball' ? (
+          <>
+            <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
+            <Pick path={['handedness']} label="Bats / throws" options={BATS_THROWS} wide />
+          </>
+        ) : (
+          <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
+        )}
+        <F path={['team']} label="Team and division / circuit" wide />
+        <PhotoField sport={id} />
+      </Card>
+      <Card title="Verified metrics" hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
+        <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>
+          {(i) => (
+            <>
+              <F path={['metrics', i, 'label']} label="Label" />
+              <F path={['metrics', i, 'value']} label="Value" />
+              <F path={['metrics', i, 'unit']} label="Unit (sec, mph…)" />
+              <F path={['metrics', i, 'verified']} label="Verified month / year" />
+            </>
+          )}
+        </List>
+      </Card>
+    </>
+  )
+}
+
+function Overview({ data }: { data: RecruitingData }) {
+  const results: { area: Section; title: string; r: Result; steps: typeof SITE_STEPS }[] = [
+    { area: 'site', title: 'Athlete & contacts', r: siteGaps(data), steps: SITE_STEPS },
+    { area: 'softball', title: 'Softball profile', r: sportGaps('softball', data.softball), steps: SPORT_STEPS },
+    { area: 'basketball', title: 'Basketball profile', r: sportGaps('basketball', data.basketball), steps: SPORT_STEPS },
+  ]
+  return (
+    <div className="max-w-3xl">
+      <h1 className="text-3xl font-extrabold tracking-tight text-slate-50">Recruiting profiles</h1>
+      <p className="mt-2 text-sm text-slate-400">Fill in each area step by step. Anything still showing a placeholder is listed here, and each item links to the exact step.</p>
+      <div className="mt-5 grid gap-4">
+        {results.map(({ area, title, r, steps }) => {
+          const done = r.total - r.gaps.length
+          const pct = r.total ? Math.round((done / r.total) * 100) : 100
+          return (
+            <section key={area} className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="mr-auto text-xl font-extrabold text-slate-50">{title}</h2>
+                <a href={`#${area}/${steps[0].id}`} className="inline-flex min-h-12 items-center rounded-full bg-amber-500 px-5 text-sm font-bold text-slate-950 active:bg-amber-400">
+                  {r.gaps.length ? 'Continue' : 'Review'}
+                </a>
+                {area !== 'site' && (
+                  <a href={`/profile/${area}/`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center rounded-full border border-slate-600 px-4 text-sm font-semibold text-slate-100 active:bg-slate-800">
+                    Printable profile
+                  </a>
+                )}
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${title} complete`}>
+                  <div className="h-full bg-amber-500" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-sm font-bold tabular-nums text-slate-200">{pct}%</span>
+              </div>
+              {r.gaps.length === 0 ? (
+                <p className="mt-3 text-sm text-emerald-300">✓ Nothing left to fill in.</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {steps.map((s) => {
+                    const list = r.gaps.filter((g) => g.step === s.id)
+                    if (!list.length) return null
+                    return (
+                      <div key={s.id}>
+                        <a href={`#${area}/${s.id}`} className="text-sm font-bold text-amber-400 underline-offset-2 hover:underline">
+                          {s.label} ({list.length})
+                        </a>
+                        <p className="mt-1 text-sm leading-relaxed text-slate-400">{list.map((g) => g.label).join(' · ')}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-function Editor({ section, initial, stored, onSaved }: { section: Section; initial: SiteData | SportData; stored: boolean; onSaved: (c: StoredContent) => void }) {
-  const [draft, setDraft] = useState<unknown>(initial)
-  const [usingDefaults, setUsingDefaults] = useState(!stored)
+function Editor({
+  section, step, draft, setDraft, dirty, stored, data, onSaved, onReset,
+}: {
+  section: Section
+  step: string
+  draft: unknown
+  setDraft: (u: (d: unknown) => unknown) => void
+  dirty: boolean
+  stored: boolean
+  data: RecruitingData
+  onSaved: (c: StoredContent) => void
+  onReset: () => void
+}) {
+  const wide = useWide()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [previewSport, setPreviewSport] = useState<SportId>('softball')
+  const sport = section !== 'site'
+  const steps = sport ? SPORT_STEPS : SITE_STEPS
+  const current = steps.some((s) => s.id === step) ? step : steps[0].id
+  const result = sport ? sportGaps(section, data[section]) : siteGaps(data)
+  const previewId: SportId = sport ? section : previewSport
+
+  useEffect(() => {
+    setNotice('')
+  }, [section, current])
 
   const call = async (body: Record<string, unknown>) => {
     setBusy(true)
@@ -194,179 +392,87 @@ function Editor({ section, initial, stored, onSaved }: { section: Section; initi
     const c = await call({ action: 'save', data: draft })
     if (c) {
       onSaved(c)
-      setUsingDefaults(false)
-      setNotice('Saved. The public pages now show this.')
+      setNotice('Saved. The public pages and printable profile now show this.')
     }
   }
 
   const reset = async () => {
-    if (!window.confirm('Discard everything saved in this section and go back to the built-in placeholders?')) return
+    if (!window.confirm('Discard everything saved in this area and go back to the built-in placeholders?')) return
     const c = await call({ action: 'reset' })
     if (c) {
       onSaved(c)
-      setDraft(section === 'site' ? defaultSite : defaultSports[section])
-      setUsingDefaults(true)
+      onReset()
       setNotice('Reset to the built-in placeholders.')
     }
   }
 
-  const sport = section !== 'site'
-  const videoFields = (base: Path) => (
-    <>
-      <F path={[...base, 'title']} label="Title" />
-      <F path={[...base, 'blurb']} label="Description" />
-      <F path={[...base, 'length']} label="Length note" />
-      <F path={[...base, 'embedUrl']} label="Embed URL" placeholder="https://www.youtube.com/embed/VIDEO_ID" />
-    </>
+  const preview = (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-bold text-slate-200">Live preview</p>
+        {!sport && (
+          <div className="flex gap-1" role="group" aria-label="Preview sport">
+            {(['softball', 'basketball'] as SportId[]).map((s) => (
+              <button key={s} type="button" aria-pressed={previewSport === s} onClick={() => setPreviewSport(s)} className="min-h-10 rounded-full border border-slate-700 px-3 text-xs font-bold text-slate-300 aria-pressed:border-amber-500 aria-pressed:text-amber-400">
+                {SPORT_LABEL[s]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <Preview data={data} id={previewId} />
+      <p className="text-xs text-slate-500">Includes your unsaved edits. {result.gaps.length ? `${result.gaps.length} fields still show placeholders.` : 'Nothing left to fill in.'}</p>
+    </div>
   )
 
   return (
     <DraftCtx.Provider value={{ draft, setDraft }}>
-    <div className="space-y-5">
-      {usingDefaults && (
-        <p className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-200">
-          Nothing saved here yet. The public site is showing the built-in placeholders. Edit and save to replace them.
-        </p>
-      )}
-      {error && <p role="alert" className="rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
-      {notice && <p role="status" className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-3 text-sm text-emerald-200">{notice}</p>}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-8">
+        <div className="min-w-0 space-y-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">{AREA_LABEL[section]}</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-50">{steps.find((s) => s.id === current)?.label}</h1>
+          </div>
+          <Chips steps={steps} current={current} gaps={result.gaps} base={section} />
+          {!wide && (
+            <details className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+              <summary className="min-h-10 cursor-pointer text-sm font-bold text-slate-200">Preview the printed profile</summary>
+              <div className="mt-3">{preview}</div>
+            </details>
+          )}
+          {!stored && (
+            <p className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-200">
+              Nothing saved here yet. The public site is showing the built-in placeholders. Edit and save to replace them.
+            </p>
+          )}
+          {error && <p role="alert" className="rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
+          {notice && <p role="status" className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-3 text-sm text-emerald-200">{notice}</p>}
 
-      {!sport ? (
-        <>
-          <Card title="Athlete">
-            <F path={['athlete', 'name']} label="Name" />
-            <F path={['athlete', 'classYear']} label="Class year" type="number" />
-            <F path={['athlete', 'school']} label="School" />
-            <F path={['athlete', 'location']} label="City, state" />
-            <F path={['athlete', 'height']} label="Height" />
-            <F path={['athlete', 'jersey']} label="Jersey number" />
-            <F path={['siteUrl']} label="Site address" wide />
-          </Card>
-          <Card title="Academics">
-            <F path={['academics', 'gpa']} label="GPA" />
-            <F path={['academics', 'courses']} label="Honors / advanced courses" />
-          </Card>
-          <Card title="Recruiting contact" hint="Shown in the footer on every public page.">
-            <F path={['contact', 'email']} label="Email" kind="email" />
-            <F path={['contact', 'phone']} label="Phone" kind="phone" />
-          </Card>
-          <Card title="Parent / guardian">
-            <F path={['contact', 'parent', 'name']} label="Name" wide />
-            <F path={['contact', 'parent', 'email']} label="Email" kind="email" />
-            <F path={['contact', 'parent', 'phone']} label="Phone" kind="phone" />
-          </Card>
-          <Card title="Coach reference links" hint="Footer links. Use full web addresses.">
-            <F path={['contact', 'hsCoach', 'label']} label="High school link text" />
-            <F path={['contact', 'hsCoach', 'url']} label="High school link address" />
-            <F path={['contact', 'travelCoach', 'label']} label="Travel / AAU link text" />
-            <F path={['contact', 'travelCoach', 'url']} label="Travel / AAU link address" />
-          </Card>
-          <Card title="Social">
-            <F path={['contact', 'social', 'x', 'handle']} label="X / Twitter handle" />
-            <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" />
-            <F path={['contact', 'social', 'instagram', 'handle']} label="Instagram handle" />
-            <F path={['contact', 'social', 'instagram', 'url']} label="Instagram address" />
-          </Card>
-        </>
-      ) : (
-        <>
-          <Card title="Bio">
-            {section === 'softball' ? (
-              <>
-                <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
-                <Pick path={['handedness']} label="Bats / throws" options={BATS_THROWS} wide />
-              </>
-            ) : (
-              <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
-            )}
-            <F path={['team']} label="Team and division / circuit" wide />
-            <F path={['photo']} label="Action photo address" placeholder="/img/photo.jpg or https://…" wide />
-          </Card>
-          <Card title="Verified metrics" hint="Each box shows “(Verified …)” under the value. Keep the pop time box if the scouting summary uses it.">
-            <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>
-              {(i) => (
-                <>
-                  <F path={['metrics', i, 'label']} label="Label" />
-                  <F path={['metrics', i, 'value']} label="Value" />
-                  <F path={['metrics', i, 'unit']} label="Unit (sec, mph…)" />
-                  <F path={['metrics', i, 'verified']} label="Verified month / year" />
-                </>
-              )}
-            </List>
-          </Card>
-          <Card title="Featured video" hint="Use the embed address from YouTube, Vimeo or Hudl, starting with https://.">
-            {videoFields(['featured'])}
-          </Card>
-          <Card title="Skill clips">
-            <F path={['clipsTitle']} label="Section heading" wide />
-            <List path={['clips']} noun="clip" max={6} blank={{ title: '', blurb: '', length: '', embedUrl: '' }}>
-              {(i) => videoFields(['clips', i])}
-            </List>
-          </Card>
-          <Card title="Scouting summary" hint="Write {popTime} wherever the pop time metric value should appear.">
-            <F path={['summary']} label="Player profile text" area />
-          </Card>
-          <Card title="Schedule">
-            <F path={['scheduleTitle']} label="Section heading" wide />
-            <F path={['scheduleColumns', 'event']} label="Event column heading" />
-            <F path={['scheduleColumns', 'info']} label="Last column heading" />
-            <List path={['schedule']} noun="event" max={40} blank={{ date: '', event: '', location: '', team: '', info: '', infoUrl: '' }}>
-              {(i) => (
-                <>
-                  <F path={['schedule', i, 'date']} label="Date" />
-                  <F path={['schedule', i, 'event']} label="Event" />
-                  <F path={['schedule', i, 'location']} label="Location" />
-                  <F path={['schedule', i, 'team']} label="Team" />
-                  <F path={['schedule', i, 'info']} label="Pool / field / court / stream text" />
-                  <F path={['schedule', i, 'infoUrl']} label="Link for that text (optional)" />
-                </>
-              )}
-            </List>
-          </Card>
-          <Card title="Coach references">
-            <List path={['coaches']} noun="coach" max={6} blank={{ role: '', name: '', phone: '', email: '' }}>
-              {(i) => (
-                <>
-                  <F path={['coaches', i, 'role']} label="Role" />
-                  <F path={['coaches', i, 'name']} label="Name" />
-                  <F path={['coaches', i, 'phone']} label="Phone" kind="phone" />
-                  <F path={['coaches', i, 'email']} label="Email" kind="email" />
-                </>
-              )}
-            </List>
-          </Card>
-          <Card title="Recruiting links" hint="Buttons next to the PDF download.">
-            <List path={['links']} noun="link" max={8} blank={{ label: '', url: '' }}>
-              {(i) => (
-                <>
-                  <F path={['links', i, 'label']} label="Button text" />
-                  <F path={['links', i, 'url']} label="Address" />
-                </>
-              )}
-            </List>
-          </Card>
-        </>
-      )}
+          {sport ? <SportStep id={section} step={current} siteUrl={data.siteUrl} /> : <SiteStep step={current} siteUrl={data.siteUrl} />}
+          <StepNav steps={steps} current={current} base={section} label={AREA_LABEL[section]} />
 
-      <div className="sticky bottom-0 -mx-4 flex flex-wrap gap-3 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-        <button type="button" disabled={busy} onClick={() => void save()} className="min-h-12 flex-1 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400 disabled:opacity-50 sm:flex-none">
-          {busy ? 'Saving…' : 'Save changes'}
-        </button>
-        <a href={sport ? `/${section}/` : '/'} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center rounded-xl border border-slate-600 px-4 text-sm font-semibold text-slate-100 active:bg-slate-800">
-          View public page
-        </a>
-        <button type="button" disabled={busy} onClick={() => void reset()} className="min-h-12 rounded-xl border border-red-500/50 px-4 text-sm font-semibold text-red-200 active:bg-red-500/10 sm:ml-auto">
-          Reset to placeholders
-        </button>
+          <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
+            <button type="button" disabled={busy || !dirty} onClick={() => void save()} className="min-h-12 flex-1 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400 disabled:opacity-40 sm:flex-none">
+              {busy ? 'Saving…' : 'Save changes'}
+            </button>
+            <span className={`text-sm ${dirty ? 'font-semibold text-amber-300' : 'text-slate-500'}`}>{dirty ? 'Unsaved changes' : 'All changes saved'}</span>
+          </div>
+          <div className="pb-16">
+            <button type="button" disabled={busy} onClick={() => void reset()} className="min-h-12 rounded-xl border border-red-500/50 px-4 text-sm font-semibold text-red-200 active:bg-red-500/10">
+              Reset this area to placeholders
+            </button>
+          </div>
+        </div>
+        {wide && <aside className="sticky top-20 self-start">{preview}</aside>}
       </div>
-    </div>
     </DraftCtx.Provider>
   )
 }
 
-export default function Content({ section }: { section: Section }) {
+export default function Content({ area, step }: { area: Area; step: string }) {
   const [content, setContent] = useState<StoredContent | null>(null)
   const [error, setError] = useState('')
+  const [drafts, setDrafts] = useState<Drafts>({})
 
   useEffect(() => {
     api<{ content: StoredContent }>('recruiting.php')
@@ -374,9 +480,54 @@ export default function Content({ section }: { section: Section }) {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load content'))
   }, [])
 
+  const saved = useMemo(
+    () =>
+      content && {
+        site: mergeSite(content.site),
+        softball: mergeSport('softball', content.softball),
+        basketball: mergeSport('basketball', content.basketball),
+      },
+    [content],
+  )
+
+  const dirtyKeys = useMemo(
+    () => (saved ? (['site', 'softball', 'basketball'] as Section[]).filter((k) => k in drafts && JSON.stringify(drafts[k]) !== JSON.stringify(saved[k])) : []),
+    [drafts, saved],
+  )
+
+  useEffect(() => {
+    if (!dirtyKeys.length) return
+    const on = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', on)
+    return () => window.removeEventListener('beforeunload', on)
+  }, [dirtyKeys.length])
+
   if (error) return <p role="alert" className="text-sm text-red-200">{error}</p>
-  if (!content) return <p className="text-sm text-slate-400">Loading…</p>
-  const stored = content[section]
-  const initial = stored ?? (section === 'site' ? defaultSite : defaultSports[section])
-  return <Editor key={section} section={section} initial={initial} stored={stored !== null} onSaved={setContent} />
+  if (!content || !saved) return <p className="text-sm text-slate-400">Loading…</p>
+
+  const current = (k: Section) => (k in drafts ? drafts[k] : saved[k])
+  const data: RecruitingData = { ...(current('site') as SiteData), softball: current('softball') as SportData, basketball: current('basketball') as SportData }
+
+  if (area === 'overview') return <Overview data={data} />
+
+  const setDraft = (u: (d: unknown) => unknown) => setDrafts((d) => ({ ...d, [area]: u(area in d ? d[area] : saved[area]) }))
+  const resetDraft = () => setDrafts((d) => ({ ...d, [area]: area === 'site' ? defaultSite : defaultSports[area] }))
+
+  return (
+    <Editor
+      key={area}
+      section={area}
+      step={step}
+      draft={current(area)}
+      setDraft={setDraft}
+      dirty={dirtyKeys.includes(area)}
+      stored={content[area] !== null}
+      data={data}
+      onSaved={(c) => {
+        setContent(c)
+        setDrafts((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== area)))
+      }}
+      onReset={resetDraft}
+    />
+  )
 }

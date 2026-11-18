@@ -106,6 +106,14 @@ function ensure_schema(PDO $pdo): void
             updated_by INT NULL
         )"
     );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS site_images (
+            name VARCHAR(32) NOT NULL PRIMARY KEY,
+            mime VARCHAR(16) NOT NULL,
+            data $big NOT NULL,
+            updated_at DATETIME NOT NULL
+        )"
+    );
     $pdo->exec('CREATE TABLE IF NOT EXISTS chat_log (ip VARCHAR(45) NOT NULL, created_at DATETIME NOT NULL)');
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS sessions (

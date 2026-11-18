@@ -107,8 +107,16 @@ function clean_site(array $in): array
             'location' => str($at, 'location', 80),
             'height' => str($at, 'height', 20),
             'jersey' => str($at, 'jersey', 10),
+            'weight' => str($at, 'weight', 20),
         ],
-        'academics' => ['gpa' => str($ac, 'gpa', 20), 'courses' => str($ac, 'courses', 200)],
+        'academics' => [
+            'gpa' => str($ac, 'gpa', 20),
+            'courses' => str($ac, 'courses', 200),
+            'classRank' => str($ac, 'classRank', 30),
+            'sat' => str($ac, 'sat', 20),
+            'act' => str($ac, 'act', 20),
+            'ncaaId' => str($ac, 'ncaaId', 30),
+        ],
         'contact' => [
             'email' => email($co, 'email'),
             'phone' => phone($co, 'phone'),
@@ -164,6 +172,8 @@ function clean_sport(array $in, string $name): array
             'email' => email($c, 'email'),
         ]),
         'links' => rows($in['links'] ?? [], 8, fn(array $l) => ['label' => str($l, 'label', 60), 'url' => url($l, 'url')]),
+        'stats' => rows($in['stats'] ?? [], 16, fn(array $x) => ['label' => str($x, 'label', 60), 'value' => str($x, 'value', 30), 'note' => str($x, 'note', 60)]),
+        'awards' => rows($in['awards'] ?? [], 16, fn(array $x) => ['title' => str($x, 'title', 120), 'year' => str($x, 'year', 20)]),
     ];
     if (str($in, 'handedness', 60) !== '') {
         $out['handedness'] = str($in, 'handedness', 60);

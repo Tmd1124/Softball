@@ -9,12 +9,21 @@ export interface StoredContent {
   basketball: SportData | null
 }
 
-export function merge(c: StoredContent): RecruitingData {
+export function mergeSite(site: SiteData | null): SiteData {
   return {
-    ...(c.site ?? defaultSite),
-    softball: c.softball ?? defaultSports.softball,
-    basketball: c.basketball ?? defaultSports.basketball,
+    ...defaultSite,
+    ...site,
+    athlete: { ...defaultSite.athlete, ...site?.athlete },
+    academics: { ...defaultSite.academics, ...site?.academics },
   }
+}
+
+export function mergeSport(id: SportId, sport: SportData | null): SportData {
+  return { ...defaultSports[id], ...sport }
+}
+
+export function merge(c: StoredContent): RecruitingData {
+  return { ...mergeSite(c.site), softball: mergeSport('softball', c.softball), basketball: mergeSport('basketball', c.basketball) }
 }
 
 export const sectionOf = (c: StoredContent, id: 'site' | SportId) => c[id]

@@ -16,6 +16,8 @@ export default defineConfig({
         admin: resolve(import.meta.dirname, 'admin/index.html'),
         schedule: resolve(import.meta.dirname, 'schedule/index.html'),
         profile: resolve(import.meta.dirname, 'profile/index.html'),
+        profileSoftball: resolve(import.meta.dirname, 'profile/softball/index.html'),
+        profileBasketball: resolve(import.meta.dirname, 'profile/basketball/index.html'),
         reset: resolve(import.meta.dirname, 'reset/index.html'),
       },
     },

@@ -134,8 +134,8 @@ export default function SiteShell({ page, children, footer = true, help, lift = 
         {footer && <SiteFooter />}
       </div>
       <Assistant
-        helpKey={help ?? (page === 'admin' ? (user ? `admin-${hash.slice(1).split('/')[0] || 'site'}` : 'admin-login') : page === 'softball' || page === 'basketball' ? 'sport' : page)}
-        lift={lift}
+        helpKey={help ?? (page === 'admin' ? (user ? `admin-${hash.slice(1).split('/')[0] || 'overview'}` : 'admin-login') : page === 'softball' || page === 'basketball' ? 'sport' : page)}
+        lift={lift || page === 'admin'}
         startOn={!help && PUBLIC_PAGES.includes(page) ? 'ask' : 'help'}
       />
       {login && (

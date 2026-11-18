@@ -134,7 +134,7 @@ button {
 @media print {
   @page {
     size: letter;
-    margin: 0.5in;
+    margin: 0;
   }
   html.theme-profile {
     background: #fff;

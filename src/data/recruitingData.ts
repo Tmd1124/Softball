@@ -37,6 +37,17 @@ export interface LinkItem {
   url: string
 }
 
+export interface StatItem {
+  label: string
+  value: string
+  note: string
+}
+
+export interface AwardItem {
+  title: string
+  year: string
+}
+
 export interface SportData {
   label: string
   photo: string
@@ -53,6 +64,8 @@ export interface SportData {
   schedule: ScheduleEvent[]
   coaches: Coach[]
   links: LinkItem[]
+  stats: StatItem[]
+  awards: AwardItem[]
 }
 
 export const defaults = {
@@ -65,11 +78,16 @@ export const defaults = {
     location: 'Canton, GA',
     height: '5’6”',
     jersey: '[XX]',
+    weight: '',
   },
 
   academics: {
     gpa: '[X.XX]',
     courses: '[Honors/Advanced Courses]',
+    classRank: '',
+    sat: '',
+    act: '',
+    ncaaId: '',
   },
 
   contact: {
@@ -141,6 +159,8 @@ export const defaults = {
       { label: 'SportsRecruits', url: 'https://sportsrecruits.com' },
       { label: 'X / Twitter', url: 'https://x.com/' },
     ],
+    stats: [],
+    awards: [],
   } satisfies SportData,
 
   basketball: {
@@ -199,6 +219,8 @@ export const defaults = {
       { label: 'NCSA', url: 'https://www.ncsasports.org' },
       { label: 'X / Twitter', url: 'https://x.com/' },
     ],
+    stats: [],
+    awards: [],
   } satisfies SportData,
 }
 
@@ -207,8 +229,8 @@ export const SPORT_IDS: SportId[] = ['softball', 'basketball']
 
 export interface SiteData {
   siteUrl: string
-  athlete: { name: string; classYear: number; school: string; location: string; height: string; jersey: string }
-  academics: { gpa: string; courses: string }
+  athlete: { name: string; classYear: number; school: string; location: string; height: string; jersey: string; weight: string }
+  academics: { gpa: string; courses: string; classRank: string; sat: string; act: string; ncaaId: string }
   contact: {
     email: string
     phone: string
