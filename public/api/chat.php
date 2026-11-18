@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/lib.php';
+require __DIR__ . '/chat_search.php';
 
 const CHAT_MODEL = 'claude-sonnet-5-5';
 const CHAT_MAX_TOKENS = 800;
@@ -73,42 +74,9 @@ function config_key(): string
     return (string) ($file['anthropic_key'] ?? '');
 }
 
-function fallback_answer(array $c): string
-{
-    if ($c['site'] === null && $c['softball'] === null && $c['basketball'] === null) {
-        return "Ever's recruiting profile has not been filled in yet, so there is nothing to report. Please check back soon.";
-    }
-    $lines = ['The question assistant is not available right now. Here is the profile as published on this site.'];
-    if ($c['site']) {
-        $a = $c['site']['athlete'];
-        $lines[] = "{$a['name']}, Class of {$a['classYear']}, {$a['school']} ({$a['location']}), {$a['height']}, jersey #{$a['jersey']}. GPA {$c['site']['academics']['gpa']}; {$c['site']['academics']['courses']}.";
-        $lines[] = "Recruiting contact: {$c['site']['contact']['email']}, {$c['site']['contact']['phone']}.";
-    }
-    foreach (['softball', 'basketball'] as $s) {
-        if (!$c[$s]) {
-            continue;
-        }
-        $lines[] = '';
-        $lines[] = strtoupper($s) . ': ' . $c[$s]['positions'];
-        $teams = $c[$s]['teams'] ?? [];
-        usort($teams, fn($a, $b) => (int) $b['year'] <=> (int) $a['year']);
-        foreach ($teams as $t) {
-            $lines[] = "- {$t['year']} {$t['name']} ({$t['type']}): coach {$t['coach']}" . ($t['owner'] !== '' ? ", owner {$t['owner']}" : '') . ", {$t['phone']}, {$t['email']}";
-        }
-        foreach ($c[$s]['trainers'] ?? [] as $t) {
-            $lines[] = "- Personal trainer {$t['name']}, {$t['phone']}, {$t['email']}";
-        }
-        foreach ($c[$s]['metrics'] as $m) {
-            $lines[] = "- {$m['label']}: {$m['value']}" . (isset($m['unit']) ? " {$m['unit']}" : '') . " (verified {$m['verified']})";
-        }
-        $lines[] = str_replace('{popTime}', '', $c[$s]['summary']);
-    }
-    return implode("\n", $lines);
-}
-
 $key = config_key();
 if ($key === '' || str_contains($key, 'REPLACE_ME')) {
-    respond(200, ['reply' => fallback_answer($content), 'ai' => false]);
+    respond(200, ['reply' => cs_answer($content, (string) end($clean)['content']), 'ai' => false]);
 }
 
 $system = <<<TXT
@@ -138,7 +106,7 @@ $payload = json_encode([
 ]);
 
 if ($daily >= CHAT_PER_DAY) {
-    respond(200, ['reply' => fallback_answer($content), 'ai' => false]);
+    respond(200, ['reply' => cs_answer($content, (string) end($clean)['content']), 'ai' => false]);
 }
 
 function call_anthropic(string $key, string $payload): ?array
@@ -175,6 +143,6 @@ foreach ($res['content'] ?? [] as $block) {
     }
 }
 if (trim($text) === '') {
-    respond(200, ['reply' => fallback_answer($content), 'ai' => false]);
+    respond(200, ['reply' => cs_answer($content, (string) end($clean)['content']), 'ai' => false]);
 }
 respond(200, ['reply' => trim($text), 'ai' => true]);
