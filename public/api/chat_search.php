@@ -192,7 +192,7 @@ function cs_overview_asked(string $q): bool
 function cs_contact_line(array $c): string
 {
     $co = $c['site']['contact'] ?? [];
-    return cs_join(['Recruiting contact', cs_clean($co['email'] ?? ''), cs_clean($co['phone'] ?? '')]);
+    return cs_join([cs_clean($co['email'] ?? ''), cs_clean($co['phone'] ?? '')]);
 }
 
 function cs_overview(array $facts, string $contact): string
@@ -212,8 +212,72 @@ function cs_overview(array $facts, string $contact): string
         }
     }
     $lines[] = '';
-    $lines[] = "Please confirm details with Ever's recruiting contact." . ($contact !== '' ? ' ' . $contact : '');
+    $lines[] = "Please confirm details with Ever's recruiting contact" . ($contact !== '' ? ': ' . $contact : '.');
     return implode("\n", $lines);
+}
+
+function cs_next_intent(string $q): bool
+{
+    return (bool) preg_match('/\b(next|upcoming|soon)\b|\b(where|when) (will|is|are|can)\b.*\b(play|playing|compete|game|games|see)\b/i', $q);
+}
+
+function cs_next_events(array $c, array $sports, string $contact): string
+{
+    $today = strtotime(gmdate('Y-m-d'));
+    $dated = [];
+    $undated = [];
+    foreach (['softball', 'basketball'] as $s) {
+        if ($sports !== [] && !in_array($s, $sports, true)) {
+            continue;
+        }
+        foreach ($c[$s]['schedule'] ?? [] as $e) {
+            $date = cs_clean($e['date'] ?? '');
+            if ($date === '' && cs_clean($e['event'] ?? '') === '') {
+                continue;
+            }
+            $text = cs_join([$date, cs_clean($e['event'] ?? ''), cs_clean($e['location'] ?? ''), cs_clean($e['team'] ?? ''), cs_clean($e['info'] ?? '')]);
+            $ts = $date !== '' ? strtotime($date) : false;
+            $line = '- ' . ucfirst($s) . ': ' . $text;
+            if ($ts === false) {
+                $undated[] = $line;
+            } elseif ($ts >= $today) {
+                $dated[] = ['ts' => $ts, 'line' => $line];
+            }
+        }
+    }
+    usort($dated, fn($a, $b) => $a['ts'] <=> $b['ts']);
+    $follow = "Please confirm times and locations with Ever's recruiting contact" . ($contact !== '' ? ': ' . $contact : '.');
+    if ($dated === [] && $undated === []) {
+        return "No upcoming games or events are listed on the site right now. Please check back soon.\n\n" . $follow;
+    }
+    $lines = [];
+    if ($dated !== []) {
+        $lines[] = 'Ever plays next:';
+        foreach (array_slice($dated, 0, 3) as $d) {
+            $lines[] = $d['line'];
+        }
+        if (count($dated) > 3) {
+            $lines[] = '(' . (count($dated) - 3) . ' more on the Schedule page.)';
+        }
+    }
+    if ($undated !== []) {
+        $lines[] = $dated === [] ? 'These events are on the schedule (their dates are not in a format I can sort):' : 'Also listed:';
+        foreach (array_slice($undated, 0, 4) as $u) {
+            $lines[] = $u;
+        }
+    }
+    return implode("\n", $lines) . "\n\n" . $follow;
+}
+
+function cs_not_found(string $question, string $contact): string
+{
+    $q = trim((string) preg_replace('/\s+/', ' ', $question));
+    if (strlen($q) > 80) {
+        $q = rtrim(substr($q, 0, 80)) . '...';
+    }
+    return "Sorry, I could not find an answer to \"{$q}\" on this site. I can only answer from what is published here, so it may not be listed yet."
+        . "\n\nTry asking about Ever's positions, measurables, teams and coaches, personal trainer, schedule, film, awards, academics, or contact details, or ask for a summary."
+        . ($contact !== '' ? "\n\nFor anything else, please contact Ever's recruiting contact: " . $contact : '');
 }
 
 function cs_answer(array $c, string $question): string
@@ -231,6 +295,9 @@ function cs_answer(array $c, string $question): string
         if (preg_match('/\b' . $s . '\b/i', $question)) {
             $sports[] = $s;
         }
+    }
+    if (cs_next_intent($question)) {
+        return cs_next_events($c, $sports, $contact);
     }
     $tokens = array_values(array_filter(cs_tokens($question), fn($t) => $t !== 'softball' && $t !== 'basketball'));
     $syn = cs_syn();
@@ -268,8 +335,7 @@ function cs_answer(array $c, string $question): string
     $scored = array_slice(array_filter($scored, fn($r) => $r['score'] * 2 >= $top), 0, 8);
 
     if ($scored === [] || !$recognized) {
-        return "I could not find that on this site. You can ask about Ever's positions, measurables, teams and coaches, personal trainer, schedule, film, awards, academics, or contact details, or ask for a summary."
-            . ($contact !== '' ? "\n\n" . $contact : '');
+        return cs_not_found($question, $contact);
     }
     $lines = ['Here is what the site says:'];
     foreach ($scored as $r) {
@@ -277,6 +343,6 @@ function cs_answer(array $c, string $question): string
         $lines[] = '- ' . $label . $r['fact']['text'];
     }
     $lines[] = '';
-    $lines[] = "Please confirm details with Ever's recruiting contact." . ($contact !== '' ? ' ' . $contact : '');
+    $lines[] = "Please confirm details with Ever's recruiting contact" . ($contact !== '' ? ': ' . $contact : '.');
     return implode("\n", $lines);
 }
