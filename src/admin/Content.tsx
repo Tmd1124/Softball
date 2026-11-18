@@ -5,7 +5,7 @@ import type { RecruitingData, SiteData, SportData, SportId } from '../data/recru
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, Card, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, TeamsTable } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, Card, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -153,6 +153,15 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
   const [teamsOpen, setTeamsOpen] = useState(false)
+  const [trainerOpen, setTrainerOpen] = useState(false)
+  const [trainerPick, setTrainerPick] = useState<{ n: number } | null>(null)
+  const trainerBox = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!trainerPick || !trainerOpen) return
+    trainerBox.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    document.getElementById(`trainer-name-${trainerPick.n}`)?.focus({ preventScroll: true })
+    setTrainerPick(null)
+  }, [trainerPick, trainerOpen])
   const [pick, setPick] = useState<{ n: number } | null>(null)
   const teamsBox = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -251,17 +260,18 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           </List>
         </Collapsible>
         <TeamsTable onPick={(n) => { setTeamsOpen(true); setPick({ n }) }} />
-        <Card title="Personal training instructor" hint="Ever’s trainer for this sport.">
+        <Collapsible title="Personal training instructor" hint="Ever’s trainer for this sport." open={trainerOpen} onToggle={() => setTrainerOpen((o) => !o)} boxRef={trainerBox}>
           <List path={['trainers']} noun="trainer" max={10} blank={{ name: '', phone: '', email: '' }}>
             {(i) => (
               <>
-                <F path={['trainers', i, 'name']} label="Name" />
+                <F id={`trainer-name-${i}`} path={['trainers', i, 'name']} label="Name" />
                 <F path={['trainers', i, 'phone']} label="Phone" kind="phone" />
                 <F path={['trainers', i, 'email']} label="Email" kind="email" wide />
               </>
             )}
           </List>
-        </Card>
+        </Collapsible>
+        <TrainersTable onPick={(n) => { setTrainerOpen(true); setTrainerPick({ n }) }} />
       </>
     )
   if (step === 'contacts')

@@ -3,7 +3,7 @@ import type { ReactNode, RefObject } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
 import QrCode, { qrPngBlob, qrSvgString } from '../recruit/QrCode'
-import type { TeamItem } from '../data/recruitingData'
+import type { TeamItem, TrainerItem } from '../data/recruitingData'
 
 export type Path = (string | number)[]
 type Node = Record<string, unknown>
@@ -364,6 +364,51 @@ export function TeamsTable({ onPick }: { onPick: (n: number) => void }) {
                   <td className={td}>{t.type}</td>
                   <td className={td}>{t.coach}</td>
                   <td className={td}>{t.owner}</td>
+                  <td className={td}>{t.phone}</td>
+                  <td className={td}>{t.email}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+export function TrainersTable({ onPick }: { onPick: (n: number) => void }) {
+  const { draft } = useDraft()
+  const [open, setOpen] = useState(true)
+  const rows = ((getAt(draft, ['trainers']) as TrainerItem[] | undefined) ?? []).map((t, n) => ({ t, n })).filter((x) => x.t.name)
+  const th = 'sticky top-0 bg-slate-800 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-300'
+  const td = 'whitespace-nowrap px-3 py-2 text-slate-100'
+  return (
+    <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5" aria-label="All personal training instructors">
+      <CollapseHeader title="All personal training instructors" open={open} onToggle={() => setOpen((o) => !o)} />
+      {open && <p className="mb-3 text-sm text-slate-400">Click an instructor to edit. Scroll to see more than five.</p>}
+      {!open ? null : rows.length === 0 ? (
+        <p className="text-sm text-slate-400">No instructors yet. Add one above.</p>
+      ) : (
+        <div className="max-h-[17.5rem] overflow-auto rounded-xl border border-slate-700" tabIndex={0}>
+          <table className="w-full min-w-[28rem] text-sm">
+            <thead>
+              <tr>
+                {['Name', 'Phone', 'Email'].map((h) => (
+                  <th key={h} className={th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {rows.map(({ t, n }) => (
+                <tr
+                  key={n}
+                  tabIndex={0}
+                  onClick={() => onPick(n)}
+                  onKeyDown={(e) => e.key === 'Enter' && onPick(n)}
+                  aria-label={`Edit ${t.name}`}
+                  className="h-[3.1rem] cursor-pointer hover:bg-slate-800 focus-visible:bg-slate-800"
+                >
+                  <td className={`${td} font-semibold`}>{t.name}</td>
                   <td className={td}>{t.phone}</td>
                   <td className={td}>{t.email}</td>
                 </tr>
