@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
 import QrCode, { qrPngBlob, qrSvgString } from '../recruit/QrCode'
@@ -40,9 +40,29 @@ export function Card({ title, hint, children }: { title: string; hint?: string; 
   )
 }
 
+export function Collapsible({ title, hint, open, onToggle, children, boxRef }: { title: string; hint?: string; open: boolean; onToggle: () => void; children: ReactNode; boxRef?: RefObject<HTMLFieldSetElement | null> }) {
+  return (
+    <fieldset ref={boxRef} className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
+      <legend className="px-2">
+        <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-12 items-center gap-2 text-lg font-bold text-slate-50">
+          <span aria-hidden className="inline-block w-4 text-amber-400">{open ? '▾' : '▸'}</span>
+          {title}
+          <span className="text-sm font-semibold text-slate-400">{open ? '(minimize)' : '(maximize)'}</span>
+        </button>
+      </legend>
+      {open && (
+        <>
+          {hint && <p className="mb-3 text-sm text-slate-400">{hint}</p>}
+          <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+        </>
+      )}
+    </fieldset>
+  )
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder, hint }: { path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email'; placeholder?: string; hint?: string }) {
+export function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder, hint, id }: { id?: string; path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email'; placeholder?: string; hint?: string }) {
   const { draft, setDraft } = useDraft()
   const value = String(getAt(draft, path) ?? '')
   const change = (v: string) => setDraft((d) => setAt(d, path, type === 'number' ? Number(v) : kind === 'phone' ? formatPhone(v) : v))
@@ -54,6 +74,7 @@ export function F({ path, label, area = false, wide = false, type = 'text', kind
         <textarea className={`${field} min-h-32 py-2`} value={value} onChange={(e) => change(e.target.value)} />
       ) : (
         <input
+          id={id}
           className={`${field} h-12 ${bad ? 'border-red-500' : ''}`}
           type={kind === 'email' ? 'email' : kind === 'phone' ? 'tel' : type}
           inputMode={kind === 'phone' ? 'tel' : kind === 'email' ? 'email' : undefined}
@@ -301,16 +322,16 @@ export function PhotoField({ sport }: { sport: string }) {
   )
 }
 
-export function TeamsTable() {
+export function TeamsTable({ onPick }: { onPick: (n: number) => void }) {
   const { draft } = useDraft()
-  const teams = ((getAt(draft, ['teams']) as TeamItem[] | undefined) ?? []).filter((t) => t.name || t.coach)
-  const sorted = [...teams].sort((a, b) => (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0))
+  const teams = ((getAt(draft, ['teams']) as TeamItem[] | undefined) ?? []).map((t, n) => ({ t, n })).filter((x) => x.t.name || x.t.coach)
+  const sorted = [...teams].sort((a, b) => (parseInt(b.t.year, 10) || 0) - (parseInt(a.t.year, 10) || 0))
   const th = 'sticky top-0 bg-slate-800 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-300'
   const td = 'whitespace-nowrap px-3 py-2 text-slate-100'
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5" aria-label="All teams and coaches">
       <h3 className="text-lg font-bold text-slate-50">All teams & coaches</h3>
-      <p className="mb-3 text-sm text-slate-400">Newest year first. Scroll to see more than five.</p>
+      <p className="mb-3 text-sm text-slate-400">Newest year first. Click a team to edit it. Scroll to see more than five.</p>
       {sorted.length === 0 ? (
         <p className="text-sm text-slate-400">No teams yet. Add one above.</p>
       ) : (
@@ -324,8 +345,15 @@ export function TeamsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {sorted.map((t, i) => (
-                <tr key={i} className="h-[3.1rem]">
+              {sorted.map(({ t, n }) => (
+                <tr
+                  key={n}
+                  tabIndex={0}
+                  onClick={() => onPick(n)}
+                  onKeyDown={(e) => e.key === 'Enter' && onPick(n)}
+                  aria-label={`Edit ${t.name}`}
+                  className="h-[3.1rem] cursor-pointer hover:bg-slate-800 focus-visible:bg-slate-800"
+                >
                   <td className={td}>{t.year}</td>
                   <td className={`${td} font-semibold`}>{t.name}</td>
                   <td className={td}>{t.type}</td>

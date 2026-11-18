@@ -5,7 +5,7 @@ import type { RecruitingData, SiteData, SportData, SportId } from '../data/recru
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, Card, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, TeamsTable } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, Card, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, TeamsTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -152,6 +152,15 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 }
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
+  const [teamsOpen, setTeamsOpen] = useState(true)
+  const [pick, setPick] = useState<{ n: number } | null>(null)
+  const teamsBox = useRef<HTMLFieldSetElement>(null)
+  useEffect(() => {
+    if (!pick || !teamsOpen) return
+    teamsBox.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    document.getElementById(`team-name-${pick.n}`)?.focus({ preventScroll: true })
+    setPick(null)
+  }, [pick, teamsOpen])
   const videoFields = (base: (string | number)[]) => (
     <>
       <F path={[...base, 'title']} label="Title" />
@@ -215,11 +224,11 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
   if (step === 'teams')
     return (
       <>
-        <Card title="Teams & coaches" hint="One row per team and year, for this sport only. The newest year shows first everywhere on the site.">
+        <Collapsible title="Teams & coaches" hint="One row per team and year, for this sport only. The newest year shows first everywhere on the site." open={teamsOpen} onToggle={() => setTeamsOpen((o) => !o)} boxRef={teamsBox}>
           <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '', stats: [] }}>
             {(i) => (
               <>
-                <F path={['teams', i, 'name']} label="Team name" />
+                <F id={`team-name-${i}`} path={['teams', i, 'name']} label="Team name" />
                 <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
                 <Pick path={['teams', i, 'type']} label="Team type" options={[...TEAM_TYPES]} />
                 <F path={['teams', i, 'coach']} label="Coach" />
@@ -240,8 +249,8 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
               </>
             )}
           </List>
-        </Card>
-        <TeamsTable />
+        </Collapsible>
+        <TeamsTable onPick={(n) => { setTeamsOpen(true); setPick({ n }) }} />
         <Card title="Personal training instructor" hint="Ever’s trainer for this sport.">
           <List path={['trainers']} noun="trainer" max={10} blank={{ name: '', phone: '', email: '' }}>
             {(i) => (
