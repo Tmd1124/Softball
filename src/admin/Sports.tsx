@@ -60,10 +60,10 @@ const fromCatalog = (name: string): FormState => {
     all: c.positions,
     baseP: c.positions,
     baseM: c.metrics.map(([l, u]) => mkey(l, u)),
-    checked: c.positions,
+    checked: [],
     handedness: c.handedness,
     allM: c.metrics.map(([l, u]) => mkey(l, u)),
-    checkedM: c.metrics.slice(0, 4).map(([l, u]) => mkey(l, u)),
+    checkedM: [],
   }
 }
 
@@ -115,7 +115,7 @@ function HowTo({ onClose }: { onClose: () => void }) {
       </div>
       <ol className="mt-2 list-decimal space-y-1.5 pl-5">
         <li><strong>Pick the sport</strong> from the list. Its name, color, positions and starter measurables fill in for you. If it is not on the list, choose <em>Other</em> and type it. Tap the <span className="font-bold text-amber-300">?</span> beside any question if you are not sure.</li>
-        <li><strong>Tick the positions</strong> you want to offer, and the <strong>measurables</strong> coaches ask about. Untick any that do not apply, or add your own.</li>
+        <li><strong>Tick the positions</strong> you want to offer, and the <strong>measurables</strong> coaches ask about. Nothing is ticked for you, and you can add your own.</li>
         <li><strong>Press Add sport.</strong> It starts hidden, so nobody else can see it yet.</li>
         <li><strong>Fill in its pages.</strong> The sport gets its own button at the top of this screen for its photo, measurables, teams, film and schedule, the same as Softball.</li>
         <li><strong>Press “Show on the website”</strong> on this screen when you are ready.</li>
@@ -270,7 +270,7 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
             </div>
           </Q>
 
-          <Q n={3} label={`${f.positionLabel || 'Positions'} to offer`} help={<>This is the checklist you will choose from when you fill in Ever’s bio. Untick any that do not apply to her level. Add your own below if something is missing. You can change this list later.</>}>
+          <Q n={3} label={`${f.positionLabel || 'Positions'} to offer`} help={<>This is the checklist you will choose from when you fill in Ever’s bio. Tick the ones that apply to her. Add your own below if something is missing. You can change this list later.</>}>
             <fieldset className="mt-1">
               <legend className="sr-only">{f.positionLabel} to offer</legend>
               {f.all.length > 0 && (
@@ -317,11 +317,11 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
           </Q>
 
           {!editing && (
-            <Q n={4} label="Starter measurables" help={<>The numbers coaches ask about. The four most important are ticked for you. Tick up to {MAX_METRICS} that matter for Ever, or add your own. They become the boxes on the sport page. You type the actual numbers, and the date they were measured, later in Bio &amp; metrics. You can add or remove boxes there at any time.</>}>
+            <Q n={4} label="Starter measurables" help={<>The numbers coaches ask about. Nothing is ticked for you. Tick up to {MAX_METRICS} that matter for Ever, or add your own. They become the boxes on the sport page. You type the actual numbers, and the date they were measured, later in Bio &amp; metrics. You can add or remove boxes there at any time.</>}>
               <fieldset className="mt-1">
                 <legend className="sr-only">Starter measurables</legend>
                 <div className="mb-2 flex items-center gap-2">
-                  <button type="button" onClick={() => set({ checkedM: f.allM.slice(0, 4) })} className="min-h-10 rounded-full border border-slate-600 px-3 text-xs font-bold text-slate-200 active:bg-slate-800">Top 4 only</button>
+                  <button type="button" onClick={() => set({ checkedM: f.allM.slice(0, 4) })} className="min-h-10 rounded-full border border-slate-600 px-3 text-xs font-bold text-slate-200 active:bg-slate-800">Pick the top 4</button>
                   <button type="button" onClick={() => set({ checkedM: [] })} className="min-h-10 rounded-full border border-slate-600 px-3 text-xs font-bold text-slate-200 active:bg-slate-800">Clear all</button>
                   <span className="text-xs text-slate-400">{metricKeys.length} of {MAX_METRICS} ticked</span>
                 </div>

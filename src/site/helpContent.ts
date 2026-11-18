@@ -90,7 +90,7 @@ export const HELP: Record<string, HelpTopic> = {
   'admin-sports': {
     title: 'Sports',
     tips: [
-      'To add a sport: press Add a sport, pick it from the list of common college sports (or choose Other), tick the positions or events to offer, and press Add sport. The name, color, positions and starter measurables fill in for you. It starts hidden.',
+      'To add a sport: press Add a sport, pick it from the list of common college sports (or choose Other), tick the positions or events to offer, and press Add sport. The name, color and the lists of positions and measurables fill in for you, but nothing is ticked until you tick it. It starts hidden.',
       'Use the sport’s new button at the top of the screen to fill in its photo, measurables, teams, film and schedule.',
       'When it is ready, press Show on the website. It then appears in the menu, home page, PDF list and search.',
       'To take a sport off the website, press Hide from the website. Nothing is deleted and you can show it again any time.',
