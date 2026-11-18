@@ -14,7 +14,12 @@ function user_rows(PDO $pdo): array
         'active' => (int) $r['active'] === 1,
         'createdAt' => $r['created_at'],
         'lastLoginAt' => $r['last_login_at'],
-    ], $pdo->query('SELECT id, email, role, active, created_at, last_login_at FROM users ORDER BY email')->fetchAll());
+        'displayName' => $r['display_name'],
+        'phone' => $r['phone'],
+    ], $pdo->query(
+        'SELECT u.id, u.email, u.role, u.active, u.created_at, u.last_login_at, p.display_name, p.phone
+         FROM users u LEFT JOIN profiles p ON p.user_id = u.id ORDER BY u.email'
+    )->fetchAll());
 }
 
 function other_active_admins(PDO $pdo, int $excludeId): int
@@ -69,6 +74,41 @@ switch ($in['action'] ?? '') {
         }
 
         $pdo->prepare('UPDATE users SET role = ?, active = ? WHERE id = ?')->execute([$role, $active, $id]);
+        if (array_key_exists('email', $in)) {
+            $email = valid_email($in['email']);
+            $dup = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = ? AND id <> ?');
+            $dup->execute([$email, $id]);
+            if ((int) $dup->fetchColumn() > 0) {
+                respond(409, ['error' => 'Another account already uses that email']);
+            }
+            $pdo->prepare('UPDATE users SET email = ? WHERE id = ?')->execute([$email, $id]);
+        }
+        if (array_key_exists('displayName', $in) || array_key_exists('phone', $in)) {
+            $name = $in['displayName'] ?? null;
+            if ($name !== null && (!is_string($name) || strlen(trim($name)) > 60)) {
+                respond(400, ['error' => 'Name must be 60 characters or fewer']);
+            }
+            $phone = $in['phone'] ?? null;
+            if (is_string($phone) && trim($phone) !== '') {
+                $d = preg_replace('/\D/', '', $phone);
+                if (strlen($d) === 11 && $d[0] === '1') {
+                    $d = substr($d, 1);
+                }
+                if (strlen($d) !== 10) {
+                    respond(400, ['error' => 'Enter a 10-digit phone number, like (770) 555-0123']);
+                }
+                $phone = sprintf('(%s) %s-%s', substr($d, 0, 3), substr($d, 3, 3), substr($d, 6));
+            } else {
+                $phone = null;
+            }
+            $name = is_string($name) && trim($name) !== '' ? trim($name) : null;
+            $has = $pdo->prepare('SELECT COUNT(*) FROM profiles WHERE user_id = ?');
+            $has->execute([$id]);
+            if ((int) $has->fetchColumn() === 0) {
+                $pdo->prepare('INSERT INTO profiles (user_id, updated_at) VALUES (?, ?)')->execute([$id, now()]);
+            }
+            $pdo->prepare('UPDATE profiles SET display_name = ?, phone = ?, updated_at = ? WHERE user_id = ?')->execute([$name, $phone, now(), $id]);
+        }
         $reset = array_key_exists('password', $in);
         if ($reset) {
             $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?')
@@ -78,6 +118,30 @@ switch ($in['action'] ?? '') {
             // A deactivated user or a reset password must not keep an older sign-in alive.
             drop_user_sessions($id);
         }
+        respond(200, ['users' => user_rows($pdo)]);
+
+    case 'delete':
+        $id = $in['id'] ?? null;
+        if (!is_int($id)) {
+            respond(400, ['error' => 'Invalid id']);
+        }
+        if ($id === $me['id']) {
+            respond(400, ['error' => 'You cannot delete your own account']);
+        }
+        $q = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+        $q->execute([$id]);
+        $target = $q->fetch();
+        if (!$target) {
+            respond(404, ['error' => 'User not found']);
+        }
+        if ($target['role'] === 'admin' && other_active_admins($pdo, $id) === 0) {
+            respond(400, ['error' => 'There must be at least one active admin']);
+        }
+        drop_user_sessions($id);
+        foreach (['activity_log', 'profiles', 'password_resets'] as $t) {
+            $pdo->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$id]);
+        }
+        $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
         respond(200, ['users' => user_rows($pdo)]);
 
     default:

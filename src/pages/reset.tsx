@@ -74,7 +74,7 @@ function ResetForm() {
 }
 
 mount(
-  <SiteShell page="home" footer={false}>
+  <SiteShell page="home" footer={false} help="reset">
     <div className="mx-auto max-w-sm px-4 py-10">
       <h1 className="text-2xl font-extrabold tracking-tight text-slate-50">{token ? 'Choose a new password' : 'Forgot your password?'}</h1>
       <div className="mt-6">{token ? <ResetForm /> : <ForgotForm />}</div>

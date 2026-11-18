@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LogIn, LogOut, UserCog, Users } from 'lucide-react'
+import { Dumbbell, LogIn, LogOut, UserCog, Users } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import Avatar from './Avatar'
 
@@ -54,15 +54,19 @@ export default function ProfileMenu({ openLogin, openProfile }: { openLogin: () 
             <>
               <div className="px-3 pb-2 pt-1">
                 <p className="truncate text-sm font-bold text-slate-50">{user.displayName ?? user.email}</p>
+                <p className="mt-0.5 text-xs font-bold uppercase tracking-wider text-amber-400">{user.role === 'admin' ? 'Admin' : 'Sports'}</p>
                 {user.displayName && <p className="truncate text-xs text-slate-400">{user.email}</p>}
               </div>
               <div className="my-1 h-px bg-slate-800" />
+              <a role="menuitem" href="/softball/workouts/" className={item}>
+                <Dumbbell size={18} aria-hidden /> Workouts
+              </a>
               <button type="button" role="menuitem" onClick={pick(openProfile)} className={item}>
                 <UserCog size={18} aria-hidden /> Profile
               </button>
               {user.role === 'admin' && (
                 <a role="menuitem" href="/admin/" className={item}>
-                  <Users size={18} aria-hidden /> Manage users
+                  <Users size={18} aria-hidden /> Admin: content & users
                 </a>
               )}
               <button type="button" role="menuitem" onClick={pick(() => void logout())} className={item}>

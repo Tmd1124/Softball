@@ -75,8 +75,15 @@ switch ($in['action'] ?? '') {
     case 'update':
         $name = clean_text($in['displayName'] ?? null, 60, 'Name');
         $phone = clean_text($in['phone'] ?? null, 30, 'Phone');
-        if ($phone !== null && !preg_match('/^[0-9+()\-. ]{3,30}$/', $phone)) {
-            respond(400, ['error' => 'Phone can only contain digits, spaces and + ( ) - .']);
+        if ($phone !== null && $phone !== '') {
+            $d = preg_replace('/\D/', '', $phone);
+            if (strlen($d) === 11 && $d[0] === '1') {
+                $d = substr($d, 1);
+            }
+            if (strlen($d) !== 10) {
+                respond(400, ['error' => 'Enter a 10-digit phone number, like (770) 555-0123']);
+            }
+            $phone = sprintf('(%s) %s-%s', substr($d, 0, 3), substr($d, 3, 3), substr($d, 6));
         }
         save_profile($pdo, $me['id'], ['display_name' => $name, 'phone' => $phone]);
         respond(200, ['profile' => profile_payload($pdo, $me['id'])]);

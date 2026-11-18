@@ -5,8 +5,11 @@ import LoginForm from './LoginForm'
 import Modal from './Modal'
 import ProfileDialog from './ProfileDialog'
 import ProfileMenu from './ProfileMenu'
+import Assistant from './Assistant'
+import { useRecruiting } from '../lib/recruiting'
+import { telHref } from '../recruit/blocks'
 
-type Page = 'home' | 'softball' | 'basketball' | 'admin'
+type Page = 'home' | 'softball' | 'basketball' | 'schedule' | 'admin'
 
 const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void }>({
   openLogin: () => undefined,
@@ -14,60 +17,102 @@ const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void 
 })
 export const useShell = () => useContext(ShellCtx)
 
-export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openLogin: () => void; openProfile: () => void }) {
-  const sport = (id: 'softball' | 'basketball', label: string) => (
-    <a
-      href={`/${id}/`}
-      title={label}
-      aria-label={`${label} home`}
-      aria-current={page === id ? 'page' : undefined}
-      className="flex h-12 w-12 items-center justify-center rounded-full ring-2 ring-transparent transition aria-[current=page]:ring-amber-500 hover:bg-slate-800 active:bg-slate-800"
-    >
-      <img src={`/img/${id}.svg`} alt="" width={34} height={34} />
-    </a>
-  )
+const NAV: { page: Page; href: string; label: string }[] = [
+  { page: 'home', href: '/', label: 'Home' },
+  { page: 'softball', href: '/softball/', label: 'Softball' },
+  { page: 'basketball', href: '/basketball/', label: 'Basketball' },
+  { page: 'schedule', href: '/schedule/', label: 'Schedule' },
+]
 
+export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openLogin: () => void; openProfile: () => void }) {
+  const { user, status } = useAuth()
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center gap-1 px-3 py-1.5 sm:px-6">
-        <a
-          href="/"
-          aria-current={page === 'home' ? 'page' : undefined}
-          className="mr-auto flex min-h-12 items-center px-2 text-lg font-extrabold uppercase tracking-[0.14em] text-slate-50"
-        >
-          Ever<span className="text-amber-400">harris</span>
-        </a>
-        {sport('softball', 'Softball')}
-        {sport('basketball', 'Basketball')}
-        <span className="mx-1 h-6 w-px bg-slate-700" aria-hidden />
-        <ProfileMenu openLogin={openLogin} openProfile={openProfile} />
-      </div>
+      <nav aria-label="Main" className="mx-auto flex max-w-5xl items-center gap-0.5 px-2 py-1.5 sm:gap-1 sm:px-6">
+        {NAV.map((n) => (
+          <a
+            key={n.page}
+            href={n.href}
+            aria-current={page === n.page ? 'page' : undefined}
+            className="flex min-h-12 items-center rounded-full px-2 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
+          >
+            {n.label}
+          </a>
+        ))}
+        <div className="ml-auto">
+          {status !== 'ready' ? (
+            <span className="block h-10 w-20" aria-hidden />
+          ) : user ? (
+            <ProfileMenu openLogin={openLogin} openProfile={openProfile} />
+          ) : (
+            <button
+              type="button"
+              onClick={openLogin}
+              className="min-h-10 rounded-full border border-slate-600 px-3 text-[13px] font-bold text-slate-100 transition-colors hover:bg-slate-800 active:bg-slate-800 sm:px-4 sm:text-sm"
+            >
+              <span className="max-[400px]:hidden">Athlete </span>Login
+            </button>
+          )}
+        </div>
+      </nav>
     </header>
   )
 }
 
 export function SiteFooter() {
+  const recruiting = useRecruiting()
+  if (!recruiting) return null
+  const { athlete, contact } = recruiting
+  const link = 'inline-flex min-h-12 items-center hover:text-amber-400'
   return (
     <footer className="border-t border-slate-800 bg-slate-900/60">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 text-sm text-slate-300 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
         <div>
           <p className="text-base font-extrabold uppercase tracking-[0.14em] text-slate-50">
             Ever<span className="text-amber-400">harris</span>
           </p>
-          <p className="mt-1 text-sm text-slate-400">Train. Track. Repeat.</p>
+          <p className="mt-1 text-slate-400">
+            Class of {athlete.classYear} · {athlete.school}, {athlete.location}
+          </p>
         </div>
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-1 text-sm font-semibold text-slate-300">
-          <a href="/" className="flex min-h-12 items-center hover:text-amber-400">Home</a>
-          <a href="/softball/" className="flex min-h-12 items-center hover:text-amber-400">Softball</a>
-          <a href="/basketball/" className="flex min-h-12 items-center hover:text-amber-400">Basketball</a>
-        </nav>
-        <p className="text-xs text-slate-500">&copy; {new Date().getFullYear()} Everharris</p>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Recruiting contact</p>
+          <a href={`mailto:${contact.email}`} className={`${link} break-all`}>{contact.email}</a>
+          <br />
+          <a href={telHref(contact.phone)} className={link}>{contact.phone}</a>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Parent / guardian</p>
+          <p className="mt-1">{contact.parent.name}</p>
+          <a href={`mailto:${contact.parent.email}`} className={`${link} break-all`}>{contact.parent.email}</a>
+          <br />
+          <a href={telHref(contact.parent.phone)} className={link}>{contact.parent.phone}</a>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Coaches & social</p>
+          <a href={contact.hsCoach.url} target="_blank" rel="noopener noreferrer" className={link}>{contact.hsCoach.label}</a>
+          <br />
+          <a href={contact.travelCoach.url} target="_blank" rel="noopener noreferrer" className={link}>{contact.travelCoach.label}</a>
+          <br />
+          <a href={contact.social.x.url} target="_blank" rel="noopener noreferrer" className={link}>X {contact.social.x.handle}</a>
+          <br />
+          <a href={contact.social.instagram.url} target="_blank" rel="noopener noreferrer" className={link}>Instagram {contact.social.instagram.handle}</a>
+        </div>
       </div>
+      <p className="border-t border-slate-800 px-4 py-4 text-center text-xs text-slate-500">&copy; {new Date().getFullYear()} Everharris</p>
     </footer>
   )
 }
 
-export default function SiteShell({ page, children, footer = true }: { page: Page; children: ReactNode; footer?: boolean }) {
+const PUBLIC_PAGES: Page[] = ['home', 'softball', 'basketball', 'schedule']
+
+export default function SiteShell({ page, children, footer = true, help, lift = false }: { page: Page; children: ReactNode; footer?: boolean; help?: string; lift?: boolean }) {
+  const [hash, setHash] = useState(location.hash)
+  useEffect(() => {
+    const on = () => setHash(location.hash)
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
   const [login, setLogin] = useState(false)
   const [profile, setProfile] = useState(false)
   const { user } = useAuth()
@@ -88,6 +133,11 @@ export default function SiteShell({ page, children, footer = true }: { page: Pag
         <div className="flex-1">{children}</div>
         {footer && <SiteFooter />}
       </div>
+      <Assistant
+        helpKey={help ?? (page === 'admin' ? (user ? `admin-${hash.slice(1).split('/')[0] || 'site'}` : 'admin-login') : page === 'softball' || page === 'basketball' ? 'sport' : page)}
+        lift={lift}
+        startOn={!help && PUBLIC_PAGES.includes(page) ? 'ask' : 'help'}
+      />
       {login && (
         <Modal title="Log in" onClose={() => setLogin(false)}>
           <LoginForm autoFocus onDone={() => setLogin(false)} />

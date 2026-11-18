@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Camera, Trash2 } from 'lucide-react'
 import { ApiError, api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { formatPhone } from '../lib/format'
 import type { User } from '../lib/auth'
 import { utcToDate } from '../lib/summary'
 import Avatar from './Avatar'
@@ -72,7 +73,7 @@ export default function ProfileDialog({ onClose }: { onClose: () => void }) {
       .then((r) => {
         setProfile(r.profile)
         setName(r.profile.displayName ?? '')
-        setPhone(r.profile.phone ?? '')
+        setPhone(formatPhone(r.profile.phone ?? ''))
       })
       .catch((e) => setLoadError(msg(e)))
   }, [])
@@ -173,7 +174,7 @@ export default function ProfileDialog({ onClose }: { onClose: () => void }) {
             </label>
             <label className="block">
               <span className="text-sm font-semibold text-slate-300">Phone (optional)</span>
-              <input className={inputClass} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} autoComplete="tel" />
+              <input className={inputClass} type="tel" inputMode="tel" placeholder="(999) 999-9999" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} maxLength={14} autoComplete="tel" />
             </label>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               <dt className="text-slate-500">Email</dt>

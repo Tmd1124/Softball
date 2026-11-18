@@ -35,7 +35,7 @@ function Gate() {
 }
 
 mount(
-  <SiteShell page="softball" footer={false}>
+  <SiteShell page="softball" footer={false} help="workouts" lift>
     <PwaRegistration />
     <Gate />
   </SiteShell>,

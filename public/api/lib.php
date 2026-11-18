@@ -99,6 +99,15 @@ function ensure_schema(PDO $pdo): void
         )'
     );
     $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS site_content (
+            section VARCHAR(32) NOT NULL PRIMARY KEY,
+            data $big NOT NULL,
+            updated_at DATETIME NOT NULL,
+            updated_by INT NULL
+        )"
+    );
+    $pdo->exec('CREATE TABLE IF NOT EXISTS chat_log (ip VARCHAR(45) NOT NULL, created_at DATETIME NOT NULL)');
+    $pdo->exec(
         'CREATE TABLE IF NOT EXISTS sessions (
             id VARCHAR(128) NOT NULL PRIMARY KEY,
             data TEXT NOT NULL,

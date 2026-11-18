@@ -10,12 +10,18 @@ Live at https://everharris.com (HostGator). Softball is built; basketball has it
 ## Site map
 | URL | Source | Notes |
 |---|---|---|
-| `/` | `index.html`, `src/pages/home.tsx` | header, hero, sport cards, combined Status and Highlights, footer |
-| `/softball/` | `softball/index.html`, `src/pages/softball.tsx` | softball theme |
+| `/` | `index.html`, `src/pages/home.tsx` | public Coach's Snapshot hero, quick-jump cards, PDF button |
+| `/softball/` | `softball/index.html`, `src/pages/softball.tsx` | public recruiting page (`src/recruit/SportPage.tsx`), softball theme |
 | `/softball/workouts/` | `softball/workouts/index.html`, `src/pages/workouts.tsx` + `src/App.tsx` | the workout app, needs login |
-| `/basketball/` | `basketball/index.html`, `src/pages/basketball.tsx` | basketball theme |
+| `/basketball/` | `basketball/index.html`, `src/pages/basketball.tsx` | public recruiting page, same layout, basketball theme |
+| `/schedule/` | `schedule/index.html`, `src/pages/schedule.tsx` | public combined schedule |
+| `/profile/` | `profile/index.html`, `src/pages/profile.tsx` | printable 1-page profile; `?sport=softball\|basketball`, `?print=1` opens the print dialog |
 | `/admin/` | `admin/index.html`, `src/pages/admin.tsx` | user management, admin only |
 | `/reset/` | `reset/index.html`, `src/pages/reset.tsx` | password reset from the emailed link (`?token=`), or the forgot form without one |
+
+Public recruiting content (bio, metrics, video embeds, schedules, coaches, contacts) is stored in the `site_content` table (sections `site`, `softball`, `basketball`, one JSON row each) and edited by admins at `/admin/` (tabs: Site & contacts, Softball, Basketball, Users). `src/data/recruitingData.ts` holds only the built-in placeholders shown for a section with no saved row or when the API is down; "Reset to placeholders" deletes the row. Only `/softball/workouts/` and `/admin/` need login.
+
+Phones are stored as (999) 999-9999 and emails validated, both in the admin screens and on the server. `src/site/Assistant.tsx` is the floating Help + Ask panel on every page; per-screen help text is in `src/site/helpContent.ts`.
 
 Themes are CSS-variable overrides on `<html class="theme-home|theme-softball|theme-basketball">` in `src/index.css`. Shared page pieces live in `src/site/`.
 
@@ -37,7 +43,7 @@ Themes are CSS-variable overrides on `<html class="theme-home|theme-softball|the
 Tables are created and migrated on first request by `public/api/lib.php`: `users` (email login, role `admin` or `sports`, `must_change_password`), `profiles` (display name, phone, avatar stored as base64 text), `password_resets` (sha256 token hash, 30 minutes, single use), `activity_log` (user, **sport**, date, day, exercise, sets, weight, completed time), `sessions`, `login_attempts`. Softball and basketball rows stay separate through `sport` and are combined only for the home page summary.
 
 ## API (`public/api/`)
-`auth.php` (login with `remember`, logout, forgot, reset, who am I), `profile.php` (own details, picture, change password), `avatar.php` (own picture), `users.php` (admin only), `activity.php` (log, reset, read by date, dates, summary), `seed_users.php` (CLI only). Rules: roles are enforced on the server; `admin` can do everything, `sports` everything except user management; POSTs need the `X-Requested-With: fetch` header; logins are throttled; passwords are bcrypt; DB sessions last 30 days. Config comes from `public/api/config.php` (gitignored) or `EVERHARRIS_DB_*` environment variables, and the API refuses to run with placeholders.
+`auth.php` (login with `remember`, logout, forgot, reset, who am I), `profile.php` (own details, picture, change password), `avatar.php` (own picture), `users.php` (admin only: create, update role/active/password, delete), `chat.php` (public coach Q&A, grounded only in the `site_content` data; Anthropic REST, key from `ANTHROPIC_API_KEY` or `anthropic_key` in `config.php`, per-IP 20/hour and 400/day caps, fixed-summary fallback when no key or the API fails), `recruiting.php` (GET public; save/reset admin only, URLs validated to https or relative), `activity.php` (log, reset, read by date, dates, summary), `seed_users.php` (CLI only). Rules: roles are enforced on the server; `admin` can do everything, `sports` everything except user management; POSTs need the `X-Requested-With: fetch` header; logins are throttled; passwords are bcrypt; DB sessions last 30 days. Config comes from `public/api/config.php` (gitignored) or `EVERHARRIS_DB_*` environment variables, and the API refuses to run with placeholders.
 
 ## Profile and sign-in
 The header shows a profile icon (the user's picture, or a default icon) that opens a menu: Log in when signed out; Profile, Manage users (admin) and Log out when signed in. Remember me keeps the session 30 days (cookie `ev_rem`); otherwise it is a browser-session cookie that also expires server-side after 12 hours. Forgot password emails a single-use link through PHP `mail()` (`EVERHARRIS_SITE_URL` sets the link host; `EVERHARRIS_MAIL_LOG` writes mails to a file instead, used by `npm run dev:local`). An admin reset or a new admin-created account sets `must_change_password`, which opens the profile dialog until the user picks their own password. Changing a password signs out the user's other devices.

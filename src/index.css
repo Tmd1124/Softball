@@ -36,6 +36,11 @@ html.theme-basketball {
   --color-amber-600: #ea580c;
 }
 
+html.theme-profile {
+  --color-slate-950: #e5e7eb;
+  color-scheme: light;
+}
+
 html {
   background: var(--color-slate-950);
   color-scheme: dark;
@@ -123,5 +128,22 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+  html.theme-profile {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
   }
 }
