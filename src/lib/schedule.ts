@@ -95,12 +95,25 @@ export function sortedEvents(events: ScheduleEvent[]): ScheduleEvent[] {
   return [...dated.filter((x) => x.t !== null).sort((a, b) => a.t! - b.t! || a.i - b.i), ...dated.filter((x) => x.t === null)].map((x) => x.e)
 }
 
+const GAME_HOURS = 3
+
+export function isPast(e: ScheduleEvent, now = Date.now()): boolean {
+  const t = stamp(e)
+  if (t === null) return false
+  const hasTime = /^(\d\d):(\d\d)$/.test(e.time ?? '')
+  return now > (hasTime ? t + GAME_HOURS * 3600000 : t + 24 * 3600000)
+}
+
+export function orderedEvents(events: ScheduleEvent[]): ScheduleEvent[] {
+  const all = sortedEvents(realEvents(events))
+  const now = Date.now()
+  const active = all.filter((e) => !isPast(e, now))
+  const past = all.filter((e) => isPast(e, now)).reverse()
+  return [...active, ...past]
+}
+
 export function nextEvents(events: ScheduleEvent[], count: number): ScheduleEvent[] {
-  const today = new Date().setHours(0, 0, 0, 0)
-  const sorted = sortedEvents(realEvents(events))
-  const upcoming = sorted.filter((e) => {
-    const t = stamp(e)
-    return t === null || t >= today
-  })
-  return (upcoming.length ? upcoming : sorted).slice(0, count)
+  const now = Date.now()
+  const upcoming = sortedEvents(realEvents(events)).filter((e) => !isPast(e, now))
+  return upcoming.slice(0, count)
 }

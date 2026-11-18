@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { Download, Globe, Mail, MapPin, Phone, Play } from 'lucide-react'
-import { NO_EVENTS, mapUrlOf, realEvents, showDate, showTime, sortedEvents } from '../lib/schedule'
+import { Check, Download, Globe, Mail, MapPin, Phone, Play } from 'lucide-react'
+import { NO_EVENTS, isPast, mapUrlOf, orderedEvents, realEvents, showDate, showTime } from '../lib/schedule'
 import type { Metric, ScheduleEvent, SportData, TeamItem, TrainerItem, VideoItem } from '../data/recruitingData'
 
 export const telHref = (phone: string) => `tel:+1${phone.replace(/\D/g, '')}`
@@ -91,21 +91,27 @@ export function ScheduleTable({ sport, events }: { sport: SportData; events: Sch
           </tr>
         </thead>
         <tbody className="max-md:block">
-          {sortedEvents(realEvents(events)).map((e, i) => {
+          {orderedEvents(events).map((e, i) => {
             const map = mapUrlOf(e)
+            const done = isPast(e)
             return (
-              <tr key={i} className="border-b border-slate-800 last:border-0 max-md:block max-md:p-4">
+              <tr key={i} aria-disabled={done || undefined} className={`border-b border-slate-800 last:border-0 max-md:block max-md:p-4 ${done ? 'pointer-events-none select-none opacity-45' : ''}`}>
                 <td data-label="When" className={`${td} font-bold text-slate-50`}>
                   <span>
                     {showDate(e.date)}
-                    {showTime(e.time) && <span className="block font-semibold text-amber-300">{showTime(e.time)}</span>}
+                    {showTime(e.time) && <span className={`block font-semibold ${done ? '' : 'text-amber-300'}`}>{showTime(e.time)}</span>}
+                    {done && (
+                      <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-slate-600 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-300">
+                        <Check size={11} aria-hidden /> Completed
+                      </span>
+                    )}
                   </span>
                 </td>
                 <td data-label="Event" className={td}>{e.event}</td>
                 <td data-label="Where" className={td}>
                   <span>
                     {e.location}
-                    {map && (
+                    {map && !done && (
                       <a href={map} target="_blank" rel="noopener noreferrer" aria-label={`Open ${e.location || 'this location'} in Google Maps`} className="mt-1 inline-flex items-center gap-1 font-semibold text-amber-400 underline underline-offset-2 md:flex">
                         <MapPin size={14} aria-hidden /> Map
                       </a>
@@ -114,7 +120,7 @@ export function ScheduleTable({ sport, events }: { sport: SportData; events: Sch
                 </td>
                 <td data-label="Team" className={td}>{e.team}</td>
                 <td data-label="Info" className={td}>
-                  {e.infoUrl ? (
+                  {e.infoUrl && !done ? (
                     <a href={e.infoUrl} className="font-semibold text-amber-400 underline underline-offset-2">
                       {e.info}
                     </a>

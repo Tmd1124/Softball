@@ -471,9 +471,9 @@ export function TrainersTable({ onPick }: { onPick: (n: number) => void }) {
   )
 }
 
-export function EventsTable({ onPick }: { onPick: (n: number) => void }) {
+export function EventsTable({ onPick, defaultOpen = true }: { onPick: (n: number) => void; defaultOpen?: boolean }) {
   const { draft } = useDraft()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(defaultOpen)
   const rows = ((getAt(draft, ['schedule']) as ScheduleEvent[] | undefined) ?? []).map((e, n) => ({ e, n })).filter((x) => x.e.date || x.e.event)
   const th = 'sticky top-0 bg-slate-800 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-300'
   const td = 'whitespace-nowrap px-3 py-2 text-slate-100'

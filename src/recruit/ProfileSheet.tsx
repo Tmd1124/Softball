@@ -151,7 +151,7 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
           <div className="space-y-4">
             <section>
               <Head>Where to see Ever</Head>
-              {realEvents(s.schedule).length === 0 && <p className="rounded-md px-2 py-1 text-[11px]" style={{ background: 'var(--tint)' }}>{NO_EVENTS}</p>}
+              {nextEvents(s.schedule, 5).length === 0 && <p className="rounded-md px-2 py-1 text-[11px]" style={{ background: 'var(--tint)' }}>{realEvents(s.schedule).length === 0 ? NO_EVENTS : 'No upcoming events, check back.'}</p>}
               <ul className="space-y-1.5 text-[11px] leading-snug">
                 {nextEvents(s.schedule, 5).map((e, i) => (
                   <li key={i} className="rounded-md px-2 py-1" style={{ background: 'var(--tint)' }}>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
 import { TEAM_TYPES, defaultSite, defaultSport } from '../data/recruitingData'
-import type { RecruitingData, SiteData, SportConfig, SportData } from '../data/recruitingData'
+import type { RecruitingData, ScheduleEvent, SiteData, SportConfig, SportData } from '../data/recruitingData'
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { Store } from '../lib/recruiting'
 import ScrollRow from './ScrollRow'
@@ -12,8 +12,8 @@ import { measurableSuggestions } from '../data/sportCatalog'
 import { FieldsTable, ListTable, SingleCard, useCards } from './cards'
 import type { FieldDef } from './cards'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { showDate, showTime } from '../lib/schedule'
-import { AddressFields, BATS_THROWS, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, EventsTable, TeamsTable, TrainersTable } from './fields'
+import { realEvents, showDate, showTime } from '../lib/schedule'
+import { AddressFields, BATS_THROWS, Collapsible, DraftCtx, getAt, useDraft, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -228,7 +228,9 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 }
 
 function SportStep({ id, cfg, step, siteUrl }: { id: string; cfg: SportConfig; step: string; siteUrl: string }) {
-  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio', 'metrics'] : step === 'summary' ? ['summary'] : [])
+  const { draft } = useDraft()
+  const noEvents = realEvents((getAt(draft, ['schedule']) as ScheduleEvent[] | undefined) ?? []).length === 0
+  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio', 'metrics'] : step === 'summary' ? ['summary'] : step === 'schedule' && noEvents ? ['schedule'] : [])
   const teamsBox = useRef<HTMLElement>(null)
   const trainerBox = useRef<HTMLElement>(null)
   const scheduleBox = useRef<HTMLElement>(null)
@@ -379,7 +381,7 @@ function SportStep({ id, cfg, step, siteUrl }: { id: string; cfg: SportConfig; s
             ['Link', String(r.infoUrl ?? '')],
           ]}
         />
-        <EventsTable onPick={(n) => cards.pick('schedule', n)} />
+        <EventsTable defaultOpen={!noEvents} onPick={(n) => cards.pick('schedule', n)} />
       </>
     )
   if (step === 'teams')
