@@ -508,7 +508,7 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
                   <button type="button" disabled={busy} onClick={() => void erase(c)} className="min-h-12 rounded-xl bg-red-600 px-5 text-sm font-extrabold text-white active:bg-red-500 disabled:opacity-50">
                     {busy ? 'Erasing…' : 'Yes, erase it for good'}
                   </button>
-                  <button type="button" disabled={busy} onClick={() => { setErasing(null); setError('') }} className="min-h-12 rounded-xl border border-slate-500 px-5 text-sm font-bold text-slate-100 active:bg-slate-800">
+                  <button type="button" autoFocus disabled={busy} onClick={() => { setErasing(null); setError('') }} className="min-h-12 rounded-xl border-2 border-slate-300 px-5 text-sm font-bold text-slate-50 active:bg-slate-800">
                     Cancel
                   </button>
                 </div>
