@@ -12,19 +12,20 @@ const td = 'max-w-[22rem] truncate whitespace-nowrap px-3 py-2 text-slate-100'
 const rowCls = 'h-[3.1rem] cursor-pointer hover:bg-slate-800 focus-visible:bg-slate-800'
 const btn = 'min-h-12 rounded-xl border px-5 text-sm font-bold active:bg-slate-800'
 
-export function useCards(resetKey?: unknown) {
-  const [openCard, setOpenCard] = useState<string | null>(null)
+export function useCards(resetKey: unknown, defaults: string[] = []) {
+  const [open, setOpen] = useState<string[]>(defaults)
   const [recs, setRecs] = useState<Record<string, Rec>>({})
   useEffect(() => {
-    setOpenCard(null)
+    setOpen(defaults)
     setRecs({})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey])
   return {
-    card: (k: string) => ({ open: openCard === k, onToggle: () => setOpenCard((o) => (o === k ? null : k)) }),
+    card: (k: string) => ({ open: open.includes(k), onToggle: () => setOpen((o) => (o.includes(k) ? o.filter((x) => x !== k) : [k])) }),
     rec: (k: string): Rec => recs[k] ?? noRec,
     setRec: (k: string) => (r: Rec) => setRecs((m) => ({ ...m, [k]: r })),
     pick: (k: string, n = 0) => {
-      setOpenCard(k)
+      setOpen([k])
       setRecs((m) => ({ ...m, [k]: pickRec(m[k] ?? noRec, n) }))
     },
   }
@@ -70,10 +71,10 @@ export function SingleCard({ title, hint, open, onToggle, rec, setRec, fields, c
   )
 }
 
-export function FieldsTable({ title, fields, literal, onPick }: { title: string; fields?: FieldDef[]; literal?: [string, string][]; onPick: () => void }) {
+export function FieldsTable({ title, fields, onPick }: { title: string; fields: FieldDef[]; onPick: () => void }) {
   const { draft } = useDraft()
   const [open, setOpen] = useState(true)
-  const rows: [string, string][] = literal ?? (fields ?? []).map((f) => [f[0], show(draft, f)])
+  const rows: [string, string][] = fields.map((f) => [f[0], show(draft, f)])
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5" aria-label={title}>
       <CollapseHeader title={title} open={open} onToggle={() => setOpen((o) => !o)} />

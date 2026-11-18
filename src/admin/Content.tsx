@@ -110,13 +110,13 @@ function StepNav({ steps, current, base, label }: { steps: { id: string; label: 
 const photoState = (v: string) => (v && !v.startsWith('/img/hero-') ? 'Uploaded' : 'Not set')
 
 function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
-  const cards = useCards(step)
-  const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode) => (
+  const cards = useCards(step, step === 'academics' ? ['academics'] : step === 'contact' ? ['recruiting', 'parent'] : ['athlete', 'qr'])
+  const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode, table = true) => (
     <>
       <SingleCard title={title} hint={hint} {...cards.card(k)} rec={cards.rec(k)} setRec={cards.setRec(k)} fields={fields}>
         {edit}
       </SingleCard>
-      <FieldsTable title={`All ${title.toLowerCase()} details`} fields={fields} onPick={() => cards.pick(k)} />
+      {table && <FieldsTable title={`All ${title.toLowerCase()} details`} fields={fields} onPick={() => cards.pick(k)} />}
     </>
   )
   if (step === 'academics')
@@ -140,6 +140,7 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
         <F path={['academics', 'sat']} label="SAT (optional)" />
         <F path={['academics', 'act']} label="ACT (optional)" />
       </>,
+      false,
     )
   if (step === 'contact')
     return (
@@ -156,6 +157,7 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
             <F path={['contact', 'email']} label="Email" kind="email" />
             <F path={['contact', 'phone']} label="Phone" kind="phone" />
           </>,
+          false,
         )}
         {one(
           'parent',
@@ -171,6 +173,7 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
             <F path={['contact', 'parent', 'email']} label="Email" kind="email" />
             <F path={['contact', 'parent', 'phone']} label="Phone" kind="phone" />
           </>,
+          false,
         )}
         {one(
           'social',
@@ -217,15 +220,15 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
           <F path={['athlete', 'jersey']} label="Jersey number" />
           <F path={['siteUrl']} label="Site address" />
         </>,
+        false,
       )}
       <QrCard url={siteUrl} hint="Links to the site address above. Use it on flyers and business cards." file="everharris-qr" {...cards.card('qr')} />
-      <FieldsTable title="QR code details" literal={[['Links to', siteUrl]]} onPick={() => cards.pick('qr')} />
     </>
   )
 }
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
-  const cards = useCards(id + step)
+  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio'] : [])
   const teamsBox = useRef<HTMLElement>(null)
   const trainerBox = useRef<HTMLElement>(null)
   const scheduleBox = useRef<HTMLElement>(null)
@@ -233,12 +236,12 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
   const awardsBox = useRef<HTMLElement>(null)
   const metricsBox = useRef<HTMLElement>(null)
   const linksBox = useRef<HTMLElement>(null)
-  const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode) => (
+  const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode, table = true) => (
     <>
       <SingleCard title={title} hint={hint} {...cards.card(k)} rec={cards.rec(k)} setRec={cards.setRec(k)} fields={fields}>
         {edit}
       </SingleCard>
-      <FieldsTable title={`All ${title.toLowerCase()} details`} fields={fields} onPick={() => cards.pick(k)} />
+      {table && <FieldsTable title={`All ${title.toLowerCase()} details`} fields={fields} onPick={() => cards.pick(k)} />}
     </>
   )
   const videoFields = (base: (string | number)[], first?: string) => (
@@ -461,7 +464,6 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         />
         <ListTable title="All recruiting links" listPath={['links']} noun="link" columns={[['Button text', 'label'], ['Address', 'url']]} onPick={(n) => cards.pick('links', n)} />
         <QrCard url={`${siteUrl}/${id}/`} hint={`Links to the ${id} page. It is also printed on the ${id} recruiting profile.`} file={`everharris-${id}-qr`} {...cards.card('qr')} />
-        <FieldsTable title="QR code details" literal={[['Links to', `${siteUrl}/${id}/`]]} onPick={() => cards.pick('qr')} />
       </>
     )
   const bioFields: FieldDef[] = [['Positions', ['positions']], ...(id === 'softball' ? [['Bats / throws', ['handedness']] as FieldDef] : []), ['Photo', ['photo'], photoState]]
@@ -483,6 +485,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           )}
           <PhotoField sport={id} />
         </>,
+        false,
       )}
       <RecordCard
         title="Verified metrics"
