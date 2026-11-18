@@ -152,9 +152,9 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 }
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
-  const [teamsOpen, setTeamsOpen] = useState(true)
+  const [teamsOpen, setTeamsOpen] = useState(false)
   const [pick, setPick] = useState<{ n: number } | null>(null)
-  const teamsBox = useRef<HTMLFieldSetElement>(null)
+  const teamsBox = useRef<HTMLElement>(null)
   useEffect(() => {
     if (!pick || !teamsOpen) return
     teamsBox.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })

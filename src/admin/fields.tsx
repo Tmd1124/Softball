@@ -40,23 +40,27 @@ export function Card({ title, hint, children }: { title: string; hint?: string; 
   )
 }
 
-export function Collapsible({ title, hint, open, onToggle, children, boxRef }: { title: string; hint?: string; open: boolean; onToggle: () => void; children: ReactNode; boxRef?: RefObject<HTMLFieldSetElement | null> }) {
+function CollapseHeader({ title, open, onToggle }: { title: string; open: boolean; onToggle: () => void }) {
   return (
-    <fieldset ref={boxRef} className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
-      <legend className="px-2">
-        <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-12 items-center gap-2 text-lg font-bold text-slate-50">
-          <span aria-hidden className="inline-block w-4 text-amber-400">{open ? '▾' : '▸'}</span>
-          {title}
-          <span className="text-sm font-semibold text-slate-400">{open ? '(minimize)' : '(maximize)'}</span>
-        </button>
-      </legend>
+    <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-12 w-full items-center justify-between gap-3 text-left">
+      <span className="text-lg font-bold text-slate-50">{title}</span>
+      <span aria-hidden className="text-2xl">{open ? '➖' : '➕'}</span>
+      <span className="sr-only">{open ? 'Minimize' : 'Maximize'}</span>
+    </button>
+  )
+}
+
+export function Collapsible({ title, hint, open, onToggle, children, boxRef }: { title: string; hint?: string; open: boolean; onToggle: () => void; children: ReactNode; boxRef?: RefObject<HTMLElement | null> }) {
+  return (
+    <section ref={boxRef} aria-label={title} className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
+      <CollapseHeader title={title} open={open} onToggle={onToggle} />
       {open && (
         <>
           {hint && <p className="mb-3 text-sm text-slate-400">{hint}</p>}
           <div className="grid gap-3 sm:grid-cols-2">{children}</div>
         </>
       )}
-    </fieldset>
+    </section>
   )
 }
 
@@ -324,15 +328,16 @@ export function PhotoField({ sport }: { sport: string }) {
 
 export function TeamsTable({ onPick }: { onPick: (n: number) => void }) {
   const { draft } = useDraft()
+  const [open, setOpen] = useState(true)
   const teams = ((getAt(draft, ['teams']) as TeamItem[] | undefined) ?? []).map((t, n) => ({ t, n })).filter((x) => x.t.name || x.t.coach)
   const sorted = [...teams].sort((a, b) => (parseInt(b.t.year, 10) || 0) - (parseInt(a.t.year, 10) || 0))
   const th = 'sticky top-0 bg-slate-800 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-300'
   const td = 'whitespace-nowrap px-3 py-2 text-slate-100'
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5" aria-label="All teams and coaches">
-      <h3 className="text-lg font-bold text-slate-50">All teams & coaches</h3>
-      <p className="mb-3 text-sm text-slate-400">Newest year first. Click a team to edit it. Scroll to see more than five.</p>
-      {sorted.length === 0 ? (
+      <CollapseHeader title="All teams & coaches" open={open} onToggle={() => setOpen((o) => !o)} />
+      {open && <p className="mb-3 text-sm text-slate-400">Newest year first. Click a team to edit it. Scroll to see more than five.</p>}
+      {!open ? null : sorted.length === 0 ? (
         <p className="text-sm text-slate-400">No teams yet. Add one above.</p>
       ) : (
         <div className="max-h-[17.5rem] overflow-auto rounded-xl border border-slate-700" tabIndex={0}>
