@@ -86,6 +86,10 @@ function stamp(e: ScheduleEvent): number | null {
   return d.getTime() + (t ? Number(t[1]) * 3600000 + Number(t[2]) * 60000 : 0)
 }
 
+export const NO_EVENTS = 'No events scheduled yet, check back.'
+
+export const realEvents = (events: ScheduleEvent[]) => events.filter((e) => [e.date, e.event].some((v) => v.trim() !== '' && !v.includes('[')))
+
 export function sortedEvents(events: ScheduleEvent[]): ScheduleEvent[] {
   const dated = events.map((e, i) => ({ e, i, t: stamp(e) }))
   return [...dated.filter((x) => x.t !== null).sort((a, b) => a.t! - b.t! || a.i - b.i), ...dated.filter((x) => x.t === null)].map((x) => x.e)
@@ -93,7 +97,7 @@ export function sortedEvents(events: ScheduleEvent[]): ScheduleEvent[] {
 
 export function nextEvents(events: ScheduleEvent[], count: number): ScheduleEvent[] {
   const today = new Date().setHours(0, 0, 0, 0)
-  const sorted = sortedEvents(events)
+  const sorted = sortedEvents(realEvents(events))
   const upcoming = sorted.filter((e) => {
     const t = stamp(e)
     return t === null || t >= today

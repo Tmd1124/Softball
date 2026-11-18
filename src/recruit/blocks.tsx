@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Download, Globe, Mail, MapPin, Phone, Play } from 'lucide-react'
-import { mapUrlOf, showDate, showTime, sortedEvents } from '../lib/schedule'
+import { NO_EVENTS, mapUrlOf, realEvents, showDate, showTime, sortedEvents } from '../lib/schedule'
 import type { Metric, ScheduleEvent, SportData, TeamItem, TrainerItem, VideoItem } from '../data/recruitingData'
 
 export const telHref = (phone: string) => `tel:+1${phone.replace(/\D/g, '')}`
@@ -72,6 +72,9 @@ export function VideoEmbed({ video, large = false }: { video: VideoItem; large?:
 }
 
 export function ScheduleTable({ sport, events }: { sport: SportData; events: ScheduleEvent[] }) {
+  if (realEvents(events).length === 0) {
+    return <p className="rounded-2xl border border-dashed border-slate-700 bg-slate-900 px-5 py-8 text-center text-base text-slate-300">{NO_EVENTS}</p>
+  }
   const th = 'px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-slate-400'
   const td =
     'max-md:flex max-md:gap-3 max-md:py-1 before:max-md:w-20 before:max-md:shrink-0 before:max-md:text-xs before:max-md:font-bold before:max-md:uppercase before:max-md:tracking-widest before:max-md:text-slate-400 before:max-md:content-[attr(data-label)] md:px-4 md:py-3'
@@ -88,7 +91,7 @@ export function ScheduleTable({ sport, events }: { sport: SportData; events: Sch
           </tr>
         </thead>
         <tbody className="max-md:block">
-          {sortedEvents(events).map((e, i) => {
+          {sortedEvents(realEvents(events)).map((e, i) => {
             const map = mapUrlOf(e)
             return (
               <tr key={i} className="border-b border-slate-800 last:border-0 max-md:block max-md:p-4">
