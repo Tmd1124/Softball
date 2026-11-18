@@ -12,7 +12,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
       <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</dt>
-      <dd className="mt-1 text-base leading-relaxed text-slate-100">{children}</dd>
+      <dd className="mt-0.5 text-base leading-snug text-slate-100">{children}</dd>
     </div>
   )
 }
@@ -37,7 +37,7 @@ function Latest({ sport }: { sport: SportData }) {
   const t = rankedTeams(sport)[0]?.team
   if (!t) return null
   return (
-    <span className="mt-2 block">
+    <span className="block">
       <span className="text-slate-400">{sport.label}:</span> <strong>{t.name}</strong>
       {t.year && ` (${t.year})`}
       {t.coach && ` · Coach ${t.coach}`}
@@ -83,7 +83,7 @@ function Home() {
             ))}
           </div>
         </div>
-        <dl className="mt-8 grid gap-6 rounded-3xl border border-slate-700 bg-slate-950/80 p-6 backdrop-blur sm:grid-cols-2 sm:p-8">
+        <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-3xl border border-slate-700 bg-slate-950/80 p-5 backdrop-blur sm:grid-cols-2 sm:p-6">
           <Fact label="School & teams">
             {athlete.school} ({athlete.location})
             <br />
@@ -91,7 +91,7 @@ function Home() {
             {sportList.map((c) => (
               <Latest key={c.id} sport={sports[c.id]} />
             ))}
-            <a href="/teams/" className="mt-2 inline-block font-bold text-amber-400 underline">All teams &amp; coaches →</a>
+            <a href="/teams/" className="mt-1 inline-block font-bold text-amber-400 underline">All teams &amp; coaches →</a>
           </Fact>
           <Fact label="Academics">
             GPA: {academics.gpa}
