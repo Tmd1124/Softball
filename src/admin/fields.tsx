@@ -2,6 +2,7 @@ import { createContext, useContext, useId, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
+import { formatDateInput, hasAddress, mapLink, parseDate, showDate, showTime } from '../lib/schedule'
 import QrCode, { qrPngBlob, qrSvgString } from '../recruit/QrCode'
 import type { ScheduleEvent, TeamItem, TrainerItem } from '../data/recruitingData'
 
@@ -92,11 +93,12 @@ export function toYoutubeEmbed(v: string): string {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder, hint, id, help, normalize }: { help?: ReactNode; normalize?: (v: string) => string; id?: string; path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email'; placeholder?: string; hint?: string }) {
+export function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder, hint, id, help, normalize }: { help?: ReactNode; normalize?: (v: string) => string; id?: string; path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email' | 'date' | 'time'; placeholder?: string; hint?: string }) {
   const { draft, setDraft } = useDraft()
   const value = String(getAt(draft, path) ?? '')
-  const change = (v: string) => setDraft((d) => setAt(d, path, type === 'number' ? Number(v) : kind === 'phone' ? formatPhone(v) : normalize ? normalize(v) : v))
-  const bad = kind === 'email' && value !== '' && !EMAIL_RE.test(value)
+  const change = (v: string) => setDraft((d) => setAt(d, path, type === 'number' ? Number(v) : kind === 'phone' ? formatPhone(v) : kind === 'date' ? formatDateInput(v) : normalize ? normalize(v) : v))
+  const badDate = kind === 'date' && value.length === 10 && parseDate(value) === null
+  const bad = (kind === 'email' && value !== '' && !EMAIL_RE.test(value)) || badDate
   const uid = useId()
   const inputId = id ?? uid
   const wrapCls = `block ${wide || area ? 'sm:col-span-2' : ''}`
@@ -116,18 +118,18 @@ export function F({ path, label, area = false, wide = false, type = 'text', kind
         <input
           id={inputId}
           className={`${field} h-12 ${bad ? 'border-red-500' : ''}`}
-          type={kind === 'email' ? 'email' : kind === 'phone' ? 'tel' : type}
-          inputMode={kind === 'phone' ? 'tel' : kind === 'email' ? 'email' : undefined}
+          type={kind === 'email' ? 'email' : kind === 'phone' ? 'tel' : kind === 'time' ? 'time' : type}
+          inputMode={kind === 'phone' ? 'tel' : kind === 'email' ? 'email' : kind === 'date' ? 'numeric' : undefined}
           autoCapitalize={kind === 'email' ? 'none' : undefined}
           maxLength={kind === 'phone' ? 14 : undefined}
           aria-invalid={bad || undefined}
           value={value}
-          placeholder={kind === 'phone' ? '(999) 999-9999' : kind === 'email' ? 'name@example.com' : placeholder}
+          placeholder={kind === 'phone' ? '(999) 999-9999' : kind === 'email' ? 'name@example.com' : kind === 'date' ? 'MM/DD/YYYY' : placeholder}
           onChange={(e) => change(e.target.value)}
         />
       )}
       {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
-      {bad && <span className="mt-1 block text-xs text-red-300">Enter an email like name@example.com</span>}
+      {bad && <span className="mt-1 block text-xs text-red-300">{kind === 'date' ? 'Enter a real date like 12/05/2026' : 'Enter an email like name@example.com'}</span>}
     </>
   )
   return help ? <div className={wrapCls}>{body}</div> : <label className={wrapCls}>{body}</label>
@@ -486,7 +488,7 @@ export function EventsTable({ onPick }: { onPick: (n: number) => void }) {
           <table className="w-full min-w-[44rem] text-sm">
             <thead>
               <tr>
-                {['Date', 'Event', 'Location', 'Team', 'Info'].map((h) => (
+                {['Date', 'Time', 'Event', 'Location', 'Map', 'Team', 'Info'].map((h) => (
                   <th key={h} className={th}>{h}</th>
                 ))}
               </tr>
@@ -501,9 +503,11 @@ export function EventsTable({ onPick }: { onPick: (n: number) => void }) {
                   aria-label={`Edit ${e.event || e.date}`}
                   className="h-[3.1rem] cursor-pointer hover:bg-slate-800 focus-visible:bg-slate-800"
                 >
-                  <td className={td}>{e.date}</td>
+                  <td className={td}>{showDate(e.date)}</td>
+                  <td className={td}>{showTime(e.time)}</td>
                   <td className={`${td} font-semibold`}>{e.event}</td>
                   <td className={td}>{e.location}</td>
+                  <td className={td}>{e.mapUrl ? 'Yes' : hasAddress(e.location) ? 'Auto' : ''}</td>
                   <td className={td}>{e.team}</td>
                   <td className={td}>{e.info}</td>
                 </tr>
@@ -583,5 +587,51 @@ export function VideoUpload({ base, sport }: { base: Path; sport: string }) {
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-red-300">{error}</p>}
     </div>
+  )
+}
+
+export function AddressFields({ base }: { base: Path }) {
+  const { draft, setDraft } = useDraft()
+  const location = String(getAt(draft, [...base, 'location']) ?? '')
+  const mapUrl = String(getAt(draft, [...base, 'mapUrl']) ?? '')
+  const uid = useId()
+  const auto = hasAddress(location) ? mapLink(location) : ''
+  const setAddress = (v: string) =>
+    setDraft((d) => {
+      const prevAuto = hasAddress(location) ? mapLink(location) : ''
+      let next = setAt(d, [...base, 'location'], v)
+      if (mapUrl === '' || mapUrl === prevAuto) next = setAt(next, [...base, 'mapUrl'], hasAddress(v) ? mapLink(v) : '')
+      return next
+    })
+  const field = 'mt-1 w-full rounded-xl border border-slate-600 bg-slate-950 px-3 text-base text-slate-50 placeholder:text-slate-500 h-12'
+  return (
+    <>
+      <div className="sm:col-span-2">
+        <label htmlFor={`${uid}-addr`} className="text-sm font-semibold text-slate-300">Full address</label>
+        <HelpTip label="Full address">
+          Type the complete street address, including city, state and ZIP, like <strong>123 Main St, Atlanta, GA 30301</strong>. A complete address is what lets Google Maps find the exact place. A venue name alone, like “Field 3”, may open the wrong spot. Add the field or court number in the “Pool / field / court” box instead.
+        </HelpTip>
+        <input id={`${uid}-addr`} className={field} value={location} maxLength={200} placeholder="123 Main St, Atlanta, GA 30301" autoComplete="off" onChange={(e) => setAddress(e.target.value)} />
+      </div>
+      <div className="sm:col-span-2">
+        <label htmlFor={`${uid}-map`} className="text-sm font-semibold text-slate-300">Google Maps link</label>
+        <HelpTip label="Google Maps link">
+          This fills in by itself from the address above, so coaches can tap it to get directions. You can paste a different Google Maps link here if you prefer. If you change the address later, the link updates too, unless you have pasted your own.
+        </HelpTip>
+        <div className="flex gap-2">
+          <input id={`${uid}-map`} className={`${field} min-w-0 flex-1`} value={mapUrl} maxLength={500} placeholder="Fills in after you type the address" onChange={(e) => setDraft((d) => setAt(d, [...base, 'mapUrl'], e.target.value))} />
+          {mapUrl && (
+            <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex h-12 shrink-0 items-center rounded-xl border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800">
+              Test link
+            </a>
+          )}
+          {auto && mapUrl !== auto && (
+            <button type="button" onClick={() => setDraft((d) => setAt(d, [...base, 'mapUrl'], auto))} className="mt-1 h-12 shrink-0 rounded-xl border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800">
+              Use address link
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   )
 }

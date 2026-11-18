@@ -35,6 +35,7 @@ export const HELP: Record<string, HelpTopic> = {
     tips: [
       'Softball and basketball events are listed separately, earliest first as entered by Ever’s family.',
       'On a phone each event is a card. On a larger screen it is a table.',
+      'Dates are MM/DD/YYYY with the start time underneath. Tap Map under a location to open it in Google Maps.',
       'Linked text in the last column opens a pool, court or live stream page.',
     ],
   },

@@ -12,7 +12,8 @@ import { measurableSuggestions } from '../data/sportCatalog'
 import { FieldsTable, ListTable, SingleCard, useCards } from './cards'
 import type { FieldDef } from './cards'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BATS_THROWS, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, EventsTable, TeamsTable, TrainersTable } from './fields'
+import { showDate, showTime } from '../lib/schedule'
+import { AddressFields, BATS_THROWS, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -345,7 +346,7 @@ function SportStep({ id, cfg, step, siteUrl }: { id: string; cfg: SportConfig; s
           listPath={['schedule']}
           noun="event"
           max={40}
-          blank={{ date: '', event: '', location: '', team: '', info: '', infoUrl: '' }}
+          blank={{ date: '', time: '', event: '', location: '', mapUrl: '', team: '', info: '', infoUrl: '' }}
           rec={cards.rec('schedule')}
           setRec={cards.setRec('schedule')}
           focusPrefix="event-date"
@@ -358,19 +359,22 @@ function SportStep({ id, cfg, step, siteUrl }: { id: string; cfg: SportConfig; s
           }
           edit={(i) => (
             <>
-              <F id={`event-date-${i}`} path={['schedule', i, 'date']} label="Date" />
+              <F id={`event-date-${i}`} path={['schedule', i, 'date']} label="Date" kind="date" help="Type the numbers only, like 12052026, and it fills in as MM/DD/YYYY for you. Pasted dates like Dec 5, 2026 are converted too." />
+              <F path={['schedule', i, 'time']} label="Start time" kind="time" help="The time the team plays, shown as 10:30 AM on the website and the profile. Leave it blank if the time is not set yet." />
               <F path={['schedule', i, 'event']} label="Event" />
-              <F path={['schedule', i, 'location']} label="Location" />
               <F path={['schedule', i, 'team']} label="Team" />
+              <AddressFields base={['schedule', i]} />
               <F path={['schedule', i, 'info']} label="Pool / field / court / stream text" />
               <F path={['schedule', i, 'infoUrl']} label="Link for that text (optional)" />
             </>
           )}
           view={(r) => [
-            ['Date', String(r.date ?? '')],
+            ['Date', showDate(String(r.date ?? ''))],
+            ['Time', showTime(String(r.time ?? ''))],
             ['Event', String(r.event ?? '')],
-            ['Location', String(r.location ?? '')],
             ['Team', String(r.team ?? '')],
+            ['Full address', String(r.location ?? '')],
+            ['Google Maps link', String(r.mapUrl ?? '')],
             ['Pool / field / court / stream', String(r.info ?? '')],
             ['Link', String(r.infoUrl ?? '')],
           ]}

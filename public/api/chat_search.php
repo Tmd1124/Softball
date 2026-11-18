@@ -18,6 +18,21 @@ function cs_join(array $parts, string $sep = ' | '): string
     return implode($sep, array_filter(array_map('cs_clean', $parts), fn($p) => $p !== ''));
 }
 
+function cs_when(array $e): string
+{
+    $date = cs_clean($e['date'] ?? '');
+    $t = (string) ($e['time'] ?? '');
+    $time = preg_match('/^(\d\d):(\d\d)$/', $t, $m) ? ((int) $m[1] % 12 ?: 12) . ':' . $m[2] . ((int) $m[1] < 12 ? ' AM' : ' PM') : '';
+    return trim($date . ($time !== '' ? ' ' . $time : ''));
+}
+
+function cs_map(array $e): string
+{
+    $loc = cs_clean($e['location'] ?? '');
+    $map = cs_clean($e['mapUrl'] ?? '');
+    return $map !== '' ? 'Map: ' . $map : ($loc !== '' ? 'Map: https://www.google.com/maps/search/?api=1&query=' . rawurlencode($loc) : '');
+}
+
 function cs_facts(array $c): array
 {
     $f = [];
@@ -125,10 +140,11 @@ function cs_facts(array $c): array
             if (cs_clean($e['date'] ?? '') === '' && cs_clean($e['event'] ?? '') === '') {
                 continue;
             }
-            $add($s, 'schedule upcoming event events tournament showcase game games date when where location', cs_join([
-                cs_clean($e['date'] ?? ''),
+            $add($s, 'schedule upcoming event events tournament showcase game games date time when where location address map directions', cs_join([
+                cs_when($e),
                 cs_clean($e['event'] ?? ''),
                 cs_clean($e['location'] ?? ''),
+                cs_map($e),
                 cs_clean($e['team'] ?? ''),
                 cs_clean($e['info'] ?? ''),
             ]));
@@ -239,8 +255,8 @@ function cs_next_events(array $c, array $sports, string $contact): string
             if ($date === '' && cs_clean($e['event'] ?? '') === '') {
                 continue;
             }
-            $text = cs_join([$date, cs_clean($e['event'] ?? ''), cs_clean($e['location'] ?? ''), cs_clean($e['team'] ?? ''), cs_clean($e['info'] ?? '')]);
-            $ts = $date !== '' ? strtotime($date) : false;
+            $text = cs_join([cs_when($e), cs_clean($e['event'] ?? ''), cs_clean($e['location'] ?? ''), cs_map($e), cs_clean($e['team'] ?? ''), cs_clean($e['info'] ?? '')]);
+            $ts = $date !== '' ? strtotime($date . ' ' . (string) ($e['time'] ?? '')) : false;
             $line = '- ' . ($c['_sports'][$s] ?? $s) . ': ' . $text;
             if ($ts === false) {
                 $undated[] = $line;

@@ -80,6 +80,52 @@ function video_path(array $a): string
     return $v;
 }
 
+function event_date(string $v): string
+{
+    if ($v === '' || str_contains($v, '[')) {
+        return $v;
+    }
+    if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $v, $m) && checkdate((int) $m[1], (int) $m[2], (int) $m[3])) {
+        return sprintf('%02d/%02d/%04d', $m[1], $m[2], $m[3]);
+    }
+    $ts = strtotime($v);
+    if ($ts !== false && (int) date('Y', $ts) >= 2000) {
+        return date('m/d/Y', $ts);
+    }
+    respond(400, ['error' => 'Enter schedule dates as MM/DD/YYYY, like 12/05/2026']);
+}
+
+function event_time(string $v): string
+{
+    if ($v === '' || preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $v)) {
+        return $v;
+    }
+    $ts = strtotime($v);
+    if ($ts === false) {
+        respond(400, ['error' => 'Enter the start time like 10:30 AM']);
+    }
+    return date('H:i', $ts);
+}
+
+function clean_event(array $e): array
+{
+    $location = str($e, 'location', 200);
+    $map = url($e, 'mapUrl');
+    if ($map === '' && $location !== '' && !str_contains($location, '[')) {
+        $map = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($location);
+    }
+    return [
+        'date' => event_date(str($e, 'date', 40)),
+        'time' => event_time(str($e, 'time', 12)),
+        'event' => str($e, 'event', 160),
+        'location' => $location,
+        'mapUrl' => $map,
+        'team' => str($e, 'team', 120),
+        'info' => str($e, 'info', 160),
+        'infoUrl' => url($e, 'infoUrl'),
+    ];
+}
+
 function clean_video(array $a): array
 {
     return [
@@ -179,14 +225,7 @@ function clean_sport(array $in, string $label): array
         'summary' => str($in, 'summary', 2000),
         'scheduleTitle' => str($in, 'scheduleTitle', 120),
         'scheduleColumns' => ['event' => str($cols, 'event', 80), 'info' => str($cols, 'info', 80)],
-        'schedule' => rows($in['schedule'] ?? [], 40, fn(array $e) => [
-            'date' => str($e, 'date', 40),
-            'event' => str($e, 'event', 160),
-            'location' => str($e, 'location', 120),
-            'team' => str($e, 'team', 120),
-            'info' => str($e, 'info', 160),
-            'infoUrl' => url($e, 'infoUrl'),
-        ]),
+        'schedule' => rows($in['schedule'] ?? [], 40, 'clean_event'),
         'links' => rows($in['links'] ?? [], 8, fn(array $l) => ['label' => str($l, 'label', 60), 'url' => url($l, 'url')]),
         'awards' => rows($in['awards'] ?? [], 16, fn(array $x) => ['title' => str($x, 'title', 120), 'year' => str($x, 'year', 20)]),
     ];

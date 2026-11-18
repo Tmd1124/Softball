@@ -19,8 +19,10 @@ export interface VideoItem {
 
 export interface ScheduleEvent {
   date: string
+  time?: string
   event: string
   location: string
+  mapUrl?: string
   team: string
   info: string
   infoUrl?: string
@@ -162,9 +164,9 @@ export const defaults = {
     scheduleTitle: 'Upcoming Tournament & Showcase Schedule',
     scheduleColumns: { event: 'Event / Showcase', info: 'Pool / Field Info' },
     schedule: [
-      { date: '[Mon DD, YYYY]', event: '[Showcase Name]', location: '[City, ST]', team: '[Travel Team]', info: '[Pool / Field]' },
-      { date: '[Mon DD, YYYY]', event: '[Tournament Name]', location: '[City, ST]', team: '[Travel Team]', info: '[Pool / Field]' },
-      { date: '[Mon DD, YYYY]', event: '[College Camp / Showcase]', location: '[City, ST]', team: '[Travel Team]', info: '[Pool / Field]' },
+      { date: '[MM/DD/YYYY]', event: '[Showcase Name]', location: '[Full street address, City, ST ZIP]', team: '[Travel Team]', info: '[Pool / Field]' },
+      { date: '[MM/DD/YYYY]', event: '[Tournament Name]', location: '[Full street address, City, ST ZIP]', team: '[Travel Team]', info: '[Pool / Field]' },
+      { date: '[MM/DD/YYYY]', event: '[College Camp / Showcase]', location: '[Full street address, City, ST ZIP]', team: '[Travel Team]', info: '[Pool / Field]' },
     ],
     links: [
       { label: 'FieldLevel', url: 'https://fieldlevel.com' },
@@ -221,9 +223,9 @@ export const defaults = {
     scheduleTitle: 'Upcoming AAU & High School Schedule',
     scheduleColumns: { event: 'Event / Exposure Tournament', info: 'Court / Live Stream Link' },
     schedule: [
-      { date: '[Mon DD, YYYY]', event: '[Exposure Tournament]', location: '[City, ST]', team: '[AAU Team]', info: '[Court #]' },
-      { date: '[Mon DD, YYYY]', event: '[Circuit Event]', location: '[City, ST]', team: '[AAU Team]', info: '[Live Stream Link]', infoUrl: '' },
-      { date: '[Mon DD, YYYY]', event: '[High School Game vs. Opponent]', location: 'Creekview HS, Canton, GA', team: 'Creekview High School', info: '[Court / Stream]' },
+      { date: '[MM/DD/YYYY]', event: '[Exposure Tournament]', location: '[Full street address, City, ST ZIP]', team: '[AAU Team]', info: '[Court #]' },
+      { date: '[MM/DD/YYYY]', event: '[Circuit Event]', location: '[Full street address, City, ST ZIP]', team: '[AAU Team]', info: '[Live Stream Link]', infoUrl: '' },
+      { date: '[MM/DD/YYYY]', event: '[High School Game vs. Opponent]', location: '[Full street address, City, ST ZIP]', team: 'Creekview High School', info: '[Court / Stream]' },
     ],
     links: [
       { label: 'Hudl', url: 'https://www.hudl.com' },
@@ -329,7 +331,7 @@ export function defaultSport(cfg: SportConfig): SportData {
     summary: `[Write two or three sentences about Ever as a ${n.toLowerCase()} athlete: strengths, work ethic and goals.]`,
     scheduleTitle: `Upcoming ${n} Schedule`,
     scheduleColumns: { event: 'Event', info: 'Details' },
-    schedule: [{ date: '[Mon DD, YYYY]', event: '[Event Name]', location: '[City, ST]', team: '[Team]', info: '[Details]' }],
+    schedule: [{ date: '[MM/DD/YYYY]', event: '[Event Name]', location: '[Full street address, City, ST ZIP]', team: '[Team]', info: '[Details]' }],
     links: [],
     awards: [],
   }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Download, Globe, Mail, Phone, Play } from 'lucide-react'
+import { Download, Globe, Mail, MapPin, Phone, Play } from 'lucide-react'
+import { mapUrlOf, showDate, showTime, sortedEvents } from '../lib/schedule'
 import type { Metric, ScheduleEvent, SportData, TeamItem, TrainerItem, VideoItem } from '../data/recruitingData'
 
 export const telHref = (phone: string) => `tel:+1${phone.replace(/\D/g, '')}`
@@ -79,7 +80,7 @@ export function ScheduleTable({ sport, events }: { sport: SportData; events: Sch
       <table className="w-full text-sm text-slate-200 max-md:block">
         <thead className="max-md:sr-only">
           <tr className="border-b border-slate-800">
-            <th scope="col" className={th}>Date</th>
+            <th scope="col" className={th}>Date &amp; time</th>
             <th scope="col" className={th}>{sport.scheduleColumns.event}</th>
             <th scope="col" className={th}>Location</th>
             <th scope="col" className={th}>Team</th>
@@ -87,23 +88,40 @@ export function ScheduleTable({ sport, events }: { sport: SportData; events: Sch
           </tr>
         </thead>
         <tbody className="max-md:block">
-          {events.map((e, i) => (
-            <tr key={i} className="border-b border-slate-800 last:border-0 max-md:block max-md:p-4">
-              <td data-label="Date" className={`${td} font-bold text-slate-50`}>{e.date}</td>
-              <td data-label="Event" className={td}>{e.event}</td>
-              <td data-label="Location" className={td}>{e.location}</td>
-              <td data-label="Team" className={td}>{e.team}</td>
-              <td data-label="Info" className={td}>
-                {e.infoUrl ? (
-                  <a href={e.infoUrl} className="font-semibold text-amber-400 underline underline-offset-2">
-                    {e.info}
-                  </a>
-                ) : (
-                  e.info
-                )}
-              </td>
-            </tr>
-          ))}
+          {sortedEvents(events).map((e, i) => {
+            const map = mapUrlOf(e)
+            return (
+              <tr key={i} className="border-b border-slate-800 last:border-0 max-md:block max-md:p-4">
+                <td data-label="When" className={`${td} font-bold text-slate-50`}>
+                  <span>
+                    {showDate(e.date)}
+                    {showTime(e.time) && <span className="block font-semibold text-amber-300">{showTime(e.time)}</span>}
+                  </span>
+                </td>
+                <td data-label="Event" className={td}>{e.event}</td>
+                <td data-label="Where" className={td}>
+                  <span>
+                    {e.location}
+                    {map && (
+                      <a href={map} target="_blank" rel="noopener noreferrer" aria-label={`Open ${e.location || 'this location'} in Google Maps`} className="mt-1 inline-flex items-center gap-1 font-semibold text-amber-400 underline underline-offset-2 md:flex">
+                        <MapPin size={14} aria-hidden /> Map
+                      </a>
+                    )}
+                  </span>
+                </td>
+                <td data-label="Team" className={td}>{e.team}</td>
+                <td data-label="Info" className={td}>
+                  {e.infoUrl ? (
+                    <a href={e.infoUrl} className="font-semibold text-amber-400 underline underline-offset-2">
+                      {e.info}
+                    </a>
+                  ) : (
+                    e.info
+                  )}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

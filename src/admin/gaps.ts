@@ -79,8 +79,9 @@ export function sportGaps(cfg: SportConfig, s: SportData): Result {
   s.clips.forEach((c) => g.check('film', `${c.title} link`, c.embedUrl || c.videoUrl))
   s.schedule.forEach((e, i) => {
     g.check('schedule', `Event ${i + 1} date`, e.date)
+    g.check('schedule', `Event ${i + 1} time`, e.time)
     g.check('schedule', `Event ${i + 1} name`, e.event)
-    g.check('schedule', `Event ${i + 1} location`, e.location)
+    g.check('schedule', `Event ${i + 1} full address`, e.location)
     g.check('schedule', `Event ${i + 1} team`, e.team)
     g.check('schedule', `Event ${i + 1} ${s.scheduleColumns.info}`, e.info)
   })

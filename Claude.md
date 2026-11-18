@@ -23,7 +23,7 @@ Public recruiting content (bio, metrics, video embeds, schedules, coaches, conta
 
 Teams and coaches are entered once per sport on the sport's Teams & coaches step (`teams`: year, name, type High School or Travel / AAU, coach, owner, phone, email; `trainers`: Ever's personal training instructor). Every page lists them newest year first via `teamsNewestFirst`/`currentTeam` in `src/recruit/derive.ts`; there is no separate `team` or `coaches` field.
 
-Phones are stored as (999) 999-9999 and emails validated, both in the admin screens and on the server. `src/site/Assistant.tsx` is the floating Help + Ask panel on every page; per-screen help text is in `src/site/helpContent.ts`.
+Schedule events store `date` as MM/DD/YYYY (auto-formatted as typed, normalized by `recruiting.php`, which also converts older free-text dates), `time` as 24-hour HH:MM shown as 10:30 AM, `location` as a full street address, and `mapUrl`, a Google Maps link filled in from the address (editable). Helpers are in `src/lib/schedule.ts`; every place that lists events (sport page, Schedule page, printed profile, chat answers) shows date, time and a Map link, in date order. Phones are stored as (999) 999-9999 and emails validated, both in the admin screens and on the server. `src/site/Assistant.tsx` is the floating Help + Ask panel on every page; per-screen help text is in `src/site/helpContent.ts`.
 
 Themes are CSS-variable overrides on `<html class="theme-home|theme-softball|theme-basketball">` in `src/index.css`. Shared page pieces live in `src/site/`.
 

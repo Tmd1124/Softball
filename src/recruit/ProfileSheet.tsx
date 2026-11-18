@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { RecruitingData, SportData, SportId } from '../data/recruitingData'
 import { sheetTheme } from '../lib/sportTheme'
+import { mapUrlOf, nextEvents, showDate, showTime } from '../lib/schedule'
 import { telHref } from './blocks'
 import QrCode from './QrCode'
 import { academicExtras, bodyLine, currentStats, currentTeam, hasRealPhoto, summaryText, teamsNewestFirst } from './derive'
@@ -151,12 +152,19 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
             <section>
               <Head>Where to see Ever</Head>
               <ul className="space-y-1.5 text-[11px] leading-snug">
-                {s.schedule.slice(0, 5).map((e, i) => (
+                {nextEvents(s.schedule, 5).map((e, i) => (
                   <li key={i} className="rounded-md px-2 py-1" style={{ background: 'var(--tint)' }}>
-                    <strong>{e.date}</strong> · {e.event}
+                    <strong>{showDate(e.date)}{showTime(e.time) ? ` · ${showTime(e.time)}` : ''}</strong> · {e.event}
                     <br />
                     <span className="text-neutral-600">
-                      {e.location} · {e.team}
+                      {e.location}
+                      {mapUrlOf(e) && (
+                        <>
+                          {' · '}
+                          <a href={mapUrlOf(e)} className={link}>Map</a>
+                        </>
+                      )}
+                      {e.team ? ` · ${e.team}` : ''}
                       {e.info ? ` · ${e.info}` : ''}
                     </span>
                   </li>
