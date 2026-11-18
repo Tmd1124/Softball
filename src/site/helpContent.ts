@@ -94,6 +94,7 @@ export const HELP: Record<string, HelpTopic> = {
       'Use the sport’s new button at the top of the screen to fill in its photo, measurables, teams, film and schedule.',
       'When it is ready, press Show on the website. It then appears in the menu, home page, PDF list and search.',
       'To take a sport off the website, press Hide from the website. Nothing is deleted and you can show it again any time.',
+      'To remove a sport for good, press Delete… on its row. You are asked to confirm, and everything about that sport is erased from the website and database. This cannot be undone.',
       'Use the ↑ and ↓ buttons to change the order sports appear in the menu.',
     ],
   },

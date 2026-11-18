@@ -74,7 +74,7 @@ function rows(mixed $v, int $max, callable $clean): array
 function video_path(array $a): string
 {
     $v = $a['videoUrl'] ?? '';
-    if (!is_string($v) || ($v !== '' && !preg_match('#^/uploads/videos/((softball|basketball)/)?[a-f0-9]{32}\.(mp4|webm|mov)$#', $v))) {
+    if (!is_string($v) || ($v !== '' && !preg_match('#^/uploads/videos/([a-z0-9][a-z0-9-]{1,29}/)?[a-f0-9]{32}\.(mp4|webm|mov)$#', $v))) {
         respond(400, ['error' => 'Invalid videoUrl']);
     }
     return $v;

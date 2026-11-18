@@ -120,7 +120,7 @@ function HowTo({ onClose }: { onClose: () => void }) {
         <li><strong>Fill in its pages.</strong> The sport gets its own button at the top of this screen for its photo, measurables, teams, film and schedule, the same as Softball.</li>
         <li><strong>Press “Show on the website”</strong> on this screen when you are ready.</li>
       </ol>
-      <p className="mt-2">To take a sport off the website, press <strong>Hide</strong>. Nothing is deleted, and you can show it again any time.</p>
+      <p className="mt-2">To take a sport off the website, press <strong>Hide</strong>. Nothing is deleted, and you can show it again any time. To remove a sport for good, press <strong>Delete…</strong> on its row. You will be asked to confirm first.</p>
     </section>
   )
 }
@@ -379,6 +379,7 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
   const [error, setError] = useState('')
   const [added, setAdded] = useState<SportConfig | null>(null)
   const [showHow, setShowHow] = useState(false)
+  const [erasing, setErasing] = useState<{ id: string; videos: number; workoutEntries: number } | null>(null)
   const [tip, setTip] = useState(false)
   const tipTimer = useRef<number | undefined>(undefined)
   const openTip = () => {
@@ -406,6 +407,37 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
     }
   }
 
+  const askErase = async (c: SportConfig) => {
+    setBusy(true)
+    setError('')
+    setMode(null)
+    try {
+      const r = await api<{ impact: { videos: number; workoutEntries: number } }>('sports.php', { action: 'impact', id: c.id })
+      setErasing({ id: c.id, ...r.impact })
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not reach the server')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const erase = async (c: SportConfig) => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await api<{ sports: SportConfig[] }>('sports.php', { action: 'delete', id: c.id, confirm: true })
+      const content = { ...store.content }
+      delete content[c.id]
+      setStore({ sports: r.sports, content })
+      setErasing(null)
+      setAdded(null)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not reach the server')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const toggle = async (c: SportConfig) => {
     if (!c.visible) {
       const left = sportGaps(c, mergeSport(c, (store.content[c.id] as never) ?? null)).gaps.length
@@ -423,7 +455,7 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
         <p className="mt-2 text-sm text-slate-400">Every sport has its own page, printed profile, schedule and teams. Add a new sport here, or hide one from the website without deleting anything.</p>
       </div>
 
-      {error && mode === null && (
+      {error && mode === null && !erasing && (
         <p role="alert" className="rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">
           {error}
         </p>
@@ -456,8 +488,32 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
               <a href={`/${c.id}/`} target="_blank" rel="noopener noreferrer" className={`${btn} border-slate-600 text-slate-100`}>{c.visible ? 'View page' : 'Preview page'}</a>
               <button type="button" onClick={() => { setError(''); setMode(mode === c.id ? null : c.id) }} className={`${btn} border-slate-600 text-slate-100`}>Edit settings</button>
               <button type="button" disabled={busy || i === 0} aria-label={`Move ${c.label} up`} onClick={() => void call({ action: 'move', id: c.id, dir: -1 })} className={`${btn} border-slate-600 text-slate-100 disabled:opacity-40`}>↑</button>
+              <button type="button" disabled={busy} onClick={() => void askErase(c)} className={`${btn} border-red-500/60 text-red-200`}>Delete…</button>
               <button type="button" disabled={busy || i === store.sports.length - 1} aria-label={`Move ${c.label} down`} onClick={() => void call({ action: 'move', id: c.id, dir: 1 })} className={`${btn} border-slate-600 text-slate-100 disabled:opacity-40`}>↓</button>
             </div>
+            {erasing?.id === c.id && (
+              <section role="alertdialog" aria-label={`Erase ${c.label}`} className="mt-4 rounded-2xl border border-red-500/60 bg-red-500/10 p-4 text-sm leading-relaxed text-red-50">
+                <p className="text-base font-extrabold text-red-100">Are you sure? All the data will be erased for good.</p>
+                <p className="mt-2">
+                  This removes {c.label} everywhere: its page and printed profile, photo, teams and coaches, schedule, measurables, film and awards, its menu button, and its entries in the sitemap and chat. It is deleted from the website and the database
+                  {erasing.videos > 0 && <>, along with {erasing.videos} uploaded video file{erasing.videos === 1 ? '' : 's'}</>}
+                  {erasing.workoutEntries > 0 && <>, and {erasing.workoutEntries} workout log {erasing.workoutEntries === 1 ? 'entry' : 'entries'}</>}. <strong>This cannot be undone.</strong> To keep the data and only take it off the website, press Cancel and use Hide instead.
+                </p>
+                {error && (
+                  <p role="alert" className="mt-3 rounded-xl border border-red-400/60 bg-red-950/60 p-3 text-red-100">
+                    {error}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" disabled={busy} onClick={() => void erase(c)} className="min-h-12 rounded-xl bg-red-600 px-5 text-sm font-extrabold text-white active:bg-red-500 disabled:opacity-50">
+                    {busy ? 'Erasing…' : 'Yes, erase it for good'}
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => { setErasing(null); setError('') }} className="min-h-12 rounded-xl border border-slate-500 px-5 text-sm font-bold text-slate-100 active:bg-slate-800">
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            )}
             {mode === c.id && (
               <div className="mt-4">
                 <SportForm

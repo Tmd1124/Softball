@@ -103,7 +103,77 @@ function exists(PDO $pdo, string $id): array
     return $row;
 }
 
+function video_files(string $id, ?string $contentJson): array
+{
+    $root = dirname(__DIR__) . '/uploads/videos';
+    $files = [];
+    if (is_dir("$root/$id")) {
+        foreach (scandir("$root/$id") ?: [] as $f) {
+            if ($f !== '.' && $f !== '..' && is_file("$root/$id/$f")) {
+                $files[] = "$root/$id/$f";
+            }
+        }
+    }
+    if ($contentJson !== null && preg_match_all('#/uploads/videos/((?:[a-z0-9-]+/)?[a-f0-9]{32}\.(?:mp4|webm|mov))#', $contentJson, $m)) {
+        foreach ($m[1] as $rel) {
+            if (is_file("$root/$rel")) {
+                $files[] = "$root/$rel";
+            }
+        }
+    }
+    return array_values(array_unique($files));
+}
+
+function impact(PDO $pdo, string $id): array
+{
+    $content = $pdo->prepare('SELECT data FROM site_content WHERE section = ?');
+    $content->execute([$id]);
+    $json = $content->fetchColumn();
+    $logs = $pdo->prepare('SELECT COUNT(*) FROM activity_log WHERE sport = ?');
+    $logs->execute([$id]);
+    return ['videos' => count(video_files($id, $json === false ? null : (string) $json)), 'workoutEntries' => (int) $logs->fetchColumn(), 'hasContent' => $json !== false];
+}
+
 switch ($in['action'] ?? '') {
+    case 'impact':
+        $id = (string) ($in['id'] ?? '');
+        exists($pdo, $id);
+        respond(200, ['impact' => impact($pdo, $id)]);
+
+    case 'delete':
+        $id = (string) ($in['id'] ?? '');
+        exists($pdo, $id);
+        if (($in['confirm'] ?? false) !== true) {
+            respond(400, ['error' => 'Confirm that you want to erase this sport']);
+        }
+        if (count(site_sports($pdo)) <= 1) {
+            respond(400, ['error' => 'Keep at least one sport on the site. Hide it instead.']);
+        }
+        $content = $pdo->prepare('SELECT data FROM site_content WHERE section = ?');
+        $content->execute([$id]);
+        $json = $content->fetchColumn();
+        $files = video_files($id, $json === false ? null : (string) $json);
+        $pdo->beginTransaction();
+        try {
+            foreach (['DELETE FROM site_content WHERE section = ?', 'DELETE FROM site_images WHERE name = ?', 'DELETE FROM activity_log WHERE sport = ?', 'DELETE FROM sports WHERE id = ?'] as $sql) {
+                $pdo->prepare($sql)->execute([$id]);
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            respond(500, ['error' => 'Could not erase the sport. Nothing was changed.']);
+        }
+        foreach ($files as $f) {
+            @unlink($f);
+        }
+        $dir = dirname(__DIR__) . '/uploads/videos/' . $id;
+        if (is_dir($dir)) {
+            @rmdir($dir);
+        }
+        break;
+
     case 'create':
         $id = strtolower(text($in, 'id', 30, 'web address'));
         if (!preg_match('/^[a-z0-9][a-z0-9-]{1,29}$/', $id) || in_array($id, RESERVED_SLUGS, true)) {
