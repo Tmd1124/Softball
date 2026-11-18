@@ -154,6 +154,8 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
   const [teamsOpen, setTeamsOpen] = useState(false)
   const [trainerOpen, setTrainerOpen] = useState(false)
+  const [bioOpen, setBioOpen] = useState(false)
+  const [metricsOpen, setMetricsOpen] = useState(false)
   const [trainerPick, setTrainerPick] = useState<{ n: number } | null>(null)
   const trainerBox = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -292,7 +294,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
     )
   return (
     <>
-      <Card title="Bio">
+      <Collapsible title="Bio" open={bioOpen} onToggle={() => setBioOpen((o) => !o)}>
         {id === 'softball' ? (
           <>
             <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
@@ -302,8 +304,8 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
         )}
         <PhotoField sport={id} />
-      </Card>
-      <Card title="Verified metrics" hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
+      </Collapsible>
+      <Collapsible title="Verified metrics" open={metricsOpen} onToggle={() => setMetricsOpen((o) => !o)} hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
         <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>
           {(i) => (
             <>
@@ -314,7 +316,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
             </>
           )}
         </List>
-      </Card>
+      </Collapsible>
     </>
   )
 }
