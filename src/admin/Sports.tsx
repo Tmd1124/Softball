@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
 import type { SportConfig } from '../data/recruitingData'
@@ -115,9 +115,6 @@ function HowTo({ onClose }: { onClose: () => void }) {
         <li><strong>Press “Show on the website”</strong> on this screen when you are ready.</li>
       </ol>
       <p className="mt-2">To take a sport off the website, press <strong>Hide</strong>. Nothing is deleted, and you can show it again any time.</p>
-      <button type="button" onClick={onClose} className="mt-3 min-h-12 rounded-xl border border-amber-500/60 px-5 text-sm font-bold text-amber-300 active:bg-amber-500/20">
-        Close
-      </button>
     </section>
   )
 }
@@ -360,6 +357,16 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
   const [error, setError] = useState('')
   const [added, setAdded] = useState<SportConfig | null>(null)
   const [showHow, setShowHow] = useState(false)
+  const [tip, setTip] = useState(false)
+  const tipTimer = useRef<number | undefined>(undefined)
+  const openTip = () => {
+    window.clearTimeout(tipTimer.current)
+    setTip(true)
+  }
+  const closeTip = () => {
+    window.clearTimeout(tipTimer.current)
+    tipTimer.current = window.setTimeout(() => setTip(false), 150)
+  }
   const existingIds = store.sports.map((s) => s.id)
 
   const call = async (body: Record<string, unknown>) => {
@@ -474,21 +481,22 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
           />
         </>
       ) : (
-        <div className="group relative inline-block">
-          <button type="button" onClick={() => { setError(''); setAdded(null); setMode('add') }} aria-describedby="how-hint" className="min-h-12 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400">
+        <div className="relative inline-block" onPointerEnter={openTip} onPointerLeave={closeTip} onFocus={openTip} onBlur={closeTip}>
+          <button type="button" onClick={() => { setTip(false); setError(''); setAdded(null); setMode('add') }} className="min-h-12 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400">
             + Add a sport
           </button>
-          <div className="absolute left-0 top-full z-20 hidden pt-1 group-focus-within:block group-hover:block">
-            <button
-              type="button"
-              id="how-hint"
-              onClick={() => setShowHow(true)}
-              className="w-72 rounded-xl border border-amber-500/60 bg-slate-950 p-3 text-left text-sm font-semibold leading-snug text-amber-200 shadow-lg shadow-black/50"
-            >
-              How to add a sport (about 5 minutes, no code)
-              <span className="mt-1 block text-xs font-normal text-slate-300">Click here to read the steps.</span>
-            </button>
-          </div>
+          {tip && (
+            <div className="absolute left-0 top-full z-20 pt-1">
+              <button
+                type="button"
+                onClick={() => { setTip(false); setShowHow(true) }}
+                className="w-72 rounded-xl border border-amber-500/60 bg-slate-950 p-3 text-left text-sm font-semibold leading-snug text-amber-200 shadow-lg shadow-black/50"
+              >
+                How to add a sport (about 5 minutes, no code)
+                <span className="mt-1 block text-xs font-normal text-slate-300">Click here to read the steps.</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
