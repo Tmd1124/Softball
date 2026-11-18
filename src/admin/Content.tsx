@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
 import { TEAM_TYPES, defaultSite, defaultSports } from '../data/recruitingData'
 import type { RecruitingData, SiteData, SportData, SportId } from '../data/recruitingData'
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
 import ScrollRow from './ScrollRow'
-import RecordCard, { noRec, pickRec } from './RecordCard'
+import RecordCard from './RecordCard'
+import { FieldsTable, ListTable, SingleCard, useCards } from './cards'
+import type { FieldDef } from './cards'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, Card, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -104,108 +107,209 @@ function StepNav({ steps, current, base, label }: { steps: { id: string; label: 
   )
 }
 
+const photoState = (v: string) => (v && !v.startsWith('/img/hero-') ? 'Uploaded' : 'Not set')
+
 function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
+  const cards = useCards(step)
+  const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode) => (
+    <>
+      <SingleCard title={title} hint={hint} {...cards.card(k)} rec={cards.rec(k)} setRec={cards.setRec(k)} fields={fields}>
+        {edit}
+      </SingleCard>
+      <FieldsTable title={`All ${title.toLowerCase()} details`} fields={fields} onPick={() => cards.pick(k)} />
+    </>
+  )
   if (step === 'academics')
-    return (
-      <Card title="Academics" hint="GPA and courses always show. The extras below show on the profiles only when filled in.">
+    return one(
+      'academics',
+      'Academics',
+      'GPA and courses always show. The extras below show on the profiles only when filled in.',
+      [
+        ['GPA', ['academics', 'gpa']],
+        ['Honors / advanced courses', ['academics', 'courses']],
+        ['Class rank', ['academics', 'classRank']],
+        ['NCAA Eligibility Center ID', ['academics', 'ncaaId']],
+        ['SAT', ['academics', 'sat']],
+        ['ACT', ['academics', 'act']],
+      ],
+      <>
         <F path={['academics', 'gpa']} label="GPA" />
         <F path={['academics', 'courses']} label="Honors / advanced courses" />
         <F path={['academics', 'classRank']} label="Class rank (optional)" placeholder="12 of 340" />
         <F path={['academics', 'ncaaId']} label="NCAA Eligibility Center ID (optional)" />
         <F path={['academics', 'sat']} label="SAT (optional)" />
         <F path={['academics', 'act']} label="ACT (optional)" />
-      </Card>
+      </>,
     )
   if (step === 'contact')
     return (
       <>
-        <Card title="Recruiting contact" hint="Shown in the footer on every public page and on the profiles.">
-          <F path={['contact', 'email']} label="Email" kind="email" />
-          <F path={['contact', 'phone']} label="Phone" kind="phone" />
-        </Card>
-        <Card title="Parent / guardian">
-          <F path={['contact', 'parent', 'name']} label="Name" wide />
-          <F path={['contact', 'parent', 'email']} label="Email" kind="email" />
-          <F path={['contact', 'parent', 'phone']} label="Phone" kind="phone" />
-        </Card>
-        <Card title="Social">
-          <F path={['contact', 'social', 'x', 'handle']} label="X / Twitter handle" />
-          <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" />
-          <F path={['contact', 'social', 'instagram', 'handle']} label="Instagram handle" />
-          <F path={['contact', 'social', 'instagram', 'url']} label="Instagram address" />
-        </Card>
+        {one(
+          'recruiting',
+          'Recruiting contact',
+          'Shown in the footer on every public page and on the profiles.',
+          [
+            ['Email', ['contact', 'email']],
+            ['Phone', ['contact', 'phone']],
+          ],
+          <>
+            <F path={['contact', 'email']} label="Email" kind="email" />
+            <F path={['contact', 'phone']} label="Phone" kind="phone" />
+          </>,
+        )}
+        {one(
+          'parent',
+          'Parent / guardian',
+          undefined,
+          [
+            ['Name', ['contact', 'parent', 'name']],
+            ['Email', ['contact', 'parent', 'email']],
+            ['Phone', ['contact', 'parent', 'phone']],
+          ],
+          <>
+            <F path={['contact', 'parent', 'name']} label="Name" wide />
+            <F path={['contact', 'parent', 'email']} label="Email" kind="email" />
+            <F path={['contact', 'parent', 'phone']} label="Phone" kind="phone" />
+          </>,
+        )}
+        {one(
+          'social',
+          'Social',
+          undefined,
+          [
+            ['X / Twitter handle', ['contact', 'social', 'x', 'handle']],
+            ['X / Twitter address', ['contact', 'social', 'x', 'url']],
+            ['Instagram handle', ['contact', 'social', 'instagram', 'handle']],
+            ['Instagram address', ['contact', 'social', 'instagram', 'url']],
+          ],
+          <>
+            <F path={['contact', 'social', 'x', 'handle']} label="X / Twitter handle" />
+            <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" />
+            <F path={['contact', 'social', 'instagram', 'handle']} label="Instagram handle" />
+            <F path={['contact', 'social', 'instagram', 'url']} label="Instagram address" />
+          </>,
+        )}
       </>
     )
   return (
     <>
-      <Card title="Athlete">
-        <F path={['athlete', 'name']} label="Name" />
-        <F path={['athlete', 'classYear']} label="Class year" type="number" />
-        <F path={['athlete', 'school']} label="School" />
-        <F path={['athlete', 'location']} label="City, state" />
-        <F path={['athlete', 'height']} label="Height" />
-        <F path={['athlete', 'weight']} label="Weight (optional)" placeholder="140 lb" />
-        <F path={['athlete', 'jersey']} label="Jersey number" />
-        <F path={['siteUrl']} label="Site address" />
-      </Card>
-      <QrCard url={siteUrl} hint="Links to the site address above. Use it on flyers and business cards." file="everharris-qr" />
+      {one(
+        'athlete',
+        'Athlete',
+        undefined,
+        [
+          ['Name', ['athlete', 'name']],
+          ['Class year', ['athlete', 'classYear']],
+          ['School', ['athlete', 'school']],
+          ['City, state', ['athlete', 'location']],
+          ['Height', ['athlete', 'height']],
+          ['Weight', ['athlete', 'weight']],
+          ['Jersey number', ['athlete', 'jersey']],
+          ['Site address', ['siteUrl']],
+        ],
+        <>
+          <F path={['athlete', 'name']} label="Name" />
+          <F path={['athlete', 'classYear']} label="Class year" type="number" />
+          <F path={['athlete', 'school']} label="School" />
+          <F path={['athlete', 'location']} label="City, state" />
+          <F path={['athlete', 'height']} label="Height" />
+          <F path={['athlete', 'weight']} label="Weight (optional)" placeholder="140 lb" />
+          <F path={['athlete', 'jersey']} label="Jersey number" />
+          <F path={['siteUrl']} label="Site address" />
+        </>,
+      )}
+      <QrCard url={siteUrl} hint="Links to the site address above. Use it on flyers and business cards." file="everharris-qr" {...cards.card('qr')} />
+      <FieldsTable title="QR code details" literal={[['Links to', siteUrl]]} onPick={() => cards.pick('qr')} />
     </>
   )
 }
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
-  const [openCard, setOpenCard] = useState<string | null>(null)
-  const [teamsRec, setTeamsRec] = useState(noRec)
-  const [trainerRec, setTrainerRec] = useState(noRec)
-  const [eventRec, setEventRec] = useState(noRec)
+  const cards = useCards(id + step)
   const teamsBox = useRef<HTMLElement>(null)
   const trainerBox = useRef<HTMLElement>(null)
   const scheduleBox = useRef<HTMLElement>(null)
-  useEffect(() => {
-    setOpenCard(null)
-    setTeamsRec(noRec)
-    setTrainerRec(noRec)
-    setEventRec(noRec)
-  }, [id])
-  const card = (k: string) => ({ open: openCard === k, onToggle: () => setOpenCard((o) => (o === k ? null : k)) })
-  const videoFields = (base: (string | number)[]) => (
+  const clipsBox = useRef<HTMLElement>(null)
+  const awardsBox = useRef<HTMLElement>(null)
+  const metricsBox = useRef<HTMLElement>(null)
+  const linksBox = useRef<HTMLElement>(null)
+  const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode) => (
     <>
-      <F path={[...base, 'title']} label="Title" />
+      <SingleCard title={title} hint={hint} {...cards.card(k)} rec={cards.rec(k)} setRec={cards.setRec(k)} fields={fields}>
+        {edit}
+      </SingleCard>
+      <FieldsTable title={`All ${title.toLowerCase()} details`} fields={fields} onPick={() => cards.pick(k)} />
+    </>
+  )
+  const videoFields = (base: (string | number)[], first?: string) => (
+    <>
+      <F id={first} path={[...base, 'title']} label="Title" />
       <F path={[...base, 'blurb']} label="Description" />
       <F path={[...base, 'length']} label="Length note" />
       <F path={[...base, 'embedUrl']} label="Embed URL" placeholder="https://www.youtube.com/embed/VIDEO_ID" />
     </>
   )
+  const videoView = (base: string[]): FieldDef[] => [
+    ['Title', [...base, 'title']],
+    ['Description', [...base, 'blurb']],
+    ['Length note', [...base, 'length']],
+    ['Embed URL', [...base, 'embedUrl']],
+  ]
   if (step === 'film')
     return (
       <>
-        <Card title="Featured video" hint="Use the embed address from YouTube, Vimeo or Hudl, starting with https://.">
-          {videoFields(['featured'])}
-        </Card>
-        <Collapsible title="Skill clips" {...card('clips')}>
-          <F path={['clipsTitle']} label="Section heading" wide />
-          <List path={['clips']} noun="clip" max={6} blank={{ title: '', blurb: '', length: '', embedUrl: '' }}>
-            {(i) => videoFields(['clips', i])}
-          </List>
-        </Collapsible>
+        {one('featured', 'Featured video', 'Use the embed address from YouTube, Vimeo or Hudl, starting with https://.', videoView(['featured']), videoFields(['featured']))}
+        <RecordCard
+          title="Skill clips"
+          {...cards.card('clips')}
+          boxRef={clipsBox}
+          listPath={['clips']}
+          noun="clip"
+          max={6}
+          blank={{ title: '', blurb: '', length: '', embedUrl: '' }}
+          rec={cards.rec('clips')}
+          setRec={cards.setRec('clips')}
+          focusPrefix="clip-title"
+          settings={<F path={['clipsTitle']} label="Section heading" wide />}
+          edit={(i) => videoFields(['clips', i], `clip-title-${i}`)}
+          view={(r) => [
+            ['Title', String(r.title ?? '')],
+            ['Description', String(r.blurb ?? '')],
+            ['Length note', String(r.length ?? '')],
+            ['Embed URL', String(r.embedUrl ?? '')],
+          ]}
+        />
+        <ListTable title="All skill clips" listPath={['clips']} noun="clip" columns={[['Title', 'title'], ['Description', 'blurb'], ['Length', 'length']]} onPick={(n) => cards.pick('clips', n)} />
       </>
     )
   if (step === 'summary')
     return (
       <>
-        <Card title="Scouting summary" hint="Write {popTime} wherever the pop time metric value should appear.">
-          <F path={['summary']} label="Player profile text" area />
-        </Card>
-        <Collapsible title="Awards & honors" hint="Optional." {...card('awards')}>
-          <List path={['awards']} noun="award" max={16} blank={{ title: '', year: '' }}>
-            {(i) => (
-              <>
-                <F path={['awards', i, 'title']} label="Award" />
-                <F path={['awards', i, 'year']} label="Year" />
-              </>
-            )}
-          </List>
-        </Collapsible>
+        {one('summary', 'Scouting summary', 'Write {popTime} wherever the pop time metric value should appear.', [['Player profile text', ['summary']]], <F path={['summary']} label="Player profile text" area />)}
+        <RecordCard
+          title="Awards & honors"
+          hint="Optional."
+          {...cards.card('awards')}
+          boxRef={awardsBox}
+          listPath={['awards']}
+          noun="award"
+          max={16}
+          blank={{ title: '', year: '' }}
+          rec={cards.rec('awards')}
+          setRec={cards.setRec('awards')}
+          focusPrefix="award-title"
+          edit={(i) => (
+            <>
+              <F id={`award-title-${i}`} path={['awards', i, 'title']} label="Award" />
+              <F path={['awards', i, 'year']} label="Year" />
+            </>
+          )}
+          view={(r) => [
+            ['Award', String(r.title ?? '')],
+            ['Year', String(r.year ?? '')],
+          ]}
+        />
+        <ListTable title="All awards & honors" listPath={['awards']} noun="award" columns={[['Award', 'title'], ['Year', 'year']]} onPick={(n) => cards.pick('awards', n)} />
       </>
     )
   if (step === 'schedule')
@@ -213,14 +317,14 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
       <>
         <RecordCard
           title="Schedule"
-          {...card('schedule')}
+          {...cards.card('schedule')}
           boxRef={scheduleBox}
           listPath={['schedule']}
           noun="event"
           max={40}
           blank={{ date: '', event: '', location: '', team: '', info: '', infoUrl: '' }}
-          rec={eventRec}
-          setRec={setEventRec}
+          rec={cards.rec('schedule')}
+          setRec={cards.setRec('schedule')}
           focusPrefix="event-date"
           settings={
             <>
@@ -248,12 +352,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
             ['Link', String(r.infoUrl ?? '')],
           ]}
         />
-        <EventsTable
-          onPick={(n) => {
-            setOpenCard('schedule')
-            setEventRec((r) => pickRec(r, n))
-          }}
-        />
+        <EventsTable onPick={(n) => cards.pick('schedule', n)} />
       </>
     )
   if (step === 'teams')
@@ -262,14 +361,14 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         <RecordCard
           title="Teams & coaches"
           hint="One team per year, for this sport only. The newest year shows first everywhere on the site."
-          {...card('teams')}
+          {...cards.card('teams')}
           boxRef={teamsBox}
           listPath={['teams']}
           noun="team"
           max={20}
           blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '', stats: [] }}
-          rec={teamsRec}
-          setRec={setTeamsRec}
+          rec={cards.rec('teams')}
+          setRec={cards.setRec('teams')}
           focusPrefix="team-name"
           edit={(i) => (
             <>
@@ -305,23 +404,18 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
             ['Stats', ((r.stats as { label: string; value: string }[] | undefined) ?? []).map((x) => `${x.label} ${x.value}`).join(' · ')],
           ]}
         />
-        <TeamsTable
-          onPick={(n) => {
-            setOpenCard('teams')
-            setTeamsRec((r) => pickRec(r, n))
-          }}
-        />
+        <TeamsTable onPick={(n) => cards.pick('teams', n)} />
         <RecordCard
           title="Personal training instructor"
           hint="Ever’s trainer for this sport."
-          {...card('trainers')}
+          {...cards.card('trainers')}
           boxRef={trainerBox}
           listPath={['trainers']}
           noun="trainer"
           max={10}
           blank={{ name: '', phone: '', email: '' }}
-          rec={trainerRec}
-          setRec={setTrainerRec}
+          rec={cards.rec('trainers')}
+          setRec={cards.setRec('trainers')}
           focusPrefix="trainer-name"
           edit={(i) => (
             <>
@@ -336,55 +430,88 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
             ['Email', String(r.email ?? '')],
           ]}
         />
-        <TrainersTable
-          onPick={(n) => {
-            setOpenCard('trainers')
-            setTrainerRec((r) => pickRec(r, n))
-          }}
-        />
+        <TrainersTable onPick={(n) => cards.pick('trainers', n)} />
       </>
     )
   if (step === 'contacts')
     return (
       <>
-        <Card title="Recruiting links" hint="Buttons next to the PDF download.">
-          <List path={['links']} noun="link" max={8} blank={{ label: '', url: '' }}>
-            {(i) => (
-              <>
-                <F path={['links', i, 'label']} label="Button text" />
-                <F path={['links', i, 'url']} label="Address" />
-              </>
-            )}
-          </List>
-        </Card>
-        <QrCard url={`${siteUrl}/${id}/`} hint={`Links to the ${id} page. It is also printed on the ${id} recruiting profile.`} file={`everharris-${id}-qr`} />
-      </>
-    )
-  return (
-    <>
-      <Collapsible title="Bio" {...card('bio')}>
-        {id === 'softball' ? (
-          <>
-            <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
-            <Pick path={['handedness']} label="Bats / throws" options={BATS_THROWS} wide />
-          </>
-        ) : (
-          <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
-        )}
-        <PhotoField sport={id} />
-      </Collapsible>
-      <Collapsible title="Verified metrics" {...card('metrics')} hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
-        <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>
-          {(i) => (
+        <RecordCard
+          title="Recruiting links"
+          hint="Buttons next to the PDF download."
+          {...cards.card('links')}
+          boxRef={linksBox}
+          listPath={['links']}
+          noun="link"
+          max={8}
+          blank={{ label: '', url: '' }}
+          rec={cards.rec('links')}
+          setRec={cards.setRec('links')}
+          focusPrefix="link-label"
+          edit={(i) => (
             <>
-              <F path={['metrics', i, 'label']} label="Label" />
-              <F path={['metrics', i, 'value']} label="Value" />
-              <F path={['metrics', i, 'unit']} label="Unit (sec, mph…)" />
-              <F path={['metrics', i, 'verified']} label="Verified month / year" />
+              <F id={`link-label-${i}`} path={['links', i, 'label']} label="Button text" />
+              <F path={['links', i, 'url']} label="Address" />
             </>
           )}
-        </List>
-      </Collapsible>
+          view={(r) => [
+            ['Button text', String(r.label ?? '')],
+            ['Address', String(r.url ?? '')],
+          ]}
+        />
+        <ListTable title="All recruiting links" listPath={['links']} noun="link" columns={[['Button text', 'label'], ['Address', 'url']]} onPick={(n) => cards.pick('links', n)} />
+        <QrCard url={`${siteUrl}/${id}/`} hint={`Links to the ${id} page. It is also printed on the ${id} recruiting profile.`} file={`everharris-${id}-qr`} {...cards.card('qr')} />
+        <FieldsTable title="QR code details" literal={[['Links to', `${siteUrl}/${id}/`]]} onPick={() => cards.pick('qr')} />
+      </>
+    )
+  const bioFields: FieldDef[] = [['Positions', ['positions']], ...(id === 'softball' ? [['Bats / throws', ['handedness']] as FieldDef] : []), ['Photo', ['photo'], photoState]]
+  return (
+    <>
+      {one(
+        'bio',
+        'Bio',
+        undefined,
+        bioFields,
+        <>
+          {id === 'softball' ? (
+            <>
+              <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
+              <Pick path={['handedness']} label="Bats / throws" options={BATS_THROWS} wide />
+            </>
+          ) : (
+            <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
+          )}
+          <PhotoField sport={id} />
+        </>,
+      )}
+      <RecordCard
+        title="Verified metrics"
+        hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}."
+        {...cards.card('metrics')}
+        boxRef={metricsBox}
+        listPath={['metrics']}
+        noun="metric"
+        max={8}
+        blank={() => ({ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' })}
+        rec={cards.rec('metrics')}
+        setRec={cards.setRec('metrics')}
+        focusPrefix="metric-label"
+        edit={(i) => (
+          <>
+            <F id={`metric-label-${i}`} path={['metrics', i, 'label']} label="Label" />
+            <F path={['metrics', i, 'value']} label="Value" />
+            <F path={['metrics', i, 'unit']} label="Unit (sec, mph…)" />
+            <F path={['metrics', i, 'verified']} label="Verified month / year" />
+          </>
+        )}
+        view={(r) => [
+          ['Label', String(r.label ?? '')],
+          ['Value', String(r.value ?? '')],
+          ['Unit', String(r.unit ?? '')],
+          ['Verified', String(r.verified ?? '')],
+        ]}
+      />
+      <ListTable title="All verified metrics" listPath={['metrics']} noun="metric" columns={[['Label', 'label'], ['Value', 'value'], ['Unit', 'unit'], ['Verified', 'verified']]} onPick={(n) => cards.pick('metrics', n)} />
     </>
   )
 }

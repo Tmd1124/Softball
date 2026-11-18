@@ -40,7 +40,7 @@ export function Card({ title, hint, children }: { title: string; hint?: string; 
   )
 }
 
-function CollapseHeader({ title, open, onToggle }: { title: string; open: boolean; onToggle: () => void }) {
+export function CollapseHeader({ title, open, onToggle }: { title: string; open: boolean; onToggle: () => void }) {
   return (
     <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-12 w-full items-center justify-between gap-3 text-left">
       <span className="text-lg font-bold text-slate-50">{title}</span>
@@ -193,7 +193,7 @@ export function List({ path, noun, blank, max, children }: { path: Path; noun: s
   )
 }
 
-export function QrCard({ url, hint, file }: { url: string; hint: string; file: string }) {
+export function QrCard({ url, hint, file, open, onToggle }: { url: string; hint: string; file: string; open: boolean; onToggle: () => void }) {
   const valid = /^https:\/\/\S+$/i.test(url)
   const save = (blob: Blob, name: string) => {
     const a = document.createElement('a')
@@ -204,7 +204,7 @@ export function QrCard({ url, hint, file }: { url: string; hint: string; file: s
   }
   const btn = 'inline-flex min-h-12 items-center rounded-xl border border-slate-600 px-4 text-sm font-semibold text-slate-100 active:bg-slate-800'
   return (
-    <Card title="QR code" hint={hint}>
+    <Collapsible title="QR code" hint={hint} open={open} onToggle={onToggle}>
       <div className="flex flex-wrap items-center gap-5 sm:col-span-2">
         {valid ? <QrCode text={url} label={`QR code linking to ${url}`} className="h-40 w-40 rounded-lg" /> : <p className="text-sm text-slate-400">Enter a site address starting with https:// to see the QR code.</p>}
         {valid && (
@@ -214,7 +214,7 @@ export function QrCard({ url, hint, file }: { url: string; hint: string; file: s
           </div>
         )}
       </div>
-    </Card>
+    </Collapsible>
   )
 }
 

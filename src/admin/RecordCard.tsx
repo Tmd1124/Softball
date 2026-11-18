@@ -37,7 +37,7 @@ export default function RecordCard({
   hint?: string
   listPath: string[]
   noun: string
-  blank: Row
+  blank: Row | (() => Row)
   max: number
   open: boolean
   onToggle: () => void
@@ -62,7 +62,7 @@ export default function RecordCard({
   }, [rec.mode, rec.sel, open, focusPrefix])
 
   const add = () => {
-    setDraft((d) => setAt(d, listPath, [...rows, structuredClone(blank)]))
+    setDraft((d) => setAt(d, listPath, [...rows, typeof blank === 'function' ? blank() : structuredClone(blank)]))
     setRec({ sel: rows.length, mode: 'edit', tick: rec.tick + 1 })
   }
   const remove = () => {
