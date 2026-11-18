@@ -265,7 +265,7 @@ export function QrCard({ url, hint, file, open, onToggle }: { url: string; hint:
   )
 }
 
-async function shrink(file: File, max = 1400): Promise<string> {
+export async function shrink(file: File, max = 1400): Promise<string> {
   const bmp = await createImageBitmap(file)
   const k = Math.min(1, max / Math.max(bmp.width, bmp.height))
   const canvas = document.createElement('canvas')

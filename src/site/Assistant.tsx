@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { HelpCircle, MessageCircle, Printer, Send, Trash2, X } from 'lucide-react'
+import { HelpCircle, Printer, Send, Trash2, X } from 'lucide-react'
 import { ApiError, api } from '../lib/api'
 import { HELP } from './helpContent'
 
@@ -100,9 +100,10 @@ export default function Assistant({ helpKey, lift = false, startOn }: { helpKey:
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open help and questions"
-          className={`fixed right-4 z-40 flex h-14 items-center gap-2 rounded-full bg-amber-500 px-5 text-sm font-extrabold text-slate-950 shadow-lg shadow-black/40 active:bg-amber-400 ${lift ? 'bottom-24' : 'bottom-4'}`}
+          title="Ask a question or get help"
+          className={`fixed right-4 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500 text-4xl leading-none shadow-lg shadow-black/40 transition-transform hover:scale-105 active:scale-95 active:bg-amber-400 ${lift ? 'bottom-24' : 'bottom-4'}`}
         >
-          <MessageCircle size={20} aria-hidden /> Help
+          <span aria-hidden>🤖</span>
         </button>
       )}
       {open && (

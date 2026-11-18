@@ -11,15 +11,26 @@ function sport_param(mixed $v): string
     return valid_site_sport($v);
 }
 
-function store_photo(PDO $pdo, string $sport, string $bytes, string $mime): void
+function image_table(mixed $kind): string
 {
+    return $kind === 'card' ? 'sport_card_images' : 'site_images';
+}
+
+function image_url(string $sport, mixed $kind): string
+{
+    return '/api/photo.php?sport=' . $sport . ($kind === 'card' ? '&kind=card' : '') . '&v=' . time();
+}
+
+function store_photo(PDO $pdo, string $sport, string $bytes, string $mime, mixed $kind): void
+{
+    $t = image_table($kind);
     $b64 = base64_encode($bytes);
-    $u = $pdo->prepare('UPDATE site_images SET mime = ?, data = ?, updated_at = ? WHERE name = ?');
+    $u = $pdo->prepare("UPDATE $t SET mime = ?, data = ?, updated_at = ? WHERE name = ?");
     $u->execute([$mime, $b64, now(), $sport]);
-    $has = $pdo->prepare('SELECT COUNT(*) FROM site_images WHERE name = ?');
+    $has = $pdo->prepare("SELECT COUNT(*) FROM $t WHERE name = ?");
     $has->execute([$sport]);
     if ((int) $has->fetchColumn() === 0) {
-        $pdo->prepare('INSERT INTO site_images (name, mime, data, updated_at) VALUES (?, ?, ?, ?)')->execute([$sport, $mime, $b64, now()]);
+        $pdo->prepare("INSERT INTO $t (name, mime, data, updated_at) VALUES (?, ?, ?, ?)")->execute([$sport, $mime, $b64, now()]);
     }
 }
 
@@ -91,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         http_response_code(404);
         exit;
     }
-    $q = db()->prepare('SELECT mime, data FROM site_images WHERE name = ?');
+    $q = db()->prepare('SELECT mime, data FROM ' . image_table($_GET['kind'] ?? '') . ' WHERE name = ?');
     $q->execute([$sport]);
     $row = $q->fetch();
     $bytes = $row ? base64_decode((string) $row['data'], true) : false;
@@ -130,8 +141,8 @@ switch ($in['action'] ?? '') {
         if ($info === false || !in_array($info['mime'], ALLOWED_MIMES, true)) {
             respond(400, ['error' => 'That file is not a valid image']);
         }
-        store_photo($pdo, $sport, $bytes, $info['mime']);
-        respond(200, ['url' => '/api/photo.php?sport=' . $sport . '&v=' . time()]);
+        store_photo($pdo, $sport, $bytes, $info['mime'], $in['kind'] ?? '');
+        respond(200, ['url' => image_url($sport, $in['kind'] ?? '')]);
 
     case 'fetch':
         $url = $in['url'] ?? null;
@@ -151,11 +162,11 @@ switch ($in['action'] ?? '') {
             $bytes = $small;
             $info['mime'] = 'image/jpeg';
         }
-        store_photo($pdo, $sport, $bytes, $info['mime']);
-        respond(200, ['url' => '/api/photo.php?sport=' . $sport . '&v=' . time()]);
+        store_photo($pdo, $sport, $bytes, $info['mime'], $in['kind'] ?? '');
+        respond(200, ['url' => image_url($sport, $in['kind'] ?? '')]);
 
     case 'delete':
-        $pdo->prepare('DELETE FROM site_images WHERE name = ?')->execute([$sport]);
+        $pdo->prepare('DELETE FROM ' . image_table($in['kind'] ?? '') . ' WHERE name = ?')->execute([$sport]);
         respond(200, ['ok' => true]);
 
     default:

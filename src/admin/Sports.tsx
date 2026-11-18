@@ -2,10 +2,10 @@ import { useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
 import type { SportConfig } from '../data/recruitingData'
-import { CATALOG, slugify } from '../data/sportCatalog'
+import { CATALOG, emojiFor, slugify } from '../data/sportCatalog'
 import { mergeSport } from '../lib/recruiting'
 import type { Store } from '../lib/recruiting'
-import { HelpTip } from './fields'
+import { HelpTip, shrink } from './fields'
 import { sportGaps } from './gaps'
 
 const COLORS: [string, string][] = [
@@ -36,9 +36,14 @@ interface FormState {
   checkedM: string[]
   baseP: string[]
   baseM: string[]
+  homeStyle: 'text' | 'image'
+  homeImage: 'auto' | 'custom'
+  emoji: string
+  cardUrl: string
+  cardData: string | null
 }
 
-const blankForm: FormState = { pick: '', label: '', id: '', idTouched: false, accent: COLORS[0][1], positionLabel: 'Positions', positionStyle: 'multi', all: [], checked: [], handedness: false, allM: [], checkedM: [], baseP: [], baseM: [] }
+const blankForm: FormState = { pick: '', label: '', id: '', idTouched: false, accent: COLORS[0][1], positionLabel: 'Positions', positionStyle: 'multi', all: [], checked: [], handedness: false, allM: [], checkedM: [], baseP: [], baseM: [], homeStyle: 'image', homeImage: 'auto', emoji: '🏅', cardUrl: '', cardData: null }
 
 const MAX_METRICS = 8
 const mkey = (label: string, unit: string) => `${label}|${unit}`
@@ -59,6 +64,11 @@ const fromCatalog = (name: string): FormState => {
     positionStyle: c.style,
     all: c.positions,
     baseP: c.positions,
+    homeStyle: 'image',
+    homeImage: 'auto',
+    emoji: c.emoji,
+    cardUrl: '',
+    cardData: null,
     baseM: c.metrics.map(([l, u]) => mkey(l, u)),
     checked: [],
     handedness: c.handedness,
@@ -81,6 +91,11 @@ const fromConfig = (c: SportConfig): FormState => {
     positionStyle: c.positionStyle,
     all: [...new Set([...known, ...c.positions])],
     baseP: known,
+    homeStyle: c.homeStyle,
+    homeImage: c.homeImage,
+    emoji: c.emoji || emojiFor(c.id),
+    cardUrl: c.cardImage,
+    cardData: null,
     baseM: cat?.metrics.map(([l, u]) => mkey(l, u)) ?? [],
     checked: c.positions,
     handedness: c.handedness,
@@ -125,7 +140,7 @@ function HowTo({ onClose }: { onClose: () => void }) {
   )
 }
 
-function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCancel }: { initial: FormState; editing: boolean; existingIds: string[]; busy: boolean; error: string; onSubmit: (body: Record<string, unknown>) => void; onCancel: () => void }) {
+function SportForm({ initial, editing, existingIds, photoUrl, busy, error, onSubmit, onCancel }: { initial: FormState; editing: boolean; existingIds: string[]; photoUrl: string; busy: boolean; error: string; onSubmit: (body: Record<string, unknown>, cardData: string | null) => void; onCancel: () => void }) {
   const uid = useId()
   const [f, setF] = useState(initial)
   const [custom, setCustom] = useState('')
@@ -165,6 +180,9 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
 
   const submit = () =>
     onSubmit({
+      homeStyle: f.homeStyle,
+      homeImage: f.homeImage,
+      emoji: f.emoji,
       label: f.label,
       id: f.id,
       accent: f.accent,
@@ -176,7 +194,21 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
         const [label, unit] = k.split('|')
         return { label, unit }
       }),
-    })
+    }, f.homeStyle === 'image' && f.homeImage === 'custom' ? f.cardData : null)
+
+  const [uploadError, setUploadError] = useState('')
+  const pickFile = async (file: File | undefined) => {
+    if (!file) return
+    setUploadError('')
+    try {
+      set({ cardData: await shrink(file, 1200), homeImage: 'custom' })
+    } catch {
+      setUploadError('This browser cannot read that picture type. Save it as a JPEG or PNG and try again.')
+    }
+  }
+  const realPhoto = photoUrl !== '' && !photoUrl.startsWith('/img/hero-')
+  const tileImage = f.homeImage === 'custom' ? f.cardData ?? f.cardUrl : realPhoto ? photoUrl : ''
+  const needsImage = f.homeStyle === 'image' && f.homeImage === 'custom' && !f.cardData && !f.cardUrl
 
   const fineTune = (
     <div className="space-y-5">
@@ -270,7 +302,66 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
             </div>
           </Q>
 
-          <Q n={3} label={`${f.positionLabel || 'Positions'} to offer`} help={<>This is the checklist you will choose from when you fill in Ever’s bio. Tick the ones that apply to her. Add your own below if something is missing. You can change this list later.</>}>
+          <Q n={3} label="Home page button" help={<>How this sport appears in the quick-link buttons on the home page. <strong>Text card</strong> shows the sport name with a small icon. <strong>Image card</strong> shows a picture with the name on it, which is quicker to recognize at a glance. You can switch back and forth any time, using the Text / Image switch on the sport’s row or Edit settings.</>}>
+            <div className="mt-1 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Home page button">
+              <button type="button" role="radio" aria-checked={f.homeStyle === 'text'} onClick={() => set({ homeStyle: 'text' })} className={`rounded-2xl border-2 p-3 text-left ${f.homeStyle === 'text' ? 'border-amber-500' : 'border-slate-700'}`}>
+                <span className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 p-3">
+                  <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-extrabold text-slate-950" style={{ background: f.accent }}>{(f.label || 'S').charAt(0).toUpperCase()}</span>
+                  <span>
+                    <span className="block text-sm font-extrabold text-slate-50">{f.label || 'Sport name'}</span>
+                    <span className="block text-xs text-slate-400">Metrics, film and references</span>
+                  </span>
+                </span>
+                <span className="mt-2 block text-sm font-bold text-slate-100">Text card</span>
+                <span className="block text-xs text-slate-400">Words with a small icon, like Softball and Basketball today.</span>
+              </button>
+              <button type="button" role="radio" aria-checked={f.homeStyle === 'image'} onClick={() => set({ homeStyle: 'image' })} className={`rounded-2xl border-2 p-3 text-left ${f.homeStyle === 'image' ? 'border-amber-500' : 'border-slate-700'}`}>
+                <span className="relative flex h-[4.25rem] items-center justify-center overflow-hidden rounded-xl border border-slate-700" style={{ background: `linear-gradient(135deg, ${f.accent}55, ${f.accent}18)` }}>
+                  {tileImage ? <img src={tileImage} alt="" className="absolute inset-0 h-full w-full object-cover" /> : <span aria-hidden className="text-3xl">{f.emoji || '🏅'}</span>}
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 to-transparent px-3 pb-1 pt-4 text-sm font-extrabold text-slate-50">{f.label || 'Sport name'}</span>
+                </span>
+                <span className="mt-2 block text-sm font-bold text-slate-100">Image card <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-950">Recommended</span></span>
+                <span className="block text-xs text-slate-400">A picture with the sport name on it. Easier to spot at a glance.</span>
+              </button>
+            </div>
+
+            {f.homeStyle === 'image' && (
+              <div className="mt-3 space-y-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
+                <p className="text-sm font-bold text-slate-100">Which picture?</p>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${f.homeImage === 'auto' ? 'border-amber-500' : 'border-slate-700'}`}>
+                  <input type="radio" name={`${uid}-img`} checked={f.homeImage === 'auto'} onChange={() => set({ homeImage: 'auto' })} className="mt-0.5 h-5 w-5 accent-amber-500" />
+                  <span>
+                    <span className="block font-bold text-slate-100">Recommended picture</span>
+                    <span className="block text-slate-300">Uses Ever’s photo for this sport (add it on the sport’s Bio step). Until then it shows a colored tile with an emoji, so there is never a blank space.</span>
+                  </span>
+                </label>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${f.homeImage === 'custom' ? 'border-amber-500' : 'border-slate-700'}`}>
+                  <input type="radio" name={`${uid}-img`} checked={f.homeImage === 'custom'} onChange={() => set({ homeImage: 'custom' })} className="mt-0.5 h-5 w-5 accent-amber-500" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-slate-100">Use my own picture</span>
+                    <span className="block text-slate-300">Choose any JPEG, PNG or WebP from your computer. A wide picture works best.</span>
+                    {f.homeImage === 'custom' && (
+                      <span className="mt-2 flex flex-wrap items-center gap-3">
+                        <label className="inline-flex min-h-12 cursor-pointer items-center rounded-xl border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800">
+                          {f.cardData || f.cardUrl ? 'Choose a different picture' : 'Choose a picture'}
+                          <input type="file" accept="image/*" className="sr-only" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = '' }} />
+                        </label>
+                        {(f.cardData || f.cardUrl) && <img src={f.cardData ?? f.cardUrl} alt="Your chosen picture" className="h-16 w-24 rounded-lg border border-slate-600 object-cover" />}
+                      </span>
+                    )}
+                    {uploadError && <span role="alert" className="mt-2 block text-red-300">{uploadError}</span>}
+                  </span>
+                </label>
+                <label className="block text-sm font-semibold text-slate-200">
+                  Tile emoji
+                  <span className="block text-xs font-normal text-slate-400">Shown on the colored tile when there is no photo. Paste or type any emoji.</span>
+                  <input className={`${input} h-12 text-2xl`} style={{ width: '7rem' }} value={f.emoji} maxLength={8} aria-label="Tile emoji" onChange={(e) => set({ emoji: e.target.value })} />
+                </label>
+              </div>
+            )}
+          </Q>
+
+          <Q n={4} label={`${f.positionLabel || 'Positions'} to offer`} help={<>This is the checklist you will choose from when you fill in Ever’s bio. Tick the ones that apply to her. Add your own below if something is missing. You can change this list later.</>}>
             <fieldset className="mt-1">
               <legend className="sr-only">{f.positionLabel} to offer</legend>
               {f.all.length > 0 && (
@@ -317,7 +408,7 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
           </Q>
 
           {!editing && (
-            <Q n={4} label="Starter measurables" help={<>The numbers coaches ask about. Nothing is ticked for you. Tick up to {MAX_METRICS} that matter for Ever, or add your own. They become the boxes on the sport page. You type the actual numbers, and the date they were measured, later in Bio &amp; metrics. You can add or remove boxes there at any time.</>}>
+            <Q n={5} label="Starter measurables" help={<>The numbers coaches ask about. Nothing is ticked for you. Tick up to {MAX_METRICS} that matter for Ever, or add your own. They become the boxes on the sport page. You type the actual numbers, and the date they were measured, later in Bio &amp; metrics. You can add or remove boxes there at any time.</>}>
               <fieldset className="mt-1">
                 <legend className="sr-only">Starter measurables</legend>
                 <div className="mb-2 flex items-center gap-2">
@@ -359,10 +450,11 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
             </p>
           )}
           <div className="flex flex-wrap gap-3">
-            <button type="submit" disabled={busy || !f.label.trim() || positions.length === 0} className="min-h-12 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400 disabled:opacity-40">
+            <button type="submit" disabled={busy || !f.label.trim() || positions.length === 0 || needsImage} className="min-h-12 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400 disabled:opacity-40">
               {busy ? 'Saving…' : editing ? 'Save settings' : 'Add sport'}
             </button>
             {positions.length === 0 && <span className="self-center text-sm text-amber-300">Tick or add at least one {f.positionLabel.toLowerCase()}.</span>}
+            {needsImage && <span className="self-center text-sm text-amber-300">Choose your image, or switch to the recommended one.</span>}
           </div>
         </>
       )}
@@ -391,6 +483,7 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
     tipTimer.current = window.setTimeout(() => setTip(false), 150)
   }
   const existingIds = store.sports.map((s) => s.id)
+  const photoOf = (id: string) => ((store.content[id] as { photo?: string } | null | undefined)?.photo ?? '')
 
   const call = async (body: Record<string, unknown>) => {
     setBusy(true)
@@ -402,6 +495,20 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not reach the server')
       return null
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const uploadCard = async (id: string, image: string) => {
+    setBusy(true)
+    setError('')
+    try {
+      await api('photo.php', { action: 'upload', kind: 'card', sport: id, image })
+      return true
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not upload the picture')
+      return false
     } finally {
       setBusy(false)
     }
@@ -480,7 +587,17 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
               <span className="text-sm text-slate-400">/{c.id}/</span>
               <span className={`ml-auto rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${c.visible ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-200'}`}>{c.visible ? 'Showing on the website' : 'Hidden'}</span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div role="group" aria-label={`Home page button for ${c.label}`} className="inline-flex overflow-hidden rounded-xl border border-slate-600">
+                <span className="flex items-center bg-slate-800 px-3 text-xs font-bold uppercase tracking-wider text-slate-300">Home button</span>
+                {(['text', 'image'] as const).map((v) => (
+                  <button key={v} type="button" disabled={busy} aria-pressed={c.homeStyle === v} onClick={() => c.homeStyle !== v && void call({ action: 'homeStyle', id: c.id, homeStyle: v })} className={`min-h-12 px-4 text-sm font-bold ${c.homeStyle === v ? 'bg-amber-500 text-slate-950' : 'text-slate-100 active:bg-slate-800'}`}>
+                    {v === 'text' ? 'Text' : 'Image'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
               <button type="button" disabled={busy} onClick={() => void toggle(c)} className={`${btn} ${c.visible ? 'border-slate-600 text-slate-100' : 'border-amber-500 bg-amber-500 text-slate-950'}`}>
                 {c.visible ? 'Hide from the website' : 'Show on the website'}
               </button>
@@ -520,10 +637,12 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
                   initial={fromConfig(c)}
                   editing
                   existingIds={existingIds}
+                  photoUrl={photoOf(c.id)}
                   busy={busy}
                   error={error}
                   onCancel={() => setMode(null)}
-                  onSubmit={async (b) => {
+                  onSubmit={async (b, cardData) => {
+                    if (cardData && !(await uploadCard(c.id, cardData))) return
                     if (await call({ action: 'update', ...b, id: c.id })) setMode(null)
                   }}
                 />
@@ -546,11 +665,13 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
             initial={blankForm}
             editing={false}
             existingIds={existingIds}
+            photoUrl=""
             busy={busy}
             error={error}
             onCancel={() => setMode(null)}
-            onSubmit={async (b) => {
-              const list = await call({ action: 'create', ...b })
+            onSubmit={async (b, cardData) => {
+              let list = await call({ action: 'create', ...b })
+              if (list && cardData && (await uploadCard(String(b.id), cardData))) list = await call({ action: 'list' })
               if (list) {
                 setAdded(list.find((s) => s.id === b.id) ?? null)
                 setMode(null)

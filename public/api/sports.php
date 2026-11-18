@@ -89,6 +89,9 @@ function settings(array $in): array
         'positions' => json_encode($positions, JSON_UNESCAPED_UNICODE),
         'metrics' => json_encode($metrics, JSON_UNESCAPED_UNICODE),
         'label' => text($in, 'label', 40, 'sport name'),
+        'home_style' => ($in['homeStyle'] ?? 'text') === 'image' ? 'image' : 'text',
+        'home_image' => ($in['homeImage'] ?? 'auto') === 'custom' ? 'custom' : 'auto',
+        'emoji' => json_encode(text($in, 'emoji', 16, 'emoji', false)),
     ];
 }
 
@@ -155,7 +158,7 @@ switch ($in['action'] ?? '') {
         $files = video_files($id, $json === false ? null : (string) $json);
         $pdo->beginTransaction();
         try {
-            foreach (['DELETE FROM site_content WHERE section = ?', 'DELETE FROM site_images WHERE name = ?', 'DELETE FROM activity_log WHERE sport = ?', 'DELETE FROM sports WHERE id = ?'] as $sql) {
+            foreach (['DELETE FROM site_content WHERE section = ?', 'DELETE FROM site_images WHERE name = ?', 'DELETE FROM sport_card_images WHERE name = ?', 'DELETE FROM activity_log WHERE sport = ?', 'DELETE FROM sports WHERE id = ?'] as $sql) {
                 $pdo->prepare($sql)->execute([$id]);
             }
             $pdo->commit();
@@ -186,16 +189,25 @@ switch ($in['action'] ?? '') {
         }
         $s = settings($in);
         $order = (int) $pdo->query('SELECT COALESCE(MAX(sort_order), 0) FROM sports')->fetchColumn() + 1;
-        $pdo->prepare('INSERT INTO sports (id, label, accent, position_style, position_label, handedness, positions, metrics, visible, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)')
-            ->execute([$id, $s['label'], $s['accent'], $s['position_style'], $s['position_label'], $s['handedness'], $s['positions'], $s['metrics'], $order, now()]);
+        $pdo->prepare('INSERT INTO sports (id, label, accent, position_style, position_label, handedness, positions, metrics, home_style, home_image, emoji, visible, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)')
+            ->execute([$id, $s['label'], $s['accent'], $s['position_style'], $s['position_label'], $s['handedness'], $s['positions'], $s['metrics'], $s['home_style'], $s['home_image'], $s['emoji'], $order, now()]);
         break;
 
     case 'update':
         $id = (string) ($in['id'] ?? '');
         exists($pdo, $id);
         $s = settings($in);
-        $pdo->prepare('UPDATE sports SET label = ?, accent = ?, position_style = ?, position_label = ?, handedness = ?, positions = ?, metrics = ? WHERE id = ?')
-            ->execute([$s['label'], $s['accent'], $s['position_style'], $s['position_label'], $s['handedness'], $s['positions'], $s['metrics'], $id]);
+        $pdo->prepare('UPDATE sports SET label = ?, accent = ?, position_style = ?, position_label = ?, handedness = ?, positions = ?, metrics = ?, home_style = ?, home_image = ?, emoji = ? WHERE id = ?')
+            ->execute([$s['label'], $s['accent'], $s['position_style'], $s['position_label'], $s['handedness'], $s['positions'], $s['metrics'], $s['home_style'], $s['home_image'], $s['emoji'], $id]);
+        break;
+
+    case 'homeStyle':
+        $id = (string) ($in['id'] ?? '');
+        exists($pdo, $id);
+        $pdo->prepare('UPDATE sports SET home_style = ? WHERE id = ?')->execute([($in['homeStyle'] ?? '') === 'image' ? 'image' : 'text', $id]);
+        break;
+
+    case 'list':
         break;
 
     case 'visibility':

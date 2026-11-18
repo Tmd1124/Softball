@@ -247,6 +247,10 @@ export interface SportConfig {
   metrics: { key: string; label: string; unit: string }[]
   visible: boolean
   order: number
+  homeStyle: 'text' | 'image'
+  homeImage: 'auto' | 'custom'
+  emoji: string
+  cardImage: string
 }
 
 export const builtInSports: SportConfig[] = [
@@ -261,6 +265,10 @@ export const builtInSports: SportConfig[] = [
     metrics: [],
     visible: true,
     order: 1,
+    homeStyle: 'text',
+    homeImage: 'auto',
+    emoji: '🥎',
+    cardImage: '',
   },
   {
     id: 'basketball',
@@ -273,6 +281,10 @@ export const builtInSports: SportConfig[] = [
     metrics: [],
     visible: true,
     order: 2,
+    homeStyle: 'text',
+    homeImage: 'auto',
+    emoji: '🏀',
+    cardImage: '',
   },
 ]
 

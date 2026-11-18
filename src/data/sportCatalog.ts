@@ -4,6 +4,7 @@
 
 export interface CatalogSport {
   name: string
+  emoji: string
   accent: string
   label: string
   style: 'multi' | 'pair'
@@ -24,6 +25,7 @@ const K = '#ec4899'
 const LIST: CatalogSport[] = [
   {
     name: 'Baseball',
+    emoji: '⚾',
     accent: R,
     label: 'Positions',
     style: 'multi',
@@ -33,6 +35,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Basketball',
+    emoji: '🏀',
     accent: O,
     label: 'Positions',
     style: 'pair',
@@ -42,6 +45,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Bowling',
+    emoji: '🎳',
     accent: P,
     label: 'Events',
     style: 'multi',
@@ -51,6 +55,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Cross Country',
+    emoji: '🏃',
     accent: G,
     label: 'Events',
     style: 'multi',
@@ -60,6 +65,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Fencing',
+    emoji: '🤺',
     accent: T,
     label: 'Weapons',
     style: 'multi',
@@ -69,6 +75,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Field Hockey',
+    emoji: '🏑',
     accent: G,
     label: 'Positions',
     style: 'multi',
@@ -78,6 +85,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Football',
+    emoji: '🏈',
     accent: Y,
     label: 'Positions',
     style: 'multi',
@@ -87,6 +95,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Golf',
+    emoji: '⛳',
     accent: G,
     label: 'Roles',
     style: 'multi',
@@ -96,6 +105,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Gymnastics',
+    emoji: '🤸',
     accent: K,
     label: 'Events',
     style: 'multi',
@@ -105,6 +115,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Ice Hockey',
+    emoji: '🏒',
     accent: B,
     label: 'Positions',
     style: 'multi',
@@ -114,6 +125,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Lacrosse',
+    emoji: '🥍',
     accent: P,
     label: 'Positions',
     style: 'multi',
@@ -123,6 +135,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Rowing',
+    emoji: '🚣',
     accent: B,
     label: 'Seats',
     style: 'multi',
@@ -132,6 +145,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Sand Volleyball',
+    emoji: '🏐',
     accent: Y,
     label: 'Positions',
     style: 'pair',
@@ -141,6 +155,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Soccer',
+    emoji: '⚽',
     accent: G,
     label: 'Positions',
     style: 'multi',
@@ -150,6 +165,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Softball',
+    emoji: '🥎',
     accent: Y,
     label: 'Positions',
     style: 'multi',
@@ -159,6 +175,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Swimming & Diving',
+    emoji: '🏊',
     accent: T,
     label: 'Events',
     style: 'multi',
@@ -168,6 +185,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Tennis',
+    emoji: '🎾',
     accent: Y,
     label: 'Events',
     style: 'multi',
@@ -177,6 +195,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Track & Field',
+    emoji: '🏃‍♀️',
     accent: B,
     label: 'Events',
     style: 'multi',
@@ -186,6 +205,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Volleyball',
+    emoji: '🏐',
     accent: P,
     label: 'Positions',
     style: 'multi',
@@ -195,6 +215,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Water Polo',
+    emoji: '🤽',
     accent: B,
     label: 'Positions',
     style: 'multi',
@@ -204,6 +225,7 @@ const LIST: CatalogSport[] = [
   },
   {
     name: 'Wrestling',
+    emoji: '🤼',
     accent: R,
     label: 'Weight classes',
     style: 'multi',
@@ -234,3 +256,5 @@ export function measurableSuggestions(id: string, own: { label: string; unit: st
     return true
   })
 }
+
+export const emojiFor = (id: string): string => CATALOG.find((c) => slugify(c.name) === id)?.emoji ?? '🏅'

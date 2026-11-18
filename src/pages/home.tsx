@@ -4,7 +4,8 @@ import { mount } from '../site/mount'
 import SiteShell from '../site/SiteShell'
 import { useRecruiting } from '../lib/recruiting'
 import { PdfButton } from '../recruit/blocks'
-import type { SportData } from '../data/recruitingData'
+import type { SportConfig, SportData } from '../data/recruitingData'
+import { emojiFor } from '../data/sportCatalog'
 import { hasRealPhoto, rankedTeams } from '../recruit/derive'
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -47,6 +48,27 @@ function Latest({ sport }: { sport: SportData }) {
         </>
       )}
     </span>
+  )
+}
+
+function SportTile({ cfg, sport }: { cfg: SportConfig; sport: SportData }) {
+  const custom = cfg.homeImage === 'custom' && cfg.cardImage !== ''
+  const photo = hasRealPhoto(sport)
+  const src = custom ? cfg.cardImage : photo ? sport.photo : ''
+  return (
+    <a href={`/${cfg.id}/`} className="group relative block aspect-[4/3] overflow-hidden rounded-3xl border border-slate-700 bg-slate-900 outline-offset-2 transition-colors hover:border-amber-500">
+      {src ? (
+        <img src={src} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none" style={custom ? undefined : { objectPosition: `50% ${sport.photoFocus}%` }} />
+      ) : (
+        <span aria-hidden className="absolute inset-0 flex items-center justify-center text-8xl" style={{ background: `linear-gradient(135deg, ${cfg.accent}55, ${cfg.accent}18)` }}>
+          {cfg.emoji || emojiFor(cfg.id)}
+        </span>
+      )}
+      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent px-5 pb-4 pt-12">
+        <span className="block text-2xl font-extrabold tracking-tight text-slate-50">{cfg.label}</span>
+        <span className="block text-sm text-slate-300">Metrics, film and references</span>
+      </span>
+    </a>
   )
 }
 
@@ -117,23 +139,27 @@ function Home() {
     </section>
 
     <section aria-label="Quick links" className="mx-auto grid max-w-5xl gap-4 px-4 py-10 sm:px-6 md:grid-cols-3">
-      {sportList.map((c) => (
-        <JumpCard
-          key={c.id}
-          href={`/${c.id}/`}
-          title={c.label}
-          blurb="Metrics, film and references"
-          icon={
-            c.id === 'softball' || c.id === 'basketball' ? (
-              <img src={`/img/${c.id}.svg`} alt="" width={56} height={56} />
-            ) : (
-              <span aria-hidden className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-2xl font-extrabold text-slate-950">
-                {c.label.charAt(0).toUpperCase()}
-              </span>
-            )
-          }
-        />
-      ))}
+      {sportList.map((c) =>
+        c.homeStyle === 'image' ? (
+          <SportTile key={c.id} cfg={c} sport={sports[c.id]} />
+        ) : (
+          <JumpCard
+            key={c.id}
+            href={`/${c.id}/`}
+            title={c.label}
+            blurb="Metrics, film and references"
+            icon={
+              c.id === 'softball' || c.id === 'basketball' ? (
+                <img src={`/img/${c.id}.svg`} alt="" width={56} height={56} />
+              ) : (
+                <span aria-hidden className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-2xl font-extrabold text-slate-950">
+                  {c.label.charAt(0).toUpperCase()}
+                </span>
+              )
+            }
+          />
+        ),
+      )}
       <JumpCard href="/schedule/" title="Schedule" blurb="Upcoming events to watch" icon={<CalendarDays size={56} className="text-amber-400" aria-hidden />} />
     </section>
   </SiteShell>

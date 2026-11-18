@@ -129,6 +129,17 @@ function ensure_schema(PDO $pdo): void
             created_at DATETIME NOT NULL
         )"
     );
+    add_column_if_missing($pdo, 'sports', 'home_style', "VARCHAR(8) NOT NULL DEFAULT 'text'");
+    add_column_if_missing($pdo, 'sports', 'home_image', "VARCHAR(8) NOT NULL DEFAULT 'auto'");
+    add_column_if_missing($pdo, 'sports', 'emoji', "VARCHAR(64) NOT NULL DEFAULT ''");
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS sport_card_images (
+            name VARCHAR(32) NOT NULL PRIMARY KEY,
+            mime VARCHAR(16) NOT NULL,
+            data $big NOT NULL,
+            updated_at DATETIME NOT NULL
+        )"
+    );
     seed_sports($pdo);
     $pdo->exec('CREATE TABLE IF NOT EXISTS chat_log (ip VARCHAR(45) NOT NULL, created_at DATETIME NOT NULL)');
     $pdo->exec(
@@ -180,6 +191,10 @@ function seed_sports(PDO $pdo): void
 function site_sports(PDO $pdo, bool $visibleOnly = false): array
 {
     $out = [];
+    $cards = [];
+    foreach ($pdo->query('SELECT name, updated_at FROM sport_card_images')->fetchAll() as $c) {
+        $cards[$c['name']] = strtotime((string) $c['updated_at'] . ' UTC') ?: 1;
+    }
     foreach ($pdo->query('SELECT * FROM sports ORDER BY sort_order, id')->fetchAll() as $r) {
         if ($visibleOnly && !(int) $r['visible']) {
             continue;
@@ -195,6 +210,10 @@ function site_sports(PDO $pdo, bool $visibleOnly = false): array
             'metrics' => json_decode((string) $r['metrics'], true) ?: [],
             'visible' => (int) $r['visible'] === 1,
             'order' => (int) $r['sort_order'],
+            'homeStyle' => $r['home_style'] === 'image' ? 'image' : 'text',
+            'homeImage' => $r['home_image'] === 'custom' ? 'custom' : 'auto',
+            'emoji' => (string) (json_decode((string) $r['emoji'], true) ?? ''),
+            'cardImage' => isset($cards[$r['id']]) ? '/api/photo.php?sport=' . $r['id'] . '&kind=card&v=' . $cards[$r['id']] : '',
         ];
     }
     return $out;
