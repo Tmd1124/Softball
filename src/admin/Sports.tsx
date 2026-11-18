@@ -98,10 +98,15 @@ function Q({ n, label, help, htmlFor, children }: { n?: number; label: string; h
   )
 }
 
-function HowTo() {
+function HowTo({ onClose }: { onClose: () => void }) {
   return (
     <section aria-label="How adding a sport works" className="rounded-3xl border border-amber-500/50 bg-amber-500/10 p-5 text-sm leading-relaxed text-slate-100">
-      <h2 className="text-base font-extrabold text-amber-300">How to add a sport (about 5 minutes, no code)</h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-base font-extrabold text-amber-300">How to add a sport (about 5 minutes, no code)</h2>
+        <button type="button" onClick={onClose} aria-label="Close the steps" className="-mt-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-500/60 text-lg font-bold text-amber-300 active:bg-amber-500/20">
+          ✕
+        </button>
+      </div>
       <ol className="mt-2 list-decimal space-y-1.5 pl-5">
         <li><strong>Pick the sport</strong> from the list. Its name, color, positions and starter measurables fill in for you. If it is not on the list, choose <em>Other</em> and type it. Tap the <span className="font-bold text-amber-300">?</span> beside any question if you are not sure.</li>
         <li><strong>Tick the positions</strong> you want to offer, and the <strong>measurables</strong> coaches ask about. Untick any that do not apply, or add your own.</li>
@@ -110,6 +115,9 @@ function HowTo() {
         <li><strong>Press “Show on the website”</strong> on this screen when you are ready.</li>
       </ol>
       <p className="mt-2">To take a sport off the website, press <strong>Hide</strong>. Nothing is deleted, and you can show it again any time.</p>
+      <button type="button" onClick={onClose} className="mt-3 min-h-12 rounded-xl border border-amber-500/60 px-5 text-sm font-bold text-amber-300 active:bg-amber-500/20">
+        Close
+      </button>
     </section>
   )
 }
@@ -351,6 +359,7 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [added, setAdded] = useState<SportConfig | null>(null)
+  const [showHow, setShowHow] = useState(false)
   const existingIds = store.sports.map((s) => s.id)
 
   const call = async (body: Record<string, unknown>) => {
@@ -439,9 +448,15 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
         ))}
       </ul>
 
+      {showHow && <HowTo onClose={() => setShowHow(false)} />}
+
       {mode === 'add' ? (
         <>
-          <HowTo />
+          {!showHow && (
+            <button type="button" onClick={() => setShowHow(true)} className="min-h-12 rounded-xl border border-amber-500/60 px-4 text-sm font-bold text-amber-300 active:bg-amber-500/20">
+              How to add a sport
+            </button>
+          )}
           <SportForm
             initial={blankForm}
             editing={false}
@@ -459,12 +474,22 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
           />
         </>
       ) : (
-        <>
-          <button type="button" onClick={() => { setError(''); setAdded(null); setMode('add') }} className="min-h-12 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400">
+        <div className="group relative inline-block">
+          <button type="button" onClick={() => { setError(''); setAdded(null); setMode('add') }} aria-describedby="how-hint" className="min-h-12 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400">
             + Add a sport
           </button>
-          <HowTo />
-        </>
+          <div className="absolute left-0 top-full z-20 hidden pt-1 group-focus-within:block group-hover:block">
+            <button
+              type="button"
+              id="how-hint"
+              onClick={() => setShowHow(true)}
+              className="w-72 rounded-xl border border-amber-500/60 bg-slate-950 p-3 text-left text-sm font-semibold leading-snug text-amber-200 shadow-lg shadow-black/50"
+            >
+              How to add a sport (about 5 minutes, no code)
+              <span className="mt-1 block text-xs font-normal text-slate-300">Click here to read the steps.</span>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
