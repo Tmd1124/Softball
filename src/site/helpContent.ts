@@ -72,7 +72,7 @@ export const HELP: Record<string, HelpTopic> = {
   'admin-softball': {
     title: 'Softball profile',
     tips: [
-      'Step through Bio & metrics, Film, Summary & honors, Schedule and Coaches & links. Next and Back buttons are at the bottom of each step.',
+      'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR. Next and Back buttons are at the bottom of each step.',
       'Upload a photo of Ever under Bio. It appears on the sport page and in the printed profile header. Choose positions from the checklist and bats/throws from the list. Edit each metric’s value, unit and verified month and year.',
       'For film, paste the embed address (https://…) from YouTube, Vimeo or Hudl.',
       'Summary & honors also holds optional season stats and awards. They appear on the page and profile once you add them.',
@@ -82,7 +82,7 @@ export const HELP: Record<string, HelpTopic> = {
   'admin-basketball': {
     title: 'Basketball profile',
     tips: [
-      'Step through Bio & metrics, Film, Summary & honors, Schedule and Coaches & links.',
+      'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR.',
       'Pick a primary and optional secondary position, then update the four metric boxes and their verified dates.',
       'Add season stats and awards under Summary & honors. They show only after you add rows.',
       'The live preview shows the printed profile with your unsaved edits. Save changes publishes it.',

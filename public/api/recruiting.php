@@ -140,8 +140,22 @@ function clean_sport(array $in, string $name): array
         'photo' => url($in, 'photo'),
         'photoFocus' => is_int($in['photoFocus'] ?? null) ? max(0, min(100, $in['photoFocus'])) : 20,
         'positions' => str($in, 'positions', 160),
-        'team' => str($in, 'team', 200),
-        'teams' => rows($in['teams'] ?? [], 20, fn(array $t) => ['year' => str($t, 'year', 20), 'name' => str($t, 'name', 160)]),
+        'teams' => rows($in['teams'] ?? [], 20, function (array $t) {
+            $type = str($t, 'type', 20);
+            if ($type !== '' && !in_array($type, ['High School', 'Travel / AAU'], true)) {
+                respond(400, ['error' => 'Invalid team type']);
+            }
+            return [
+                'year' => str($t, 'year', 20),
+                'name' => str($t, 'name', 160),
+                'type' => $type,
+                'coach' => str($t, 'coach', 80),
+                'owner' => str($t, 'owner', 80),
+                'phone' => phone($t, 'phone'),
+                'email' => email($t, 'email'),
+            ];
+        }),
+        'trainers' => rows($in['trainers'] ?? [], 10, fn(array $t) => ['name' => str($t, 'name', 80), 'phone' => phone($t, 'phone'), 'email' => email($t, 'email')]),
         'metrics' => rows($in['metrics'] ?? [], 8, function (array $m) {
             $key = str($m, 'key', 32);
             if (!preg_match('/^[a-zA-Z0-9]{1,32}$/', $key)) {
@@ -166,14 +180,6 @@ function clean_sport(array $in, string $name): array
             'team' => str($e, 'team', 120),
             'info' => str($e, 'info', 160),
             'infoUrl' => url($e, 'infoUrl'),
-        ]),
-        'coaches' => rows($in['coaches'] ?? [], 20, fn(array $c) => [
-            'role' => str($c, 'role', 80),
-            'team' => str($c, 'team', 160),
-            'year' => str($c, 'year', 20),
-            'name' => str($c, 'name', 80),
-            'phone' => phone($c, 'phone'),
-            'email' => email($c, 'email'),
         ]),
         'links' => rows($in['links'] ?? [], 8, fn(array $l) => ['label' => str($l, 'label', 60), 'url' => url($l, 'url')]),
         'stats' => rows($in['stats'] ?? [], 16, fn(array $x) => ['label' => str($x, 'label', 60), 'value' => str($x, 'value', 30), 'note' => str($x, 'note', 60)]),

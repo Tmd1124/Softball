@@ -1,4 +1,4 @@
-import type { RecruitingData, SportData } from '../data/recruitingData'
+import type { RecruitingData, SportData, TeamItem } from '../data/recruitingData'
 
 export function summaryText(sport: SportData) {
   const pop = sport.metrics.find((m) => m.key === 'popTime')?.value ?? ''
@@ -15,3 +15,9 @@ export function academicExtras(d: Pick<RecruitingData, 'academics'>): string {
 export function bodyLine(d: Pick<RecruitingData, 'athlete'>): string {
   return [d.athlete.height, d.athlete.weight].filter(Boolean).join(', ')
 }
+
+const yearOf = (t: TeamItem) => parseInt(t.year, 10) || 0
+
+export const teamsNewestFirst = (s: SportData): TeamItem[] => [...s.teams].sort((a, b) => yearOf(b) - yearOf(a))
+
+export const currentTeam = (s: SportData) => teamsNewestFirst(s)[0]?.name ?? ''

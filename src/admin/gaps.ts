@@ -19,10 +19,11 @@ export const SITE_STEPS: Step[] = [
 
 export const SPORT_STEPS: Step[] = [
   { id: 'bio', label: 'Bio & metrics' },
+  { id: 'teams', label: 'Teams & coaches' },
   { id: 'film', label: 'Film' },
   { id: 'summary', label: 'Summary & honors' },
   { id: 'schedule', label: 'Schedule' },
-  { id: 'contacts', label: 'Coaches & links' },
+  { id: 'contacts', label: 'Links & QR' },
 ]
 
 const isPlaceholder = (v: string | undefined) => !v || v.trim() === '' || /\[|Month\/Year|\(000\) 000-0000|@example\.com/.test(v)
@@ -69,7 +70,6 @@ export function sportGaps(id: string, s: SportData): Result {
   const g = new Collector()
   g.check('bio', 'Positions', s.positions)
   if (id === 'softball') g.check('bio', 'Bats / throws', s.handedness)
-  g.check('bio', 'Team', s.team)
   g.check('bio', 'Photo of Ever', hasRealPhoto(s) ? 'set' : '')
   s.metrics.forEach((m) => {
     g.check('bio', `${m.label} value`, m.value)
@@ -84,10 +84,20 @@ export function sportGaps(id: string, s: SportData): Result {
     g.check('schedule', `Event ${i + 1} team`, e.team)
     g.check('schedule', `Event ${i + 1} ${s.scheduleColumns.info}`, e.info)
   })
-  s.coaches.forEach((c) => {
-    g.check('contacts', `${c.role}: name`, c.name)
-    g.check('contacts', `${c.role}: phone`, c.phone)
-    g.check('contacts', `${c.role}: email`, c.email)
+  s.teams.forEach((t, i) => {
+    const n = `Team ${i + 1}`
+    g.check('teams', `${n} name`, t.name)
+    g.check('teams', `${n} year`, t.year)
+    g.check('teams', `${n} type`, t.type)
+    g.check('teams', `${n} coach`, t.coach)
+    if (t.type === 'Travel / AAU') g.check('teams', `${n} owner`, t.owner)
+    g.check('teams', `${n} phone`, t.phone)
+    g.check('teams', `${n} email`, t.email)
+  })
+  s.trainers.forEach((t, i) => {
+    g.check('teams', `Trainer ${i + 1} name`, t.name)
+    g.check('teams', `Trainer ${i + 1} phone`, t.phone)
+    g.check('teams', `Trainer ${i + 1} email`, t.email)
   })
   return g.result
 }

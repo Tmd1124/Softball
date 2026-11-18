@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Download, Mail, Phone, Play } from 'lucide-react'
-import type { Coach, Metric, ScheduleEvent, SportData, VideoItem } from '../data/recruitingData'
+import type { Metric, ScheduleEvent, SportData, TeamItem, TrainerItem, VideoItem } from '../data/recruitingData'
 
 export const telHref = (phone: string) => `tel:+1${phone.replace(/\D/g, '')}`
 
@@ -108,18 +108,35 @@ export function ScheduleTable({ sport, events }: { sport: SportData; events: Sch
   )
 }
 
-export function CoachCard({ coach }: { coach: Coach }) {
-  const link = 'flex min-h-12 items-center gap-2 font-semibold text-slate-100 hover:text-amber-400'
+const contactLink = 'flex min-h-12 items-center gap-2 font-semibold text-slate-100 hover:text-amber-400'
+
+export function TeamCard({ team }: { team: TeamItem }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <p className="text-xs font-bold uppercase tracking-widest text-amber-400">{coach.role}</p>
-      <p className="mt-1 text-lg font-extrabold text-slate-50">{coach.name}</p>
-      {(coach.team || coach.year) && <p className="text-sm text-slate-400">{[coach.year, coach.team].filter(Boolean).join(' · ')}</p>}
-      <a href={telHref(coach.phone)} className={link}>
-        <Phone size={16} aria-hidden /> {coach.phone}
+      <p className="text-xs font-bold uppercase tracking-widest text-amber-400">{[team.year, team.type].filter(Boolean).join(' · ')}</p>
+      <p className="mt-1 text-lg font-extrabold text-slate-50">{team.name}</p>
+      {team.coach && <p className="text-sm text-slate-300">Coach: {team.coach}</p>}
+      {team.owner && <p className="text-sm text-slate-300">Owner: {team.owner}</p>}
+      <a href={telHref(team.phone)} className={contactLink}>
+        <Phone size={16} aria-hidden /> {team.phone}
       </a>
-      <a href={`mailto:${coach.email}`} className={`${link} break-all`}>
-        <Mail size={16} aria-hidden /> {coach.email}
+      <a href={`mailto:${team.email}`} className={`${contactLink} break-all`}>
+        <Mail size={16} aria-hidden /> {team.email}
+      </a>
+    </div>
+  )
+}
+
+export function TrainerCard({ trainer }: { trainer: TrainerItem }) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+      <p className="text-xs font-bold uppercase tracking-widest text-amber-400">Personal training instructor</p>
+      <p className="mt-1 text-lg font-extrabold text-slate-50">{trainer.name}</p>
+      <a href={telHref(trainer.phone)} className={contactLink}>
+        <Phone size={16} aria-hidden /> {trainer.phone}
+      </a>
+      <a href={`mailto:${trainer.email}`} className={`${contactLink} break-all`}>
+        <Mail size={16} aria-hidden /> {trainer.email}
       </a>
     </div>
   )

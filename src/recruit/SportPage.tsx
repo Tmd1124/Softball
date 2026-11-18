@@ -1,8 +1,8 @@
 import { useRecruiting } from '../lib/recruiting'
 import type { SportData, SportId } from '../data/recruitingData'
 import SiteShell from '../site/SiteShell'
-import { academicExtras, bodyLine, summaryText } from './derive'
-import { CoachCard, MetricStrip, PdfButton, ScheduleTable, Section, VideoEmbed, buttonClass } from './blocks'
+import { academicExtras, bodyLine, currentTeam, summaryText, teamsNewestFirst } from './derive'
+import { MetricStrip, TeamCard, TrainerCard, PdfButton, ScheduleTable, Section, VideoEmbed, buttonClass } from './blocks'
 
 export default function SportPage({ id }: { id: SportId }) {
   const data = useRecruiting()
@@ -30,19 +30,9 @@ export default function SportPage({ id }: { id: SportId }) {
               <div>
                 <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">Team Affiliation</dt>
                 <dd className="mt-1 text-slate-200">
-                  {athlete.school} ({athlete.location}) | {sport.team} | Jersey #{athlete.jersey}
+                  {athlete.school} ({athlete.location}) | {currentTeam(sport)} | Jersey #{athlete.jersey}
                 </dd>
               </div>
-              {sport.teams.length > 0 && (
-                <div>
-                  <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">Teams</dt>
-                  <dd className="mt-1 text-slate-200">
-                    {sport.teams.map((t, i) => (
-                      <span key={i} className="block">{t.year && <strong>{t.year}</strong>} {t.name}</span>
-                    ))}
-                  </dd>
-                </div>
-              )}
               <div>
                 <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">Academics</dt>
                 <dd className="mt-1 text-slate-200">
@@ -108,10 +98,13 @@ export default function SportPage({ id }: { id: SportId }) {
         <ScheduleTable sport={sport} events={sport.schedule} />
       </Section>
 
-      <Section id="contacts" kicker="Recruiting" title="Coach references & links">
+      <Section id="contacts" kicker="Recruiting" title="Teams, coaches & trainer">
         <div className="grid gap-4 sm:grid-cols-2">
-          {sport.coaches.map((c, i) => (
-            <CoachCard key={i} coach={c} />
+          {teamsNewestFirst(sport).map((t, i) => (
+            <TeamCard key={i} team={t} />
+          ))}
+          {sport.trainers.map((t, i) => (
+            <TrainerCard key={i} trainer={t} />
           ))}
         </div>
         <div className="mt-5 flex flex-wrap gap-3">

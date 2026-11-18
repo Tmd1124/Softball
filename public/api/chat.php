@@ -89,7 +89,15 @@ function fallback_answer(array $c): string
             continue;
         }
         $lines[] = '';
-        $lines[] = strtoupper($s) . ': ' . $c[$s]['positions'] . ' | ' . $c[$s]['team'];
+        $lines[] = strtoupper($s) . ': ' . $c[$s]['positions'];
+        $teams = $c[$s]['teams'] ?? [];
+        usort($teams, fn($a, $b) => (int) $b['year'] <=> (int) $a['year']);
+        foreach ($teams as $t) {
+            $lines[] = "- {$t['year']} {$t['name']} ({$t['type']}): coach {$t['coach']}" . ($t['owner'] !== '' ? ", owner {$t['owner']}" : '') . ", {$t['phone']}, {$t['email']}";
+        }
+        foreach ($c[$s]['trainers'] ?? [] as $t) {
+            $lines[] = "- Personal trainer {$t['name']}, {$t['phone']}, {$t['email']}";
+        }
         foreach ($c[$s]['metrics'] as $m) {
             $lines[] = "- {$m['label']}: {$m['value']}" . (isset($m['unit']) ? " {$m['unit']}" : '') . " (verified {$m['verified']})";
         }

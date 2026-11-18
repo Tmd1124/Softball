@@ -4,6 +4,7 @@ import { mount } from '../site/mount'
 import SiteShell from '../site/SiteShell'
 import { useRecruiting } from '../lib/recruiting'
 import { PdfButton } from '../recruit/blocks'
+import { currentTeam } from '../recruit/derive'
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -49,9 +50,9 @@ function Home() {
           <Fact label="School & teams">
             {athlete.school} ({athlete.location})
             <br />
-            {softball.team}
+            {currentTeam(softball)}
             <br />
-            {basketball.team}
+            {currentTeam(basketball)}
             <br />
             Jersey #{athlete.jersey}
           </Fact>

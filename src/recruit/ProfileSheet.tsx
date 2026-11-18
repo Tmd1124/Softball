@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import type { RecruitingData, SportData, SportId } from '../data/recruitingData'
 import { telHref } from './blocks'
 import QrCode from './QrCode'
-import { academicExtras, bodyLine, hasRealPhoto, summaryText } from './derive'
+import { academicExtras, bodyLine, currentTeam, hasRealPhoto, summaryText, teamsNewestFirst } from './derive'
 
 interface Theme {
   dark: string
@@ -39,7 +39,7 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
     ['GPA', academics.gpa],
     ['Jersey', `#${athlete.jersey}`],
     ['School', athlete.school],
-    ['Team', s.team],
+    ['Team', currentTeam(s)],
   ]
   const link = 'underline decoration-1 underline-offset-2'
 
@@ -140,16 +140,6 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
                 )}
               </section>
             )}
-            {s.teams.length > 0 && (
-              <section>
-                <Head>Teams</Head>
-                <ul className="text-[11px] leading-snug">
-                  {s.teams.slice(0, 5).map((t, i) => (
-                    <li key={i}>{t.year && <strong>{t.year}</strong>} {t.name}</li>
-                  ))}
-                </ul>
-              </section>
-            )}
             <section>
               <Head>Academics</Head>
               <p className="text-[11.5px] leading-snug">
@@ -185,13 +175,23 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
               </ul>
             </section>
             <section>
-              <Head>Coach references</Head>
+              <Head>Teams & coaches</Head>
               <ul className="space-y-1.5 text-[11px] leading-snug">
-                {s.coaches.map((c, i) => (
+                {teamsNewestFirst(s).slice(0, 4).map((t, i) => (
                   <li key={i}>
-                    <strong>{c.name}</strong> <span className="text-neutral-600">· {c.role}{(c.year || c.team) && ` · ${[c.year, c.team].filter(Boolean).join(' ')}`}</span>
+                    <strong>{[t.year, t.name].filter(Boolean).join(' ')}</strong> <span className="text-neutral-600">· {t.type}</span>
                     <br />
-                    <a href={telHref(c.phone)} className={link}>{c.phone}</a> · <a href={`mailto:${c.email}`} className={link}>{c.email}</a>
+                    Coach {t.coach}
+                    {t.owner && <> · Owner {t.owner}</>}
+                    <br />
+                    <a href={telHref(t.phone)} className={link}>{t.phone}</a> · <a href={`mailto:${t.email}`} className={link}>{t.email}</a>
+                  </li>
+                ))}
+                {s.trainers.map((t, i) => (
+                  <li key={`t${i}`}>
+                    <strong>{t.name}</strong> <span className="text-neutral-600">· Personal trainer</span>
+                    <br />
+                    <a href={telHref(t.phone)} className={link}>{t.phone}</a> · <a href={`mailto:${t.email}`} className={link}>{t.email}</a>
                   </li>
                 ))}
               </ul>

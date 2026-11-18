@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api } from '../lib/api'
-import { defaultSite, defaultSports } from '../data/recruitingData'
+import { TEAM_TYPES, defaultSite, defaultSports } from '../data/recruitingData'
 import type { RecruitingData, SiteData, SportData, SportId } from '../data/recruitingData'
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
@@ -229,23 +229,40 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         </List>
       </Card>
     )
-  if (step === 'contacts')
+  if (step === 'teams')
     return (
       <>
-        <Card title="Coach references">
-          <List path={['coaches']} noun="coach" max={20} blank={{ role: '', name: '', phone: '', email: '', team: '', year: '' }}>
+        <Card title="Teams & coaches" hint="One row per team and year, for this sport only. The newest year shows first everywhere on the site.">
+          <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '' }}>
             {(i) => (
               <>
-                <F path={['coaches', i, 'role']} label="Role" />
-                <F path={['coaches', i, 'team']} label="Team (optional)" />
-                <F path={['coaches', i, 'year']} label="Year (optional)" placeholder="2026" />
-                <F path={['coaches', i, 'name']} label="Name" />
-                <F path={['coaches', i, 'phone']} label="Phone" kind="phone" />
-                <F path={['coaches', i, 'email']} label="Email" kind="email" />
+                <F path={['teams', i, 'name']} label="Team name" />
+                <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
+                <Pick path={['teams', i, 'type']} label="Team type" options={[...TEAM_TYPES]} />
+                <F path={['teams', i, 'coach']} label="Coach" />
+                <F path={['teams', i, 'owner']} label="Owner (travel / AAU teams)" />
+                <F path={['teams', i, 'phone']} label="Phone" kind="phone" />
+                <F path={['teams', i, 'email']} label="Email" kind="email" />
               </>
             )}
           </List>
         </Card>
+        <Card title="Personal training instructor" hint="Ever’s trainer for this sport.">
+          <List path={['trainers']} noun="trainer" max={10} blank={{ name: '', phone: '', email: '' }}>
+            {(i) => (
+              <>
+                <F path={['trainers', i, 'name']} label="Name" />
+                <F path={['trainers', i, 'phone']} label="Phone" kind="phone" />
+                <F path={['trainers', i, 'email']} label="Email" kind="email" wide />
+              </>
+            )}
+          </List>
+        </Card>
+      </>
+    )
+  if (step === 'contacts')
+    return (
+      <>
         <Card title="Recruiting links" hint="Buttons next to the PDF download.">
           <List path={['links']} noun="link" max={8} blank={{ label: '', url: '' }}>
             {(i) => (
@@ -270,18 +287,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         ) : (
           <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
         )}
-        <F path={['team']} label="Current team and division / circuit" wide />
         <PhotoField sport={id} />
-      </Card>
-      <Card title="Teams by year" hint="Add every team Ever has played for. Newest first reads best. Shows on the public page and the profile.">
-        <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '' }}>
-          {(i) => (
-            <>
-              <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
-              <F path={['teams', i, 'name']} label="Team and division" />
-            </>
-          )}
-        </List>
       </Card>
       <Card title="Verified metrics" hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
         <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>

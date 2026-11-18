@@ -25,18 +25,22 @@ export interface ScheduleEvent {
   infoUrl?: string
 }
 
-export interface Coach {
-  role: string
-  name: string
-  phone: string
-  email: string
-  team?: string
-  year?: string
-}
+export const TEAM_TYPES = ['High School', 'Travel / AAU'] as const
 
 export interface TeamItem {
   year: string
   name: string
+  type: string
+  coach: string
+  owner: string
+  phone: string
+  email: string
+}
+
+export interface TrainerItem {
+  name: string
+  phone: string
+  email: string
 }
 
 export interface LinkItem {
@@ -61,8 +65,8 @@ export interface SportData {
   photoFocus: number
   positions: string
   handedness?: string
-  team: string
   teams: TeamItem[]
+  trainers: TrainerItem[]
   metrics: Metric[]
   featured: VideoItem
   clipsTitle: string
@@ -71,7 +75,6 @@ export interface SportData {
   scheduleTitle: string
   scheduleColumns: { event: string; info: string }
   schedule: ScheduleEvent[]
-  coaches: Coach[]
   links: LinkItem[]
   stats: StatItem[]
   awards: AwardItem[]
@@ -117,8 +120,10 @@ export const defaults = {
     photoFocus: 20,
     positions: 'Catcher / First Base',
     handedness: 'Bats: R / Throws: R',
-    team: '[Travel Team Name & Age Division, e.g., Georgia Impact 14U Premier]',
-    teams: [],
+    teams: [
+      { year: '2026', name: '[Travel Team Name & Age Division]', type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com' },
+    ],
+    trainers: [{ name: '[Personal Trainer Name]', phone: '(000) 000-0000', email: 'trainer@example.com' }],
     metrics: [
       { key: 'popTime', label: 'Pop Time', value: '[X.XX]', unit: 'sec', verified: 'Month/Year' },
       { key: 'overhandVelo', label: 'Overhand Velo', value: '[XX]', unit: 'mph', verified: 'Month/Year' },
@@ -161,10 +166,6 @@ export const defaults = {
       { date: '[Mon DD, YYYY]', event: '[Tournament Name]', location: '[City, ST]', team: '[Travel Team]', info: '[Pool / Field]' },
       { date: '[Mon DD, YYYY]', event: '[College Camp / Showcase]', location: '[City, ST]', team: '[Travel Team]', info: '[Pool / Field]' },
     ],
-    coaches: [
-      { role: 'Travel Head Coach', name: '[Coach Name]', phone: '(000) 000-0000', email: 'coach@example.com' },
-      { role: 'Hitting / Catching Instructor', name: '[Instructor Name]', phone: '(000) 000-0000', email: 'instructor@example.com' },
-    ],
     links: [
       { label: 'FieldLevel', url: 'https://fieldlevel.com' },
       { label: 'SportsRecruits', url: 'https://sportsrecruits.com' },
@@ -179,8 +180,10 @@ export const defaults = {
     photo: '/img/hero-basketball.svg',
     photoFocus: 20,
     positions: '[Primary Position / Secondary Position, e.g., Point Guard / Shooting Guard]',
-    team: '[AAU/Club Team Name & Circuit, e.g., FBC / Georgia Pearls]',
-    teams: [],
+    teams: [
+      { year: '2026', name: '[AAU/Club Team Name & Circuit]', type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com' },
+    ],
+    trainers: [{ name: '[Personal Trainer Name]', phone: '(000) 000-0000', email: 'trainer@example.com' }],
     metrics: [
       { key: 'wingspan', label: 'Wingspan', value: '[X\'XX"]', verified: 'Month/Year' },
       { key: 'standingReach', label: 'Standing Reach', value: '[X\'XX"]', verified: 'Month/Year' },
@@ -222,10 +225,6 @@ export const defaults = {
       { date: '[Mon DD, YYYY]', event: '[Exposure Tournament]', location: '[City, ST]', team: '[AAU Team]', info: '[Court #]' },
       { date: '[Mon DD, YYYY]', event: '[Circuit Event]', location: '[City, ST]', team: '[AAU Team]', info: '[Live Stream Link]', infoUrl: '' },
       { date: '[Mon DD, YYYY]', event: '[High School Game vs. Opponent]', location: 'Creekview HS, Canton, GA', team: 'Creekview High School', info: '[Court / Stream]' },
-    ],
-    coaches: [
-      { role: 'AAU / Club Head Coach', name: '[Coach Name]', phone: '(000) 000-0000', email: 'coach@example.com' },
-      { role: 'High School / Skills Coach', name: '[Coach Name]', phone: '(000) 000-0000', email: 'skills@example.com' },
     ],
     links: [
       { label: 'Hudl', url: 'https://www.hudl.com' },

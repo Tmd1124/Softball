@@ -19,7 +19,7 @@ export function mergeSite(site: SiteData | null): SiteData {
 }
 
 export function mergeSport(id: SportId, sport: SportData | null): SportData {
-  return { ...defaultSports[id], ...sport, teams: sport?.teams ?? [] }
+  return { ...defaultSports[id], ...sport }
 }
 
 export function merge(c: StoredContent): RecruitingData {
