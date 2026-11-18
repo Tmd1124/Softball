@@ -89,8 +89,6 @@ function clean_site(array $in): array
     $ac = obj($in['academics'] ?? null);
     $co = obj($in['contact'] ?? null);
     $pa = obj($co['parent'] ?? null);
-    $hs = obj($co['hsCoach'] ?? null);
-    $tr = obj($co['travelCoach'] ?? null);
     $social = obj($co['social'] ?? null);
     $x = obj($social['x'] ?? null);
     $ig = obj($social['instagram'] ?? null);
@@ -121,8 +119,6 @@ function clean_site(array $in): array
             'email' => email($co, 'email'),
             'phone' => phone($co, 'phone'),
             'parent' => ['name' => str($pa, 'name', 80), 'email' => email($pa, 'email'), 'phone' => phone($pa, 'phone')],
-            'hsCoach' => ['label' => str($hs, 'label', 60), 'url' => url($hs, 'url')],
-            'travelCoach' => ['label' => str($tr, 'label', 60), 'url' => url($tr, 'url')],
             'social' => [
                 'x' => ['handle' => str($x, 'handle', 60), 'url' => url($x, 'url')],
                 'instagram' => ['handle' => str($ig, 'handle', 60), 'url' => url($ig, 'url')],
@@ -153,6 +149,7 @@ function clean_sport(array $in, string $name): array
                 'owner' => str($t, 'owner', 80),
                 'phone' => phone($t, 'phone'),
                 'email' => email($t, 'email'),
+                'social' => url($t, 'social'),
             ];
         }),
         'trainers' => rows($in['trainers'] ?? [], 10, fn(array $t) => ['name' => str($t, 'name', 80), 'phone' => phone($t, 'phone'), 'email' => email($t, 'email')]),

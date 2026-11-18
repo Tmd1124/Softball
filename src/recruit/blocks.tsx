@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Download, Mail, Phone, Play } from 'lucide-react'
+import { Download, Globe, Mail, Phone, Play } from 'lucide-react'
 import type { Metric, ScheduleEvent, SportData, TeamItem, TrainerItem, VideoItem } from '../data/recruitingData'
 
 export const telHref = (phone: string) => `tel:+1${phone.replace(/\D/g, '')}`
@@ -123,6 +123,11 @@ export function TeamCard({ team }: { team: TeamItem }) {
       <a href={`mailto:${team.email}`} className={`${contactLink} break-all`}>
         <Mail size={16} aria-hidden /> {team.email}
       </a>
+      {team.social && (
+        <a href={team.social} target="_blank" rel="noopener noreferrer" className={contactLink}>
+          <Globe size={16} aria-hidden /> Social
+        </a>
+      )}
     </div>
   )
 }

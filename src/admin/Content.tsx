@@ -5,7 +5,7 @@ import type { RecruitingData, SiteData, SportData, SportId } from '../data/recru
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, Card, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, Card, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, TeamsTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -126,12 +126,6 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
           <F path={['contact', 'parent', 'email']} label="Email" kind="email" />
           <F path={['contact', 'parent', 'phone']} label="Phone" kind="phone" />
         </Card>
-        <Card title="Coach reference links" hint="Footer links. Use full web addresses.">
-          <F path={['contact', 'hsCoach', 'label']} label="High school link text" />
-          <F path={['contact', 'hsCoach', 'url']} label="High school link address" />
-          <F path={['contact', 'travelCoach', 'label']} label="Travel / AAU link text" />
-          <F path={['contact', 'travelCoach', 'url']} label="Travel / AAU link address" />
-        </Card>
         <Card title="Social">
           <F path={['contact', 'social', 'x', 'handle']} label="X / Twitter handle" />
           <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" />
@@ -233,7 +227,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
     return (
       <>
         <Card title="Teams & coaches" hint="One row per team and year, for this sport only. The newest year shows first everywhere on the site.">
-          <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '' }}>
+          <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '' }}>
             {(i) => (
               <>
                 <F path={['teams', i, 'name']} label="Team name" />
@@ -243,10 +237,12 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
                 <F path={['teams', i, 'owner']} label="Owner (travel / AAU teams)" />
                 <F path={['teams', i, 'phone']} label="Phone" kind="phone" />
                 <F path={['teams', i, 'email']} label="Email" kind="email" />
+                <F path={['teams', i, 'social']} label="Social link (optional)" placeholder="https://instagram.com/..." wide />
               </>
             )}
           </List>
         </Card>
+        <TeamsTable />
         <Card title="Personal training instructor" hint="Ever’s trainer for this sport.">
           <List path={['trainers']} noun="trainer" max={10} blank={{ name: '', phone: '', email: '' }}>
             {(i) => (

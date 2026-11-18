@@ -89,11 +89,7 @@ export function SiteFooter() {
           <a href={telHref(contact.parent.phone)} className={link}>{contact.parent.phone}</a>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Coaches & social</p>
-          <a href={contact.hsCoach.url} target="_blank" rel="noopener noreferrer" className={link}>{contact.hsCoach.label}</a>
-          <br />
-          <a href={contact.travelCoach.url} target="_blank" rel="noopener noreferrer" className={link}>{contact.travelCoach.label}</a>
-          <br />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Social</p>
           <a href={contact.social.x.url} target="_blank" rel="noopener noreferrer" className={link}>X {contact.social.x.handle}</a>
           <br />
           <a href={contact.social.instagram.url} target="_blank" rel="noopener noreferrer" className={link}>Instagram {contact.social.instagram.handle}</a>

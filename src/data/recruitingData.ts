@@ -35,6 +35,7 @@ export interface TeamItem {
   owner: string
   phone: string
   email: string
+  social?: string
 }
 
 export interface TrainerItem {
@@ -106,8 +107,6 @@ export const defaults = {
     email: 'recruiting@everharris.com',
     phone: '(000) 000-0000',
     parent: { name: '[Parent/Guardian Name]', email: 'parent@everharris.com', phone: '(000) 000-0000' },
-    hsCoach: { label: 'High School Coach', url: 'https://www.creekviewathletics.com' },
-    travelCoach: { label: 'Travel / AAU Coach', url: 'https://everharris.com' },
     social: {
       x: { handle: '@[handle]', url: 'https://x.com/' },
       instagram: { handle: '@[handle]', url: 'https://www.instagram.com/' },
@@ -247,8 +246,6 @@ export interface SiteData {
     email: string
     phone: string
     parent: { name: string; email: string; phone: string }
-    hsCoach: { label: string; url: string }
-    travelCoach: { label: string; url: string }
     social: { x: { handle: string; url: string }; instagram: { handle: string; url: string } }
   }
 }

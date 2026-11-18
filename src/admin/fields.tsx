@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
 import QrCode, { qrPngBlob, qrSvgString } from '../recruit/QrCode'
+import type { TeamItem } from '../data/recruitingData'
 
 export type Path = (string | number)[]
 type Node = Record<string, unknown>
@@ -297,5 +298,47 @@ export function PhotoField({ sport }: { sport: string }) {
         </div>
       </div>
     </div>
+  )
+}
+
+export function TeamsTable() {
+  const { draft } = useDraft()
+  const teams = ((getAt(draft, ['teams']) as TeamItem[] | undefined) ?? []).filter((t) => t.name || t.coach)
+  const sorted = [...teams].sort((a, b) => (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0))
+  const th = 'sticky top-0 bg-slate-800 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-300'
+  const td = 'whitespace-nowrap px-3 py-2 text-slate-100'
+  return (
+    <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5" aria-label="All teams and coaches">
+      <h3 className="text-lg font-bold text-slate-50">All teams & coaches</h3>
+      <p className="mb-3 text-sm text-slate-400">Newest year first. Scroll to see more than five.</p>
+      {sorted.length === 0 ? (
+        <p className="text-sm text-slate-400">No teams yet. Add one above.</p>
+      ) : (
+        <div className="max-h-[17.5rem] overflow-auto rounded-xl border border-slate-700" tabIndex={0}>
+          <table className="w-full min-w-[44rem] text-sm">
+            <thead>
+              <tr>
+                {['Year', 'Team', 'Type', 'Coach', 'Owner', 'Phone', 'Email'].map((h) => (
+                  <th key={h} className={th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {sorted.map((t, i) => (
+                <tr key={i} className="h-[3.1rem]">
+                  <td className={td}>{t.year}</td>
+                  <td className={`${td} font-semibold`}>{t.name}</td>
+                  <td className={td}>{t.type}</td>
+                  <td className={td}>{t.coach}</td>
+                  <td className={td}>{t.owner}</td>
+                  <td className={td}>{t.phone}</td>
+                  <td className={td}>{t.email}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   )
 }
