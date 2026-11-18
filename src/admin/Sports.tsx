@@ -36,14 +36,14 @@ interface FormState {
   checkedM: string[]
   baseP: string[]
   baseM: string[]
-  homeStyle: 'text' | 'image'
-  homeImage: 'auto' | 'custom'
+  navStyle: 'text' | 'emoji' | 'image'
+  navImage: 'auto' | 'custom'
   emoji: string
   cardUrl: string
   cardData: string | null
 }
 
-const blankForm: FormState = { pick: '', label: '', id: '', idTouched: false, accent: COLORS[0][1], positionLabel: 'Positions', positionStyle: 'multi', all: [], checked: [], handedness: false, allM: [], checkedM: [], baseP: [], baseM: [], homeStyle: 'image', homeImage: 'auto', emoji: '🏅', cardUrl: '', cardData: null }
+const blankForm: FormState = { pick: '', label: '', id: '', idTouched: false, accent: COLORS[0][1], positionLabel: 'Positions', positionStyle: 'multi', all: [], checked: [], handedness: false, allM: [], checkedM: [], baseP: [], baseM: [], navStyle: 'text', navImage: 'auto', emoji: '🏅', cardUrl: '', cardData: null }
 
 const MAX_METRICS = 8
 const mkey = (label: string, unit: string) => `${label}|${unit}`
@@ -64,8 +64,8 @@ const fromCatalog = (name: string): FormState => {
     positionStyle: c.style,
     all: c.positions,
     baseP: c.positions,
-    homeStyle: 'image',
-    homeImage: 'auto',
+    navStyle: 'text',
+    navImage: 'auto',
     emoji: c.emoji,
     cardUrl: '',
     cardData: null,
@@ -91,8 +91,8 @@ const fromConfig = (c: SportConfig): FormState => {
     positionStyle: c.positionStyle,
     all: [...new Set([...known, ...c.positions])],
     baseP: known,
-    homeStyle: c.homeStyle,
-    homeImage: c.homeImage,
+    navStyle: c.navStyle,
+    navImage: c.navImage,
     emoji: c.emoji || emojiFor(c.id),
     cardUrl: c.cardImage,
     cardData: null,
@@ -180,8 +180,8 @@ function SportForm({ initial, editing, existingIds, photoUrl, busy, error, onSub
 
   const submit = () =>
     onSubmit({
-      homeStyle: f.homeStyle,
-      homeImage: f.homeImage,
+      navStyle: f.navStyle,
+      navImage: f.navImage,
       emoji: f.emoji,
       label: f.label,
       id: f.id,
@@ -194,21 +194,21 @@ function SportForm({ initial, editing, existingIds, photoUrl, busy, error, onSub
         const [label, unit] = k.split('|')
         return { label, unit }
       }),
-    }, f.homeStyle === 'image' && f.homeImage === 'custom' ? f.cardData : null)
+    }, f.navStyle === 'image' && f.navImage === 'custom' ? f.cardData : null)
 
   const [uploadError, setUploadError] = useState('')
   const pickFile = async (file: File | undefined) => {
     if (!file) return
     setUploadError('')
     try {
-      set({ cardData: await shrink(file, 1200), homeImage: 'custom' })
+      set({ cardData: await shrink(file, 1200), navImage: 'custom' })
     } catch {
       setUploadError('This browser cannot read that picture type. Save it as a JPEG or PNG and try again.')
     }
   }
   const realPhoto = photoUrl !== '' && !photoUrl.startsWith('/img/hero-')
-  const tileImage = f.homeImage === 'custom' ? f.cardData ?? f.cardUrl : realPhoto ? photoUrl : ''
-  const needsImage = f.homeStyle === 'image' && f.homeImage === 'custom' && !f.cardData && !f.cardUrl
+  const tileImage = f.navImage === 'custom' ? f.cardData ?? f.cardUrl : realPhoto ? photoUrl : ''
+  const needsImage = f.navStyle === 'image' && f.navImage === 'custom' && !f.cardData && !f.cardUrl
 
   const fineTune = (
     <div className="space-y-5">
@@ -302,60 +302,57 @@ function SportForm({ initial, editing, existingIds, photoUrl, busy, error, onSub
             </div>
           </Q>
 
-          <Q n={3} label="Home page button" help={<>How this sport appears in the quick-link buttons on the home page. <strong>Text card</strong> shows the sport name with a small icon. <strong>Image card</strong> shows a picture with the name on it, which is quicker to recognize at a glance. You can switch back and forth any time, using the Text / Image switch on the sport’s row or Edit settings.</>}>
-            <div className="mt-1 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Home page button">
-              <button type="button" role="radio" aria-checked={f.homeStyle === 'text'} onClick={() => set({ homeStyle: 'text' })} className={`rounded-2xl border-2 p-3 text-left ${f.homeStyle === 'text' ? 'border-amber-500' : 'border-slate-700'}`}>
-                <span className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 p-3">
-                  <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-extrabold text-slate-950" style={{ background: f.accent }}>{(f.label || 'S').charAt(0).toUpperCase()}</span>
-                  <span>
-                    <span className="block text-sm font-extrabold text-slate-50">{f.label || 'Sport name'}</span>
-                    <span className="block text-xs text-slate-400">Metrics, film and references</span>
-                  </span>
-                </span>
-                <span className="mt-2 block text-sm font-bold text-slate-100">Text card</span>
-                <span className="block text-xs text-slate-400">Words with a small icon, like Softball and Basketball today.</span>
-              </button>
-              <button type="button" role="radio" aria-checked={f.homeStyle === 'image'} onClick={() => set({ homeStyle: 'image' })} className={`rounded-2xl border-2 p-3 text-left ${f.homeStyle === 'image' ? 'border-amber-500' : 'border-slate-700'}`}>
-                <span className="relative flex h-[4.25rem] items-center justify-center overflow-hidden rounded-xl border border-slate-700" style={{ background: `linear-gradient(135deg, ${f.accent}55, ${f.accent}18)` }}>
-                  {tileImage ? <img src={tileImage} alt="" className="absolute inset-0 h-full w-full object-cover" /> : <span aria-hidden className="text-3xl">{f.emoji || '🏅'}</span>}
-                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 to-transparent px-3 pb-1 pt-4 text-sm font-extrabold text-slate-50">{f.label || 'Sport name'}</span>
-                </span>
-                <span className="mt-2 block text-sm font-bold text-slate-100">Image card <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-950">Recommended</span></span>
-                <span className="block text-xs text-slate-400">A picture with the sport name on it. Easier to spot at a glance.</span>
-              </button>
+          <Q n={3} label="Menu button" help={<>This is the button for the sport in the menu at the top of every page, the one people click to go to that sport. <strong>Text</strong> shows the sport’s name, like Softball today. <strong>Emoji</strong> shows a small emoji, like 🥎. <strong>Image</strong> shows a small round picture. Visitors can hover to see the name, and screen readers still read it. You can switch any time, using the Text / Emoji / Image switch on the sport’s row or Edit settings.</>}>
+            <div className="mt-1 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Menu button">
+              {([
+                ['text', 'Text', 'The sport name in words, like today.', <span key="t" className="rounded-full px-3 py-2 text-sm font-bold text-slate-200">{f.label || 'Sport name'}</span>],
+                ['emoji', 'Emoji', 'A small emoji you click.', <span key="e" aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-2xl">{f.emoji || '🏅'}</span>],
+                ['image', 'Image', 'A small round picture you click.', <span key="i" aria-hidden className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 text-xl" style={{ borderColor: f.accent, background: `${f.accent}33` }}>{tileImage ? <img src={tileImage} alt="" className="h-full w-full object-cover" /> : f.emoji || '🏅'}</span>],
+              ] as const).map(([v, name, desc, preview]) => (
+                <button key={v} type="button" role="radio" aria-checked={f.navStyle === v} onClick={() => set({ navStyle: v })} className={`rounded-2xl border-2 p-3 text-left ${f.navStyle === v ? 'border-amber-500' : 'border-slate-700'}`}>
+                  <span className="flex h-14 items-center justify-center rounded-xl border border-slate-700 bg-slate-950">{preview}</span>
+                  <span className="mt-2 block text-sm font-bold text-slate-100">{name}</span>
+                  <span className="block text-xs text-slate-400">{desc}</span>
+                </button>
+              ))}
             </div>
 
-            {f.homeStyle === 'image' && (
+            {f.navStyle !== 'text' && (
+              <div className="mt-3 space-y-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
+                <label className="block text-sm font-semibold text-slate-200">
+                  Emoji
+                  <span className="block text-xs font-normal text-slate-400">{f.navStyle === 'emoji' ? 'This is the button. Paste or type any emoji you like.' : 'Used when there is no picture yet. Paste or type any emoji.'}</span>
+                  <input className={`${input} h-12 text-2xl`} style={{ width: '7rem' }} value={f.emoji} maxLength={8} aria-label="Menu emoji" onChange={(e) => set({ emoji: e.target.value })} />
+                </label>
+              </div>
+            )}
+
+            {f.navStyle === 'image' && (
               <div className="mt-3 space-y-3 rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
                 <p className="text-sm font-bold text-slate-100">Which picture?</p>
-                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${f.homeImage === 'auto' ? 'border-amber-500' : 'border-slate-700'}`}>
-                  <input type="radio" name={`${uid}-img`} checked={f.homeImage === 'auto'} onChange={() => set({ homeImage: 'auto' })} className="mt-0.5 h-5 w-5 accent-amber-500" />
+                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${f.navImage === 'auto' ? 'border-amber-500' : 'border-slate-700'}`}>
+                  <input type="radio" name={`${uid}-img`} checked={f.navImage === 'auto'} onChange={() => set({ navImage: 'auto' })} className="mt-0.5 h-5 w-5 accent-amber-500" />
                   <span>
                     <span className="block font-bold text-slate-100">Recommended picture</span>
-                    <span className="block text-slate-300">Uses Ever’s photo for this sport (add it on the sport’s Bio step). Until then it shows a colored tile with an emoji, so there is never a blank space.</span>
+                    <span className="block text-slate-300">Uses Ever’s photo for this sport (add it on the sport’s Bio step). Until then it shows the emoji on a colored circle, so the button is never blank.</span>
                   </span>
                 </label>
-                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${f.homeImage === 'custom' ? 'border-amber-500' : 'border-slate-700'}`}>
-                  <input type="radio" name={`${uid}-img`} checked={f.homeImage === 'custom'} onChange={() => set({ homeImage: 'custom' })} className="mt-0.5 h-5 w-5 accent-amber-500" />
+                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${f.navImage === 'custom' ? 'border-amber-500' : 'border-slate-700'}`}>
+                  <input type="radio" name={`${uid}-img`} checked={f.navImage === 'custom'} onChange={() => set({ navImage: 'custom' })} className="mt-0.5 h-5 w-5 accent-amber-500" />
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold text-slate-100">Use my own picture</span>
-                    <span className="block text-slate-300">Choose any JPEG, PNG or WebP from your computer. A wide picture works best.</span>
-                    {f.homeImage === 'custom' && (
+                    <span className="block text-slate-300">Choose any JPEG, PNG or WebP from your computer. It is shown as a small circle, so a simple, centered picture works best.</span>
+                    {f.navImage === 'custom' && (
                       <span className="mt-2 flex flex-wrap items-center gap-3">
                         <label className="inline-flex min-h-12 cursor-pointer items-center rounded-xl border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800">
                           {f.cardData || f.cardUrl ? 'Choose a different picture' : 'Choose a picture'}
                           <input type="file" accept="image/*" className="sr-only" onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = '' }} />
                         </label>
-                        {(f.cardData || f.cardUrl) && <img src={f.cardData ?? f.cardUrl} alt="Your chosen picture" className="h-16 w-24 rounded-lg border border-slate-600 object-cover" />}
+                        {(f.cardData || f.cardUrl) && <img src={f.cardData ?? f.cardUrl} alt="Your chosen picture" className="h-16 w-16 rounded-full border border-slate-600 object-cover" />}
                       </span>
                     )}
                     {uploadError && <span role="alert" className="mt-2 block text-red-300">{uploadError}</span>}
                   </span>
-                </label>
-                <label className="block text-sm font-semibold text-slate-200">
-                  Tile emoji
-                  <span className="block text-xs font-normal text-slate-400">Shown on the colored tile when there is no photo. Paste or type any emoji.</span>
-                  <input className={`${input} h-12 text-2xl`} style={{ width: '7rem' }} value={f.emoji} maxLength={8} aria-label="Tile emoji" onChange={(e) => set({ emoji: e.target.value })} />
                 </label>
               </div>
             )}
@@ -588,11 +585,11 @@ export default function Sports({ store, setStore }: { store: Store; setStore: (s
               <span className={`ml-auto rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${c.visible ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-200'}`}>{c.visible ? 'Showing on the website' : 'Hidden'}</span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div role="group" aria-label={`Home page button for ${c.label}`} className="inline-flex overflow-hidden rounded-xl border border-slate-600">
-                <span className="flex items-center bg-slate-800 px-3 text-xs font-bold uppercase tracking-wider text-slate-300">Home button</span>
-                {(['text', 'image'] as const).map((v) => (
-                  <button key={v} type="button" disabled={busy} aria-pressed={c.homeStyle === v} onClick={() => c.homeStyle !== v && void call({ action: 'homeStyle', id: c.id, homeStyle: v })} className={`min-h-12 px-4 text-sm font-bold ${c.homeStyle === v ? 'bg-amber-500 text-slate-950' : 'text-slate-100 active:bg-slate-800'}`}>
-                    {v === 'text' ? 'Text' : 'Image'}
+              <div role="group" aria-label={`Menu button for ${c.label}`} className="inline-flex overflow-hidden rounded-xl border border-slate-600">
+                <span className="flex items-center bg-slate-800 px-3 text-xs font-bold uppercase tracking-wider text-slate-300">Menu button</span>
+                {(['text', 'emoji', 'image'] as const).map((v) => (
+                  <button key={v} type="button" disabled={busy} aria-pressed={c.navStyle === v} onClick={() => c.navStyle !== v && void call({ action: 'navStyle', id: c.id, navStyle: v })} className={`min-h-12 px-4 text-sm font-bold ${c.navStyle === v ? 'bg-amber-500 text-slate-950' : 'text-slate-100 active:bg-slate-800'}`}>
+                    {v === 'text' ? 'Text' : v === 'emoji' ? 'Emoji' : 'Image'}
                   </button>
                 ))}
               </div>

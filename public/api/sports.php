@@ -89,8 +89,8 @@ function settings(array $in): array
         'positions' => json_encode($positions, JSON_UNESCAPED_UNICODE),
         'metrics' => json_encode($metrics, JSON_UNESCAPED_UNICODE),
         'label' => text($in, 'label', 40, 'sport name'),
-        'home_style' => ($in['homeStyle'] ?? 'text') === 'image' ? 'image' : 'text',
-        'home_image' => ($in['homeImage'] ?? 'auto') === 'custom' ? 'custom' : 'auto',
+        'home_style' => in_array($in['navStyle'] ?? '', ['emoji', 'image'], true) ? $in['navStyle'] : 'text',
+        'home_image' => ($in['navImage'] ?? 'auto') === 'custom' ? 'custom' : 'auto',
         'emoji' => json_encode(text($in, 'emoji', 16, 'emoji', false)),
     ];
 }
@@ -201,10 +201,10 @@ switch ($in['action'] ?? '') {
             ->execute([$s['label'], $s['accent'], $s['position_style'], $s['position_label'], $s['handedness'], $s['positions'], $s['metrics'], $s['home_style'], $s['home_image'], $s['emoji'], $id]);
         break;
 
-    case 'homeStyle':
+    case 'navStyle':
         $id = (string) ($in['id'] ?? '');
         exists($pdo, $id);
-        $pdo->prepare('UPDATE sports SET home_style = ? WHERE id = ?')->execute([($in['homeStyle'] ?? '') === 'image' ? 'image' : 'text', $id]);
+        $pdo->prepare('UPDATE sports SET home_style = ? WHERE id = ?')->execute([in_array($in['navStyle'] ?? '', ['emoji', 'image'], true) ? $in['navStyle'] : 'text', $id]);
         break;
 
     case 'list':

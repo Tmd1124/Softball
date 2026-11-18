@@ -129,6 +129,7 @@ function ensure_schema(PDO $pdo): void
             created_at DATETIME NOT NULL
         )"
     );
+    // home_style and home_image hold the header menu button style (text, emoji or image) and which image it uses
     add_column_if_missing($pdo, 'sports', 'home_style', "VARCHAR(8) NOT NULL DEFAULT 'text'");
     add_column_if_missing($pdo, 'sports', 'home_image', "VARCHAR(8) NOT NULL DEFAULT 'auto'");
     add_column_if_missing($pdo, 'sports', 'emoji', "VARCHAR(64) NOT NULL DEFAULT ''");
@@ -210,8 +211,8 @@ function site_sports(PDO $pdo, bool $visibleOnly = false): array
             'metrics' => json_decode((string) $r['metrics'], true) ?: [],
             'visible' => (int) $r['visible'] === 1,
             'order' => (int) $r['sort_order'],
-            'homeStyle' => $r['home_style'] === 'image' ? 'image' : 'text',
-            'homeImage' => $r['home_image'] === 'custom' ? 'custom' : 'auto',
+            'navStyle' => in_array($r['home_style'], ['emoji', 'image'], true) ? $r['home_style'] : 'text',
+            'navImage' => $r['home_image'] === 'custom' ? 'custom' : 'auto',
             'emoji' => (string) (json_decode((string) $r['emoji'], true) ?? ''),
             'cardImage' => isset($cards[$r['id']]) ? '/api/photo.php?sport=' . $r['id'] . '&kind=card&v=' . $cards[$r['id']] : '',
         ];

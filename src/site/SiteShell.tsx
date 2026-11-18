@@ -8,6 +8,9 @@ import ProfileMenu from './ProfileMenu'
 import Assistant from './Assistant'
 import { useRecruiting } from '../lib/recruiting'
 import { builtInSports } from '../data/recruitingData'
+import type { SportConfig, SportData } from '../data/recruitingData'
+import { emojiFor } from '../data/sportCatalog'
+import { hasRealPhoto } from '../recruit/derive'
 import ScrollRow from '../admin/ScrollRow'
 import { telHref } from '../recruit/blocks'
 
@@ -19,11 +22,34 @@ const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void 
 })
 export const useShell = () => useContext(ShellCtx)
 
+function MenuLabel({ cfg, photo, current }: { cfg: SportConfig; photo?: SportData; current: boolean }) {
+  if (cfg.navStyle === 'text') return <>{cfg.label}</>
+  const emoji = cfg.emoji || emojiFor(cfg.id)
+  if (cfg.navStyle === 'emoji') {
+    return (
+      <span aria-hidden className={`flex h-10 w-10 items-center justify-center rounded-full text-2xl leading-none ${current ? 'bg-slate-800 ring-2 ring-amber-400' : 'hover:bg-slate-800'}`}>
+        {emoji}
+      </span>
+    )
+  }
+  const src = cfg.navImage === 'custom' && cfg.cardImage ? cfg.cardImage : photo && hasRealPhoto(photo) ? photo.photo : ''
+  return (
+    <span aria-hidden className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 text-xl leading-none ${current ? 'ring-2 ring-amber-400' : ''}`} style={{ borderColor: cfg.accent, background: `${cfg.accent}33` }}>
+      {src ? <img src={src} alt="" className="h-full w-full object-cover" style={cfg.navImage === 'custom' ? undefined : { objectPosition: `50% ${photo?.photoFocus ?? 20}%` }} /> : emoji}
+    </span>
+  )
+}
+
 export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openLogin: () => void; openProfile: () => void }) {
   const { user, status } = useAuth()
   const rec = useRecruiting()
   const sports = rec ? rec.sportList : builtInSports
-  const nav = [{ page: 'home', href: '/', label: 'Home' }, ...sports.map((c) => ({ page: c.id, href: `/${c.id}/`, label: c.label })), { page: 'schedule', href: '/schedule/', label: 'Schedule' }, { page: 'teams', href: '/teams/', label: 'Teams' }]
+  const nav: { page: string; href: string; label: string; cfg?: SportConfig }[] = [
+    { page: 'home', href: '/', label: 'Home' },
+    ...sports.map((c) => ({ page: c.id, href: `/${c.id}/`, label: c.label, cfg: c })),
+    { page: 'schedule', href: '/schedule/', label: 'Schedule' },
+    { page: 'teams', href: '/teams/', label: 'Teams' },
+  ]
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center gap-1 px-2 py-1.5 sm:px-6">
@@ -33,9 +59,11 @@ export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openL
               key={n.page}
               href={n.href}
               aria-current={page === n.page ? 'page' : undefined}
+              aria-label={n.cfg && n.cfg.navStyle !== 'text' ? n.label : undefined}
+              title={n.cfg && n.cfg.navStyle !== 'text' ? n.label : undefined}
               className="flex min-h-12 shrink-0 items-center rounded-full px-1.5 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
             >
-              {n.label}
+              {n.cfg ? <MenuLabel cfg={n.cfg} photo={rec?.sports[n.cfg.id]} current={page === n.page} /> : n.label}
             </a>
           ))}
         </ScrollRow>
