@@ -18,8 +18,16 @@ export function mergeSite(site: SiteData | null): SiteData {
   }
 }
 
+const blankTeam = { year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '' }
+
 export function mergeSport(id: SportId, sport: SportData | null): SportData {
-  return { ...defaultSports[id], ...sport }
+  const merged = { ...defaultSports[id], ...sport }
+  if (!sport) return merged
+  const saved = (sport.teams ?? []).filter((t) => t.name).map((t) => ({ ...blankTeam, ...t }))
+  if (saved.length) return { ...merged, teams: saved }
+  const legacyTeam = (sport as { team?: string }).team
+  if (legacyTeam) return { ...merged, teams: [{ ...blankTeam, name: legacyTeam }] }
+  return { ...merged, teams: sport.teams ? [] : defaultSports[id].teams }
 }
 
 export function merge(c: StoredContent): RecruitingData {
