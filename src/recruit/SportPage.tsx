@@ -33,6 +33,16 @@ export default function SportPage({ id }: { id: SportId }) {
                   {athlete.school} ({athlete.location}) | {sport.team} | Jersey #{athlete.jersey}
                 </dd>
               </div>
+              {sport.teams.length > 0 && (
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">Teams</dt>
+                  <dd className="mt-1 text-slate-200">
+                    {sport.teams.map((t, i) => (
+                      <span key={i} className="block">{t.year && <strong>{t.year}</strong>} {t.name}</span>
+                    ))}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">Academics</dt>
                 <dd className="mt-1 text-slate-200">
@@ -100,8 +110,8 @@ export default function SportPage({ id }: { id: SportId }) {
 
       <Section id="contacts" kicker="Recruiting" title="Coach references & links">
         <div className="grid gap-4 sm:grid-cols-2">
-          {sport.coaches.map((c) => (
-            <CoachCard key={c.role} coach={c} />
+          {sport.coaches.map((c, i) => (
+            <CoachCard key={i} coach={c} />
           ))}
         </div>
         <div className="mt-5 flex flex-wrap gap-3">

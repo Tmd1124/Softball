@@ -233,10 +233,12 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
     return (
       <>
         <Card title="Coach references">
-          <List path={['coaches']} noun="coach" max={6} blank={{ role: '', name: '', phone: '', email: '' }}>
+          <List path={['coaches']} noun="coach" max={20} blank={{ role: '', name: '', phone: '', email: '', team: '', year: '' }}>
             {(i) => (
               <>
                 <F path={['coaches', i, 'role']} label="Role" />
+                <F path={['coaches', i, 'team']} label="Team (optional)" />
+                <F path={['coaches', i, 'year']} label="Year (optional)" placeholder="2026" />
                 <F path={['coaches', i, 'name']} label="Name" />
                 <F path={['coaches', i, 'phone']} label="Phone" kind="phone" />
                 <F path={['coaches', i, 'email']} label="Email" kind="email" />
@@ -268,8 +270,18 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         ) : (
           <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
         )}
-        <F path={['team']} label="Team and division / circuit" wide />
+        <F path={['team']} label="Current team and division / circuit" wide />
         <PhotoField sport={id} />
+      </Card>
+      <Card title="Teams by year" hint="Add every team Ever has played for. Newest first reads best. Shows on the public page and the profile.">
+        <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '' }}>
+          {(i) => (
+            <>
+              <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
+              <F path={['teams', i, 'name']} label="Team and division" />
+            </>
+          )}
+        </List>
       </Card>
       <Card title="Verified metrics" hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
         <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>

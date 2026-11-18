@@ -114,6 +114,7 @@ export function CoachCard({ coach }: { coach: Coach }) {
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <p className="text-xs font-bold uppercase tracking-widest text-amber-400">{coach.role}</p>
       <p className="mt-1 text-lg font-extrabold text-slate-50">{coach.name}</p>
+      {(coach.team || coach.year) && <p className="text-sm text-slate-400">{[coach.year, coach.team].filter(Boolean).join(' · ')}</p>}
       <a href={telHref(coach.phone)} className={link}>
         <Phone size={16} aria-hidden /> {coach.phone}
       </a>

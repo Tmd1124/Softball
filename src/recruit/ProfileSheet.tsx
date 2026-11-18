@@ -140,6 +140,16 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
                 )}
               </section>
             )}
+            {s.teams.length > 0 && (
+              <section>
+                <Head>Teams</Head>
+                <ul className="text-[11px] leading-snug">
+                  {s.teams.slice(0, 5).map((t, i) => (
+                    <li key={i}>{t.year && <strong>{t.year}</strong>} {t.name}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <section>
               <Head>Academics</Head>
               <p className="text-[11.5px] leading-snug">
@@ -177,9 +187,9 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
             <section>
               <Head>Coach references</Head>
               <ul className="space-y-1.5 text-[11px] leading-snug">
-                {s.coaches.map((c) => (
-                  <li key={c.role}>
-                    <strong>{c.name}</strong> <span className="text-neutral-600">· {c.role}</span>
+                {s.coaches.map((c, i) => (
+                  <li key={i}>
+                    <strong>{c.name}</strong> <span className="text-neutral-600">· {c.role}{(c.year || c.team) && ` · ${[c.year, c.team].filter(Boolean).join(' ')}`}</span>
                     <br />
                     <a href={telHref(c.phone)} className={link}>{c.phone}</a> · <a href={`mailto:${c.email}`} className={link}>{c.email}</a>
                   </li>

@@ -30,6 +30,13 @@ export interface Coach {
   name: string
   phone: string
   email: string
+  team?: string
+  year?: string
+}
+
+export interface TeamItem {
+  year: string
+  name: string
 }
 
 export interface LinkItem {
@@ -55,6 +62,7 @@ export interface SportData {
   positions: string
   handedness?: string
   team: string
+  teams: TeamItem[]
   metrics: Metric[]
   featured: VideoItem
   clipsTitle: string
@@ -110,6 +118,7 @@ export const defaults = {
     positions: 'Catcher / First Base',
     handedness: 'Bats: R / Throws: R',
     team: '[Travel Team Name & Age Division, e.g., Georgia Impact 14U Premier]',
+    teams: [],
     metrics: [
       { key: 'popTime', label: 'Pop Time', value: '[X.XX]', unit: 'sec', verified: 'Month/Year' },
       { key: 'overhandVelo', label: 'Overhand Velo', value: '[XX]', unit: 'mph', verified: 'Month/Year' },
@@ -171,6 +180,7 @@ export const defaults = {
     photoFocus: 20,
     positions: '[Primary Position / Secondary Position, e.g., Point Guard / Shooting Guard]',
     team: '[AAU/Club Team Name & Circuit, e.g., FBC / Georgia Pearls]',
+    teams: [],
     metrics: [
       { key: 'wingspan', label: 'Wingspan', value: '[X\'XX"]', verified: 'Month/Year' },
       { key: 'standingReach', label: 'Standing Reach', value: '[X\'XX"]', verified: 'Month/Year' },

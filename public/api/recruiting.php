@@ -141,6 +141,7 @@ function clean_sport(array $in, string $name): array
         'photoFocus' => is_int($in['photoFocus'] ?? null) ? max(0, min(100, $in['photoFocus'])) : 20,
         'positions' => str($in, 'positions', 160),
         'team' => str($in, 'team', 200),
+        'teams' => rows($in['teams'] ?? [], 20, fn(array $t) => ['year' => str($t, 'year', 20), 'name' => str($t, 'name', 160)]),
         'metrics' => rows($in['metrics'] ?? [], 8, function (array $m) {
             $key = str($m, 'key', 32);
             if (!preg_match('/^[a-zA-Z0-9]{1,32}$/', $key)) {
@@ -166,8 +167,10 @@ function clean_sport(array $in, string $name): array
             'info' => str($e, 'info', 160),
             'infoUrl' => url($e, 'infoUrl'),
         ]),
-        'coaches' => rows($in['coaches'] ?? [], 6, fn(array $c) => [
+        'coaches' => rows($in['coaches'] ?? [], 20, fn(array $c) => [
             'role' => str($c, 'role', 80),
+            'team' => str($c, 'team', 160),
+            'year' => str($c, 'year', 20),
             'name' => str($c, 'name', 80),
             'phone' => phone($c, 'phone'),
             'email' => email($c, 'email'),
