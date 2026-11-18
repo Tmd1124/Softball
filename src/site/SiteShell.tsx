@@ -61,7 +61,7 @@ export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openL
               aria-current={page === n.page ? 'page' : undefined}
               aria-label={n.cfg && n.cfg.navStyle !== 'text' ? n.label : undefined}
               title={n.cfg && n.cfg.navStyle !== 'text' ? n.label : undefined}
-              className="flex min-h-12 shrink-0 items-center rounded-full px-1.5 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
+              className={`flex min-h-12 shrink-0 items-center rounded-full text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:text-sm ${n.cfg && n.cfg.navStyle !== 'text' ? 'min-w-11 justify-center px-0.5' : 'px-1.5 sm:px-4'}`}
             >
               {n.cfg ? <MenuLabel cfg={n.cfg} photo={rec?.sports[n.cfg.id]} current={page === n.page} /> : n.label}
             </a>
