@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
@@ -205,55 +205,94 @@ async function shrink(file: File, max = 1400): Promise<string> {
 export function PhotoField({ sport }: { sport: string }) {
   const { draft, setDraft } = useDraft()
   const url = String(getAt(draft, ['photo']) ?? '')
+  const focus = Number(getAt(draft, ['photoFocus']) ?? 20)
   const real = url !== '' && !url.startsWith('/img/hero-')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [address, setAddress] = useState('')
+  const input = useRef<HTMLInputElement>(null)
 
-  const pick = async (file: File | undefined) => {
+  const run = async (work: () => Promise<string>, failure: string) => {
+    setBusy(true)
+    setError('')
+    try {
+      const next = await work()
+      setDraft((d) => setAt(d, ['photo'], next))
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : failure)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const pick = (file: File | undefined) => {
     if (!file) return
-    setBusy(true)
-    setError('')
-    try {
-      const r = await api<{ url: string }>('photo.php', { action: 'upload', sport, image: await shrink(file) })
-      setDraft((d) => setAt(d, ['photo'], r.url))
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not read that picture. Try a JPEG or PNG.')
-    } finally {
-      setBusy(false)
-    }
+    void run(async () => {
+      let image: string
+      try {
+        image = await shrink(file)
+      } catch {
+        throw new Error('This browser cannot read that picture type. Save it as a JPEG or PNG and try again.')
+      }
+      return (await api<{ url: string }>('photo.php', { action: 'upload', sport, image })).url
+    }, 'This browser cannot read that picture type. Save it as a JPEG or PNG and try again.')
   }
 
-  const remove = async () => {
-    setBusy(true)
-    setError('')
-    try {
+  const fromAddress = () =>
+    run(async () => {
+      const r = await api<{ url: string }>('photo.php', { action: 'fetch', sport, url: address.trim() })
+      setAddress('')
+      return r.url
+    }, 'Could not reach the server')
+
+  const remove = () =>
+    run(async () => {
       await api('photo.php', { action: 'delete', sport })
-      setDraft((d) => setAt(d, ['photo'], ''))
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not reach the server')
-    } finally {
-      setBusy(false)
-    }
-  }
+      return ''
+    }, 'Could not reach the server')
 
+  const btn = 'min-h-12 rounded-xl px-5 text-sm font-bold disabled:opacity-50'
   return (
     <div className="sm:col-span-2">
       <span className="text-sm font-semibold text-slate-300">Photo of Ever</span>
-      <div className="mt-1 flex flex-wrap items-center gap-4">
+      <div className="mt-1 flex flex-wrap items-start gap-4">
         <div className="h-32 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-600 bg-slate-950">
-          {real ? <img src={url} alt="Current photo of Ever" className="h-full w-full object-cover" style={{ objectPosition: '50% 20%' }} /> : <div className="flex h-full items-center justify-center p-2 text-center text-xs text-slate-500">No photo yet</div>}
+          {real ? <img src={url} alt="Current photo of Ever" className="h-full w-full object-cover" style={{ objectPosition: `50% ${focus}%` }} /> : <div className="flex h-full items-center justify-center p-2 text-center text-xs text-slate-500">No photo yet</div>}
         </div>
-        <div className="space-y-2">
-          <label className="inline-flex min-h-12 cursor-pointer items-center rounded-xl bg-amber-500 px-5 text-sm font-bold text-slate-950 active:bg-amber-400">
-            {busy ? 'Working…' : real ? 'Replace photo' : 'Upload photo'}
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = '' }} />
-          </label>
-          {real && (
-            <button type="button" disabled={busy} onClick={() => void remove()} className="ml-2 min-h-12 rounded-xl border border-red-500/50 px-4 text-sm font-semibold text-red-200 active:bg-red-500/10">
-              Remove
+        <div className="min-w-0 flex-1 space-y-3" style={{ minWidth: '14rem' }}>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={busy} onClick={() => input.current?.click()} className={`${btn} bg-amber-500 text-slate-950 active:bg-amber-400`}>
+              {busy ? 'Working…' : real ? 'Replace from my computer' : 'Choose from my computer'}
             </button>
+            {real && (
+              <button type="button" disabled={busy} onClick={() => void remove()} className={`${btn} border border-red-500/50 font-semibold text-red-200 active:bg-red-500/10`}>
+                Remove
+              </button>
+            )}
+            <input ref={input} type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+          </div>
+          {real && (
+            <label className="block">
+              <span className="text-xs font-semibold text-slate-300">Crop focus: move up or down so Ever’s face is in frame</span>
+              <input type="range" min={0} max={100} value={focus} onChange={(e) => setDraft((d) => setAt(d, ['photoFocus'], Number(e.target.value)))} className="mt-1 w-full accent-amber-500" aria-label="Photo focus" />
+            </label>
           )}
-          <p className="text-xs text-slate-500">A portrait or action shot with Ever’s face near the top works best. Press Save changes to publish it.</p>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              inputMode="url"
+              autoCapitalize="none"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="…or paste an image address (https://…)"
+              aria-label="Image address"
+              className="h-12 min-w-0 flex-1 rounded-xl border border-slate-600 bg-slate-950 px-3 text-base text-slate-50 placeholder:text-slate-500"
+            />
+            <button type="button" disabled={busy || !address.trim()} onClick={() => void fromAddress()} className={`${btn} border border-slate-600 font-semibold text-slate-100 active:bg-slate-800`}>
+              Use
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">The address must point straight to a JPEG, PNG or WebP file. A portrait or action shot with Ever’s face near the top works best. Press Save changes to publish.</p>
           {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
         </div>
       </div>

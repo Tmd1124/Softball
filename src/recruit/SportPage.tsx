@@ -18,7 +18,7 @@ export default function SportPage({ id }: { id: SportId }) {
       <section aria-labelledby="hero-title" className="mx-auto max-w-5xl px-4 pb-4 pt-6 sm:px-6 sm:pt-10">
         <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 md:aspect-auto md:min-h-80">
-            <img src={sport.photo || `/img/hero-${id}.svg`} alt={`${athlete.name} playing ${sport.label.toLowerCase()}`} className="absolute inset-0 h-full w-full object-cover" />
+            <img src={sport.photo || `/img/hero-${id}.svg`} alt={`${athlete.name} playing ${sport.label.toLowerCase()}`} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: `50% ${sport.photoFocus}%` }} />
           </div>
           <div className="flex flex-col justify-center rounded-3xl border border-slate-700 bg-slate-900 p-6 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">{sport.label}</p>

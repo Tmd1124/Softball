@@ -54,7 +54,7 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
             src={s.photo}
             alt={athlete.name}
             className="h-[132px] w-[104px] shrink-0 rounded-lg object-cover"
-            style={{ border: '3px solid var(--accent)', objectPosition: '50% 20%' }}
+            style={{ border: '3px solid var(--accent)', objectPosition: `50% ${s.photoFocus}%` }}
           />
         )}
         <div className="min-w-0 flex-1">

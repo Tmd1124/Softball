@@ -138,6 +138,7 @@ function clean_sport(array $in, string $name): array
     $out = [
         'label' => ucfirst($name),
         'photo' => url($in, 'photo'),
+        'photoFocus' => is_int($in['photoFocus'] ?? null) ? max(0, min(100, $in['photoFocus'])) : 20,
         'positions' => str($in, 'positions', 160),
         'team' => str($in, 'team', 200),
         'metrics' => rows($in['metrics'] ?? [], 8, function (array $m) {

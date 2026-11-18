@@ -51,6 +51,7 @@ export interface AwardItem {
 export interface SportData {
   label: string
   photo: string
+  photoFocus: number
   positions: string
   handedness?: string
   team: string
@@ -105,6 +106,7 @@ export const defaults = {
   softball: {
     label: 'Softball',
     photo: '/img/hero-softball.svg',
+    photoFocus: 20,
     positions: 'Catcher / First Base',
     handedness: 'Bats: R / Throws: R',
     team: '[Travel Team Name & Age Division, e.g., Georgia Impact 14U Premier]',
@@ -166,6 +168,7 @@ export const defaults = {
   basketball: {
     label: 'Basketball',
     photo: '/img/hero-basketball.svg',
+    photoFocus: 20,
     positions: '[Primary Position / Secondary Position, e.g., Point Guard / Shooting Guard]',
     team: '[AAU/Club Team Name & Circuit, e.g., FBC / Georgia Pearls]',
     metrics: [
