@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState } from 'react'
+import { createContext, useContext, useId, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
@@ -64,21 +64,57 @@ export function Collapsible({ title, hint, open, onToggle, children, boxRef }: {
   )
 }
 
+export function HelpTip({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          setOpen((o) => !o)
+        }}
+        aria-expanded={open}
+        aria-label={`Why? ${label}`}
+        className="ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-amber-500/60 align-middle text-sm font-extrabold text-amber-400 active:bg-amber-500/20"
+      >
+        ?
+      </button>
+      {open && <span className="mt-2 block rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm font-normal leading-relaxed text-slate-100">{children}</span>}
+    </>
+  )
+}
+
+export function toYoutubeEmbed(v: string): string {
+  const m = v.trim().match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+  return m ? `https://www.youtube.com/embed/${m[1]}` : v
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder, hint, id }: { id?: string; path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email'; placeholder?: string; hint?: string }) {
+export function F({ path, label, area = false, wide = false, type = 'text', kind, placeholder, hint, id, help, normalize }: { help?: ReactNode; normalize?: (v: string) => string; id?: string; path: Path; label: string; area?: boolean; wide?: boolean; type?: 'text' | 'number'; kind?: 'phone' | 'email'; placeholder?: string; hint?: string }) {
   const { draft, setDraft } = useDraft()
   const value = String(getAt(draft, path) ?? '')
-  const change = (v: string) => setDraft((d) => setAt(d, path, type === 'number' ? Number(v) : kind === 'phone' ? formatPhone(v) : v))
+  const change = (v: string) => setDraft((d) => setAt(d, path, type === 'number' ? Number(v) : kind === 'phone' ? formatPhone(v) : normalize ? normalize(v) : v))
   const bad = kind === 'email' && value !== '' && !EMAIL_RE.test(value)
-  return (
-    <label className={`block ${wide || area ? 'sm:col-span-2' : ''}`}>
-      <span className="text-sm font-semibold text-slate-300">{label}</span>
+  const uid = useId()
+  const inputId = id ?? uid
+  const wrapCls = `block ${wide || area ? 'sm:col-span-2' : ''}`
+  const body = (
+    <>
+      {help ? (
+        <>
+          <label htmlFor={inputId} className="text-sm font-semibold text-slate-300">{label}</label>
+          <HelpTip label={label}>{help}</HelpTip>
+        </>
+      ) : (
+        <span className="text-sm font-semibold text-slate-300">{label}</span>
+      )}
       {area ? (
-        <textarea className={`${field} min-h-32 py-2`} value={value} onChange={(e) => change(e.target.value)} />
+        <textarea id={inputId} className={`${field} min-h-32 py-2`} value={value} onChange={(e) => change(e.target.value)} />
       ) : (
         <input
-          id={id}
+          id={inputId}
           className={`${field} h-12 ${bad ? 'border-red-500' : ''}`}
           type={kind === 'email' ? 'email' : kind === 'phone' ? 'tel' : type}
           inputMode={kind === 'phone' ? 'tel' : kind === 'email' ? 'email' : undefined}
@@ -92,17 +128,26 @@ export function F({ path, label, area = false, wide = false, type = 'text', kind
       )}
       {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
       {bad && <span className="mt-1 block text-xs text-red-300">Enter an email like name@example.com</span>}
-    </label>
+    </>
   )
+  return help ? <div className={wrapCls}>{body}</div> : <label className={wrapCls}>{body}</label>
 }
 
-export function Pick({ path, label, options, blank = 'Select…', wide = false }: { path: Path; label: string; options: string[]; blank?: string; wide?: boolean }) {
+export function Pick({ path, label, options, blank = 'Select…', wide = false, help }: { path: Path; label: string; options: string[]; blank?: string; wide?: boolean; help?: ReactNode }) {
   const { draft, setDraft } = useDraft()
   const value = String(getAt(draft, path) ?? '')
-  return (
-    <label className={`block ${wide ? 'sm:col-span-2' : ''}`}>
-      <span className="text-sm font-semibold text-slate-300">{label}</span>
-      <select className={`${field} h-12`} value={options.includes(value) ? value : ''} onChange={(e) => setDraft((d) => setAt(d, path, e.target.value))}>
+  const uid = useId()
+  const body = (
+    <>
+      {help ? (
+        <>
+          <label htmlFor={uid} className="text-sm font-semibold text-slate-300">{label}</label>
+          <HelpTip label={label}>{help}</HelpTip>
+        </>
+      ) : (
+        <span className="text-sm font-semibold text-slate-300">{label}</span>
+      )}
+      <select id={uid} className={`${field} h-12`} value={options.includes(value) ? value : ''} onChange={(e) => setDraft((d) => setAt(d, path, e.target.value))}>
         <option value="">{blank}</option>
         {options.map((o) => (
           <option key={o} value={o}>
@@ -110,8 +155,10 @@ export function Pick({ path, label, options, blank = 'Select…', wide = false }
           </option>
         ))}
       </select>
-    </label>
+    </>
   )
+  const cls = `block ${wide ? 'sm:col-span-2' : ''}`
+  return help ? <div className={cls}>{body}</div> : <label className={cls}>{body}</label>
 }
 
 export function PositionChecklist({ path, label, options }: { path: Path; label: string; options: string[] }) {
@@ -298,10 +345,11 @@ export function PhotoField({ sport }: { sport: string }) {
             <input ref={input} type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
           </div>
           {real && (
-            <label className="block">
+            <div className="block">
               <span className="text-xs font-semibold text-slate-300">Crop focus: move up or down so Ever’s face is in frame</span>
+              <HelpTip label="crop focus">The photo is shown in a tall frame, so part of it is cropped. This slider moves the picture up or down inside that frame. Slide it until Ever’s face is fully visible. It affects the sport page, the home page and the printed profile.</HelpTip>
               <input type="range" min={0} max={100} value={focus} onChange={(e) => setDraft((d) => setAt(d, ['photoFocus'], Number(e.target.value)))} className="mt-1 w-full accent-amber-500" aria-label="Photo focus" />
-            </label>
+            </div>
           )}
           <div className="flex gap-2">
             <input
@@ -468,7 +516,7 @@ export function EventsTable({ onPick }: { onPick: (n: number) => void }) {
   )
 }
 
-export function VideoUpload({ base }: { base: Path }) {
+export function VideoUpload({ base, sport }: { base: Path; sport: string }) {
   const { draft, setDraft } = useDraft()
   const url = String(getAt(draft, [...base, 'videoUrl']) ?? '')
   const [pct, setPct] = useState<number | null>(null)
@@ -479,6 +527,7 @@ export function VideoUpload({ base }: { base: Path }) {
     setPct(0)
     const form = new FormData()
     form.append('video', file)
+    form.append('sport', sport)
     const xhr = new XMLHttpRequest()
     xhr.open('POST', '/api/video.php')
     xhr.setRequestHeader('X-Requested-With', 'fetch')
@@ -502,7 +551,12 @@ export function VideoUpload({ base }: { base: Path }) {
   }
   return (
     <div className="sm:col-span-2">
-      <p className="text-sm font-semibold text-slate-300">Video file from your computer (MP4, WebM or MOV)</p>
+      <p className="text-sm font-semibold text-slate-300">
+        Or upload a short clip from your computer (MP4, WebM or MOV)
+        <HelpTip label="upload a clip">
+          <strong>Best for short clips only.</strong> An uploaded file uses your own website's storage and bandwidth, can't be larger than your host's upload limit, and starts slower on a weak connection. Some phone formats (like iPhone .mov) won't play on every device. If you fill in both this and a YouTube link, the uploaded file is the one that plays. For anything long, use YouTube above.
+        </HelpTip>
+      </p>
       <input
         ref={input}
         type="file"

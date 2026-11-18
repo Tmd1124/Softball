@@ -57,11 +57,16 @@ if ($ext === null) {
     respond(400, ['error' => 'Use an MP4, WebM or MOV video.']);
 }
 
-$dir = dirname(__DIR__) . '/uploads/videos';
+$sport = $_POST['sport'] ?? '';
+if (!is_string($sport) || !in_array($sport, SPORTS, true)) {
+    respond(400, ['error' => 'Unknown sport']);
+}
+$root = dirname(__DIR__) . '/uploads/videos';
+$dir = "$root/$sport";
 if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
     respond(500, ['error' => 'Could not save the video on the server']);
 }
-$guard = $dir . '/.htaccess';
+$guard = $root . '/.htaccess';
 if (!is_file($guard)) {
     file_put_contents($guard, "Options -ExecCGI -Indexes\nRemoveHandler .php .phtml .php3 .php5\n<IfModule mod_php.c>\n  php_flag engine off\n</IfModule>\nAddType video/mp4 .mp4\nAddType video/webm .webm\nAddType video/quicktime .mov\n");
 }
@@ -70,4 +75,4 @@ $name = bin2hex(random_bytes(16)) . '.' . $ext;
 if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $name)) {
     respond(500, ['error' => 'Could not save the video on the server']);
 }
-respond(200, ['url' => '/uploads/videos/' . $name]);
+respond(200, ['url' => "/uploads/videos/$sport/$name"]);

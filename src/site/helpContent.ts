@@ -82,7 +82,7 @@ export const HELP: Record<string, HelpTopic> = {
     tips: [
       'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR. Next and Back buttons are at the bottom of each step.',
       'Upload a photo of Ever under Bio. It appears on the sport page and in the printed profile header. Choose positions from the checklist and bats/throws from the list. Edit each metric’s value, unit and verified month and year.',
-      'For film, paste the embed address (https://…) from YouTube, Vimeo or Hudl, or use Upload from my computer for an MP4, WebM or MOV file.',
+      'For film, paste the embed address (https://…) from YouTube, Vimeo or Hudl, or, for short clips only, upload an MP4, WebM or MOV file. YouTube is recommended: it plays faster, allows any length and costs the site nothing. Tap the ? beside a prompt for the reasons.',
       'Summary & honors holds optional awards. Season stats are entered per team under Teams & coaches; the newest team’s stats show on the page and profile.',
       'The live preview updates as you type. Save changes publishes to the public page and printable profile.',
     ],

@@ -10,7 +10,7 @@ import RecordCard from './RecordCard'
 import { FieldsTable, ListTable, SingleCard, useCards } from './cards'
 import type { FieldDef } from './cards'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -135,10 +135,10 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
       <>
         <F path={['academics', 'gpa']} label="GPA" />
         <F path={['academics', 'courses']} label="Honors / advanced courses" />
-        <F path={['academics', 'classRank']} label="Class rank (optional)" placeholder="12 of 340" />
-        <F path={['academics', 'ncaaId']} label="NCAA Eligibility Center ID (optional)" />
-        <F path={['academics', 'sat']} label="SAT (optional)" />
-        <F path={['academics', 'act']} label="ACT (optional)" />
+        <F path={['academics', 'classRank']} label="Class rank (optional)" placeholder="12 of 340" help="Ever’s rank in her class, written as position of class size, like 12 of 340. Leave it blank if the school doesn’t rank. It appears on the profiles only when filled in." />
+        <F path={['academics', 'ncaaId']} label="NCAA Eligibility Center ID (optional)" help="The ID from Ever’s free account at the NCAA Eligibility Center. College coaches look for it when they check eligibility. It appears on the profiles only when filled in." />
+        <F path={['academics', 'sat']} label="SAT (optional)" help="Her best SAT score, if she has taken it. Leave it blank for now. It appears only when filled in." />
+        <F path={['academics', 'act']} label="ACT (optional)" help="Her best ACT score, if she has taken it. Leave it blank for now. It appears only when filled in." />
       </>,
       false,
     )
@@ -187,9 +187,9 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
           ],
           <>
             <F path={['contact', 'social', 'x', 'handle']} label="X / Twitter handle" />
-            <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" />
+            <F path={['contact', 'social', 'x', 'url']} label="X / Twitter address" help="The full web address of her X profile, starting with https://. The footer link on every page goes here." />
             <F path={['contact', 'social', 'instagram', 'handle']} label="Instagram handle" />
-            <F path={['contact', 'social', 'instagram', 'url']} label="Instagram address" />
+            <F path={['contact', 'social', 'instagram', 'url']} label="Instagram address" help="The full web address of her Instagram profile, starting with https://. The footer link on every page goes here." />
           </>,
         )}
       </>
@@ -218,7 +218,7 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
           <F path={['athlete', 'height']} label="Height" />
           <F path={['athlete', 'weight']} label="Weight (optional)" placeholder="140 lb" />
           <F path={['athlete', 'jersey']} label="Jersey number" />
-          <F path={['siteUrl']} label="Site address" />
+          <F path={['siteUrl']} label="Site address" help="The main web address of this site, starting with https://. The QR codes on the printed profiles and the Teams page link to it, so only change it if the site moves." />
         </>,
         false,
       )}
@@ -249,8 +249,27 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
       <F id={first} path={[...base, 'title']} label="Title" />
       <F path={[...base, 'blurb']} label="Description" />
       <F path={[...base, 'length']} label="Length note" />
-      <F path={[...base, 'embedUrl']} label="Embed URL (or upload a file below)" placeholder="https://www.youtube.com/embed/VIDEO_ID" wide />
-      <VideoUpload base={base} />
+      <F
+        path={[...base, 'embedUrl']}
+        label="YouTube link (recommended)"
+        placeholder="Paste the YouTube address, e.g. https://youtu.be/VIDEO_ID"
+        normalize={toYoutubeEmbed}
+        wide
+        hint="Paste the normal YouTube address. It is converted for you. Vimeo and Hudl embed addresses also work."
+        help={
+          <>
+            <strong>Why YouTube is better than uploading:</strong>
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>It plays fast on any phone or connection, and YouTube adjusts the quality automatically.</li>
+              <li>Any length. Full games and long highlight reels work. Uploads are limited to short clips.</li>
+              <li>It costs your website nothing, so your site stays quick when many coaches watch at once.</li>
+              <li>It plays on every device. Uploaded phone formats sometimes don't.</li>
+              <li>Coaches already know and trust it. Set the video to Unlisted on YouTube if you don't want it searchable.</li>
+            </ul>
+          </>
+        }
+      />
+      <VideoUpload base={base} sport={id} />
     </>
   )
   const videoView = (base: string[]): FieldDef[] => [
@@ -275,7 +294,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           rec={cards.rec('clips')}
           setRec={cards.setRec('clips')}
           focusPrefix="clip-title"
-          settings={<F path={['clipsTitle']} label="Section heading" wide />}
+          settings={<F path={['clipsTitle']} label="Section heading" wide help="The heading shown above the skill clips on the public sport page." />}
           edit={(i) => videoFields(['clips', i], `clip-title-${i}`)}
           view={(r) => [
             ['Title', String(r.title ?? '')],
@@ -291,7 +310,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
   if (step === 'summary')
     return (
       <>
-        {one('summary', 'Scouting summary', 'Write {popTime} wherever the pop time metric value should appear.', [['Player profile text', ['summary']]], <F path={['summary']} label="Player profile text" area />, false)}
+        {one('summary', 'Scouting summary', 'Write {popTime} wherever the pop time metric value should appear.', [['Player profile text', ['summary']]], <F path={['summary']} label="Player profile text" area help="A short paragraph about Ever as a player. It shows on the sport page and the printed profile. Type {popTime} wherever her pop time should appear, and it fills in the number from her metrics automatically." />, false)}
         <RecordCard
           title="Awards & honors"
           hint="Optional."
@@ -334,9 +353,9 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           focusPrefix="event-date"
           settings={
             <>
-              <F path={['scheduleTitle']} label="Section heading" wide />
-              <F path={['scheduleColumns', 'event']} label="Event column heading" />
-              <F path={['scheduleColumns', 'info']} label="Last column heading" />
+              <F path={['scheduleTitle']} label="Section heading" wide help="The heading shown above the schedule table on the public sport page and the Schedule page." />
+              <F path={['scheduleColumns', 'event']} label="Event column heading" help="The title of the second column in the schedule table, for example Event / Showcase." />
+              <F path={['scheduleColumns', 'info']} label="Last column heading" help="The title of the last column in the schedule table, for example Pool / Field Info or Court / Live Stream Link." />
             </>
           }
           edit={(i) => (
@@ -379,19 +398,19 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           edit={(i) => (
             <>
               <F id={`team-name-${i}`} path={['teams', i, 'name']} label="Team name" />
-              <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
-              <Pick path={['teams', i, 'type']} label="Team type" options={[...TEAM_TYPES]} />
+              <F path={['teams', i, 'year']} label="Year" placeholder="2026" help="The season or year Ever played for this team. Teams are listed newest year first, and the newest year in each sport is marked Current on the Teams page." />
+              <Pick path={['teams', i, 'type']} label="Team type" options={[...TEAM_TYPES]} help="High School is a team run by her school. Travel / AAU is a club team outside of school. Coaches use this to understand the level and who to contact." />
               <F path={['teams', i, 'coach']} label="Coach" />
-              <F path={['teams', i, 'owner']} label="Owner (travel / AAU teams)" />
+              <F path={['teams', i, 'owner']} label="Owner (travel / AAU teams)" help="The person who owns or runs the travel or club organization. Coaches often contact the owner about rosters and tournaments. Leave it blank for school teams." />
               <F path={['teams', i, 'phone']} label="Phone" kind="phone" />
               <F path={['teams', i, 'email']} label="Email" kind="email" />
-              <F path={['teams', i, 'social']} label="Social link (optional)" placeholder="https://instagram.com/..." wide />
+              <F path={['teams', i, 'social']} label="Social link (optional)" placeholder="https://instagram.com/..." wide help="The full web address of the team’s page on Instagram, Facebook or X, starting with https://. It shows as a Social link on the team card." />
               <p className="text-sm font-semibold text-slate-300 sm:col-span-2">Stats for this team (shown on its PDF)</p>
               <List path={['teams', i, 'stats']} noun="stat" max={12} blank={{ label: '', value: '', note: '' }}>
                 {(j) => (
                   <>
                     <F path={['teams', i, 'stats', j, 'label']} label="Stat" placeholder="Batting average" />
-                    <F path={['teams', i, 'stats', j, 'value']} label="Value" placeholder=".412" />
+                    <F path={['teams', i, 'stats', j, 'value']} label="Value" placeholder=".412" help="The number for this stat, typed the way it should print, like .412 or 18. Team stats show on that team’s PDF." />
                     <F path={['teams', i, 'stats', j, 'note']} label="Note (optional)" wide />
                   </>
                 )}
@@ -457,7 +476,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
           edit={(i) => (
             <>
               <F id={`link-label-${i}`} path={['links', i, 'label']} label="Button text" />
-              <F path={['links', i, 'url']} label="Address" />
+              <F path={['links', i, 'url']} label="Address" help="The full web address the button opens, starting with https://, such as her FieldLevel or Hudl profile." />
             </>
           )}
           view={(r) => [
@@ -505,9 +524,9 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         edit={(i) => (
           <>
             <F id={`metric-label-${i}`} path={['metrics', i, 'label']} label="Label" />
-            <F path={['metrics', i, 'value']} label="Value" />
+            <F path={['metrics', i, 'value']} label="Value" help="Only the number, like 1.95 or 68. Put the unit (sec, mph) in the next box." />
             <F path={['metrics', i, 'unit']} label="Unit (sec, mph…)" />
-            <F path={['metrics', i, 'verified']} label="Verified month / year" />
+            <F path={['metrics', i, 'verified']} label="Verified month / year" help="When this number was measured or confirmed, like Oct 2026. Coaches trust a measurable more when it has a recent date, so it shows under every value." />
           </>
         )}
         view={(r) => [
