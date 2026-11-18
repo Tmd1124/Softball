@@ -3,7 +3,7 @@ import type { ReactNode, RefObject } from 'react'
 import { ApiError, api } from '../lib/api'
 import { formatPhone } from '../lib/format'
 import QrCode, { qrPngBlob, qrSvgString } from '../recruit/QrCode'
-import type { TeamItem, TrainerItem } from '../data/recruitingData'
+import type { ScheduleEvent, TeamItem, TrainerItem } from '../data/recruitingData'
 
 export type Path = (string | number)[]
 type Node = Record<string, unknown>
@@ -411,6 +411,53 @@ export function TrainersTable({ onPick }: { onPick: (n: number) => void }) {
                   <td className={`${td} font-semibold`}>{t.name}</td>
                   <td className={td}>{t.phone}</td>
                   <td className={td}>{t.email}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+export function EventsTable({ onPick }: { onPick: (n: number) => void }) {
+  const { draft } = useDraft()
+  const [open, setOpen] = useState(true)
+  const rows = ((getAt(draft, ['schedule']) as ScheduleEvent[] | undefined) ?? []).map((e, n) => ({ e, n })).filter((x) => x.e.date || x.e.event)
+  const th = 'sticky top-0 bg-slate-800 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-300'
+  const td = 'whitespace-nowrap px-3 py-2 text-slate-100'
+  return (
+    <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5" aria-label="All schedule events">
+      <CollapseHeader title="All schedule events" open={open} onToggle={() => setOpen((o) => !o)} />
+      {open && <p className="mb-3 text-sm text-slate-400">In the order entered. Click an event to edit it. Scroll to see more than five.</p>}
+      {!open ? null : rows.length === 0 ? (
+        <p className="text-sm text-slate-400">No events yet. Add one above.</p>
+      ) : (
+        <div className="max-h-[17.5rem] overflow-auto rounded-xl border border-slate-700" tabIndex={0}>
+          <table className="w-full min-w-[44rem] text-sm">
+            <thead>
+              <tr>
+                {['Date', 'Event', 'Location', 'Team', 'Info'].map((h) => (
+                  <th key={h} className={th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {rows.map(({ e, n }) => (
+                <tr
+                  key={n}
+                  tabIndex={0}
+                  onClick={() => onPick(n)}
+                  onKeyDown={(ev) => ev.key === 'Enter' && onPick(n)}
+                  aria-label={`Edit ${e.event || e.date}`}
+                  className="h-[3.1rem] cursor-pointer hover:bg-slate-800 focus-visible:bg-slate-800"
+                >
+                  <td className={td}>{e.date}</td>
+                  <td className={`${td} font-semibold`}>{e.event}</td>
+                  <td className={td}>{e.location}</td>
+                  <td className={td}>{e.team}</td>
+                  <td className={td}>{e.info}</td>
                 </tr>
               ))}
             </tbody>

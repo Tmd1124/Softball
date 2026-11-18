@@ -1,3 +1,4 @@
+import ScrollRow from '../admin/ScrollRow'
 import { useEffect, useState } from 'react'
 import { mount } from '../site/mount'
 import SiteShell from '../site/SiteShell'
@@ -52,7 +53,7 @@ function Panels({ meId }: { meId: number }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">Admin</p>
-      <nav aria-label="Admin sections" className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+      <ScrollRow label="Admin sections" className="mt-3">
         {TABS.map((t) => (
           <a
             key={t.id}
@@ -63,7 +64,7 @@ function Panels({ meId }: { meId: number }) {
             {t.label}
           </a>
         ))}
-      </nav>
+      </ScrollRow>
       <div className="mt-6" hidden={tab === 'users'}>
         <Content area={tab === 'users' ? 'overview' : tab} step={step} />
       </div>

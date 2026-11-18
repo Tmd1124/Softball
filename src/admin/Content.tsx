@@ -4,8 +4,10 @@ import { TEAM_TYPES, defaultSite, defaultSports } from '../data/recruitingData'
 import type { RecruitingData, SiteData, SportData, SportId } from '../data/recruitingData'
 import { mergeSite, mergeSport } from '../lib/recruiting'
 import type { StoredContent } from '../lib/recruiting'
+import ScrollRow from './ScrollRow'
+import RecordCard, { noRec, pickRec } from './RecordCard'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, Card, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, TeamsTable, TrainersTable } from './fields'
+import { BASKETBALL_POSITIONS, BATS_THROWS, Card, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
@@ -52,7 +54,7 @@ function Preview({ data, id }: { data: RecruitingData; id: SportId }) {
 
 function Chips({ steps, current, gaps, base }: { steps: { id: string; label: string }[]; current: string; gaps: Result['gaps']; base: string }) {
   return (
-    <nav aria-label="Steps" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+    <ScrollRow label="Steps">
       {steps.map((s, i) => {
         const n = gaps.filter((g) => g.step === s.id).length
         return (
@@ -72,7 +74,7 @@ function Chips({ steps, current, gaps, base }: { steps: { id: string; label: str
           </a>
         )
       })}
-    </nav>
+    </ScrollRow>
   )
 }
 
@@ -152,26 +154,20 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
 }
 
 function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
-  const [teamsOpen, setTeamsOpen] = useState(false)
-  const [trainerOpen, setTrainerOpen] = useState(false)
-  const [bioOpen, setBioOpen] = useState(false)
-  const [metricsOpen, setMetricsOpen] = useState(false)
-  const [trainerPick, setTrainerPick] = useState<{ n: number } | null>(null)
-  const trainerBox = useRef<HTMLElement>(null)
-  useEffect(() => {
-    if (!trainerPick || !trainerOpen) return
-    trainerBox.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-    document.getElementById(`trainer-name-${trainerPick.n}`)?.focus({ preventScroll: true })
-    setTrainerPick(null)
-  }, [trainerPick, trainerOpen])
-  const [pick, setPick] = useState<{ n: number } | null>(null)
+  const [openCard, setOpenCard] = useState<string | null>(null)
+  const [teamsRec, setTeamsRec] = useState(noRec)
+  const [trainerRec, setTrainerRec] = useState(noRec)
+  const [eventRec, setEventRec] = useState(noRec)
   const teamsBox = useRef<HTMLElement>(null)
+  const trainerBox = useRef<HTMLElement>(null)
+  const scheduleBox = useRef<HTMLElement>(null)
   useEffect(() => {
-    if (!pick || !teamsOpen) return
-    teamsBox.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-    document.getElementById(`team-name-${pick.n}`)?.focus({ preventScroll: true })
-    setPick(null)
-  }, [pick, teamsOpen])
+    setOpenCard(null)
+    setTeamsRec(noRec)
+    setTrainerRec(noRec)
+    setEventRec(noRec)
+  }, [id])
+  const card = (k: string) => ({ open: openCard === k, onToggle: () => setOpenCard((o) => (o === k ? null : k)) })
   const videoFields = (base: (string | number)[]) => (
     <>
       <F path={[...base, 'title']} label="Title" />
@@ -186,12 +182,12 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         <Card title="Featured video" hint="Use the embed address from YouTube, Vimeo or Hudl, starting with https://.">
           {videoFields(['featured'])}
         </Card>
-        <Card title="Skill clips">
+        <Collapsible title="Skill clips" {...card('clips')}>
           <F path={['clipsTitle']} label="Section heading" wide />
           <List path={['clips']} noun="clip" max={6} blank={{ title: '', blurb: '', length: '', embedUrl: '' }}>
             {(i) => videoFields(['clips', i])}
           </List>
-        </Card>
+        </Collapsible>
       </>
     )
   if (step === 'summary')
@@ -200,7 +196,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         <Card title="Scouting summary" hint="Write {popTime} wherever the pop time metric value should appear.">
           <F path={['summary']} label="Player profile text" area />
         </Card>
-        <Card title="Awards & honors" hint="Optional.">
+        <Collapsible title="Awards & honors" hint="Optional." {...card('awards')}>
           <List path={['awards']} noun="award" max={16} blank={{ title: '', year: '' }}>
             {(i) => (
               <>
@@ -209,19 +205,33 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
               </>
             )}
           </List>
-        </Card>
+        </Collapsible>
       </>
     )
   if (step === 'schedule')
     return (
-      <Card title="Schedule">
-        <F path={['scheduleTitle']} label="Section heading" wide />
-        <F path={['scheduleColumns', 'event']} label="Event column heading" />
-        <F path={['scheduleColumns', 'info']} label="Last column heading" />
-        <List path={['schedule']} noun="event" max={40} blank={{ date: '', event: '', location: '', team: '', info: '', infoUrl: '' }}>
-          {(i) => (
+      <>
+        <RecordCard
+          title="Schedule"
+          {...card('schedule')}
+          boxRef={scheduleBox}
+          listPath={['schedule']}
+          noun="event"
+          max={40}
+          blank={{ date: '', event: '', location: '', team: '', info: '', infoUrl: '' }}
+          rec={eventRec}
+          setRec={setEventRec}
+          focusPrefix="event-date"
+          settings={
             <>
-              <F path={['schedule', i, 'date']} label="Date" />
+              <F path={['scheduleTitle']} label="Section heading" wide />
+              <F path={['scheduleColumns', 'event']} label="Event column heading" />
+              <F path={['scheduleColumns', 'info']} label="Last column heading" />
+            </>
+          }
+          edit={(i) => (
+            <>
+              <F id={`event-date-${i}`} path={['schedule', i, 'date']} label="Date" />
               <F path={['schedule', i, 'event']} label="Event" />
               <F path={['schedule', i, 'location']} label="Location" />
               <F path={['schedule', i, 'team']} label="Team" />
@@ -229,51 +239,109 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
               <F path={['schedule', i, 'infoUrl']} label="Link for that text (optional)" />
             </>
           )}
-        </List>
-      </Card>
+          view={(r) => [
+            ['Date', String(r.date ?? '')],
+            ['Event', String(r.event ?? '')],
+            ['Location', String(r.location ?? '')],
+            ['Team', String(r.team ?? '')],
+            ['Pool / field / court / stream', String(r.info ?? '')],
+            ['Link', String(r.infoUrl ?? '')],
+          ]}
+        />
+        <EventsTable
+          onPick={(n) => {
+            setOpenCard('schedule')
+            setEventRec((r) => pickRec(r, n))
+          }}
+        />
+      </>
     )
   if (step === 'teams')
     return (
       <>
-        <Collapsible title="Teams & coaches" hint="One row per team and year, for this sport only. The newest year shows first everywhere on the site." open={teamsOpen} onToggle={() => setTeamsOpen((o) => !o)} boxRef={teamsBox}>
-          <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '', stats: [] }}>
-            {(i) => (
-              <>
-                <F id={`team-name-${i}`} path={['teams', i, 'name']} label="Team name" />
-                <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
-                <Pick path={['teams', i, 'type']} label="Team type" options={[...TEAM_TYPES]} />
-                <F path={['teams', i, 'coach']} label="Coach" />
-                <F path={['teams', i, 'owner']} label="Owner (travel / AAU teams)" />
-                <F path={['teams', i, 'phone']} label="Phone" kind="phone" />
-                <F path={['teams', i, 'email']} label="Email" kind="email" />
-                <F path={['teams', i, 'social']} label="Social link (optional)" placeholder="https://instagram.com/..." wide />
-                <p className="text-sm font-semibold text-slate-300 sm:col-span-2">Stats for this team (shown on its PDF)</p>
-                <List path={['teams', i, 'stats']} noun="stat" max={12} blank={{ label: '', value: '', note: '' }}>
-                  {(j) => (
-                    <>
-                      <F path={['teams', i, 'stats', j, 'label']} label="Stat" placeholder="Batting average" />
-                      <F path={['teams', i, 'stats', j, 'value']} label="Value" placeholder=".412" />
-                      <F path={['teams', i, 'stats', j, 'note']} label="Note (optional)" wide />
-                    </>
-                  )}
-                </List>
-              </>
-            )}
-          </List>
-        </Collapsible>
-        <TeamsTable onPick={(n) => { setTeamsOpen(true); setPick({ n }) }} />
-        <Collapsible title="Personal training instructor" hint="Ever’s trainer for this sport." open={trainerOpen} onToggle={() => setTrainerOpen((o) => !o)} boxRef={trainerBox}>
-          <List path={['trainers']} noun="trainer" max={10} blank={{ name: '', phone: '', email: '' }}>
-            {(i) => (
-              <>
-                <F id={`trainer-name-${i}`} path={['trainers', i, 'name']} label="Name" />
-                <F path={['trainers', i, 'phone']} label="Phone" kind="phone" />
-                <F path={['trainers', i, 'email']} label="Email" kind="email" wide />
-              </>
-            )}
-          </List>
-        </Collapsible>
-        <TrainersTable onPick={(n) => { setTrainerOpen(true); setTrainerPick({ n }) }} />
+        <RecordCard
+          title="Teams & coaches"
+          hint="One team per year, for this sport only. The newest year shows first everywhere on the site."
+          {...card('teams')}
+          boxRef={teamsBox}
+          listPath={['teams']}
+          noun="team"
+          max={20}
+          blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '', stats: [] }}
+          rec={teamsRec}
+          setRec={setTeamsRec}
+          focusPrefix="team-name"
+          edit={(i) => (
+            <>
+              <F id={`team-name-${i}`} path={['teams', i, 'name']} label="Team name" />
+              <F path={['teams', i, 'year']} label="Year" placeholder="2026" />
+              <Pick path={['teams', i, 'type']} label="Team type" options={[...TEAM_TYPES]} />
+              <F path={['teams', i, 'coach']} label="Coach" />
+              <F path={['teams', i, 'owner']} label="Owner (travel / AAU teams)" />
+              <F path={['teams', i, 'phone']} label="Phone" kind="phone" />
+              <F path={['teams', i, 'email']} label="Email" kind="email" />
+              <F path={['teams', i, 'social']} label="Social link (optional)" placeholder="https://instagram.com/..." wide />
+              <p className="text-sm font-semibold text-slate-300 sm:col-span-2">Stats for this team (shown on its PDF)</p>
+              <List path={['teams', i, 'stats']} noun="stat" max={12} blank={{ label: '', value: '', note: '' }}>
+                {(j) => (
+                  <>
+                    <F path={['teams', i, 'stats', j, 'label']} label="Stat" placeholder="Batting average" />
+                    <F path={['teams', i, 'stats', j, 'value']} label="Value" placeholder=".412" />
+                    <F path={['teams', i, 'stats', j, 'note']} label="Note (optional)" wide />
+                  </>
+                )}
+              </List>
+            </>
+          )}
+          view={(r) => [
+            ['Team name', String(r.name ?? '')],
+            ['Year', String(r.year ?? '')],
+            ['Type', String(r.type ?? '')],
+            ['Coach', String(r.coach ?? '')],
+            ['Owner', String(r.owner ?? '')],
+            ['Phone', String(r.phone ?? '')],
+            ['Email', String(r.email ?? '')],
+            ['Social link', String(r.social ?? '')],
+            ['Stats', ((r.stats as { label: string; value: string }[] | undefined) ?? []).map((x) => `${x.label} ${x.value}`).join(' · ')],
+          ]}
+        />
+        <TeamsTable
+          onPick={(n) => {
+            setOpenCard('teams')
+            setTeamsRec((r) => pickRec(r, n))
+          }}
+        />
+        <RecordCard
+          title="Personal training instructor"
+          hint="Ever’s trainer for this sport."
+          {...card('trainers')}
+          boxRef={trainerBox}
+          listPath={['trainers']}
+          noun="trainer"
+          max={10}
+          blank={{ name: '', phone: '', email: '' }}
+          rec={trainerRec}
+          setRec={setTrainerRec}
+          focusPrefix="trainer-name"
+          edit={(i) => (
+            <>
+              <F id={`trainer-name-${i}`} path={['trainers', i, 'name']} label="Name" />
+              <F path={['trainers', i, 'phone']} label="Phone" kind="phone" />
+              <F path={['trainers', i, 'email']} label="Email" kind="email" wide />
+            </>
+          )}
+          view={(r) => [
+            ['Name', String(r.name ?? '')],
+            ['Phone', String(r.phone ?? '')],
+            ['Email', String(r.email ?? '')],
+          ]}
+        />
+        <TrainersTable
+          onPick={(n) => {
+            setOpenCard('trainers')
+            setTrainerRec((r) => pickRec(r, n))
+          }}
+        />
       </>
     )
   if (step === 'contacts')
@@ -294,7 +362,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
     )
   return (
     <>
-      <Collapsible title="Bio" open={bioOpen} onToggle={() => setBioOpen((o) => !o)}>
+      <Collapsible title="Bio" {...card('bio')}>
         {id === 'softball' ? (
           <>
             <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
@@ -305,7 +373,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         )}
         <PhotoField sport={id} />
       </Collapsible>
-      <Collapsible title="Verified metrics" open={metricsOpen} onToggle={() => setMetricsOpen((o) => !o)} hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
+      <Collapsible title="Verified metrics" {...card('metrics')} hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}.">
         <List path={['metrics']} noun="metric" max={8} blank={{ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' }}>
           {(i) => (
             <>
