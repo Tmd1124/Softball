@@ -34,9 +34,11 @@ interface FormState {
   handedness: boolean
   allM: string[]
   checkedM: string[]
+  baseP: string[]
+  baseM: string[]
 }
 
-const blankForm: FormState = { pick: '', label: '', id: '', idTouched: false, accent: COLORS[0][1], positionLabel: 'Positions', positionStyle: 'multi', all: [], checked: [], handedness: false, allM: [], checkedM: [] }
+const blankForm: FormState = { pick: '', label: '', id: '', idTouched: false, accent: COLORS[0][1], positionLabel: 'Positions', positionStyle: 'multi', all: [], checked: [], handedness: false, allM: [], checkedM: [], baseP: [], baseM: [] }
 
 const MAX_METRICS = 8
 const mkey = (label: string, unit: string) => `${label}|${unit}`
@@ -56,6 +58,8 @@ const fromCatalog = (name: string): FormState => {
     positionLabel: c.label,
     positionStyle: c.style,
     all: c.positions,
+    baseP: c.positions,
+    baseM: c.metrics.map(([l, u]) => mkey(l, u)),
     checked: c.positions,
     handedness: c.handedness,
     allM: c.metrics.map(([l, u]) => mkey(l, u)),
@@ -76,6 +80,8 @@ const fromConfig = (c: SportConfig): FormState => {
     positionLabel: c.positionLabel,
     positionStyle: c.positionStyle,
     all: [...new Set([...known, ...c.positions])],
+    baseP: known,
+    baseM: cat?.metrics.map(([l, u]) => mkey(l, u)) ?? [],
     checked: c.positions,
     handedness: c.handedness,
     allM: [...new Set([...(cat?.metrics.map(([l, u]) => mkey(l, u)) ?? []), ...own])],
@@ -145,6 +151,8 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
     setCustom('')
   }
 
+  const removeP = (p: string) => set({ all: f.all.filter((x) => x !== p), checked: f.checked.filter((x) => x !== p) })
+  const removeM = (k: string) => set({ allM: f.allM.filter((x) => x !== k), checkedM: f.checkedM.filter((x) => x !== k) })
   const toggleM = (k: string) => set({ checkedM: f.checkedM.includes(k) ? f.checkedM.filter((x) => x !== k) : [...f.checkedM, k] })
   const addCustomM = () => {
     const label = customM.label.trim().replace(/\|/g, '')
@@ -275,10 +283,17 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
               <div className="grid gap-1 rounded-xl border border-slate-600 bg-slate-950 p-2 sm:grid-cols-2">
                 {f.all.length === 0 && <p className="p-2 text-sm text-slate-400">No choices yet. Add your own below.</p>}
                 {f.all.map((p) => (
-                  <label key={p} className="flex min-h-12 items-center gap-3 rounded-lg px-2 text-sm text-slate-100 hover:bg-slate-800">
-                    <input type="checkbox" className="h-5 w-5 accent-amber-500" checked={f.checked.includes(p)} onChange={() => toggle(p)} />
-                    {p}
-                  </label>
+                  <div key={p} className="flex items-center rounded-lg hover:bg-slate-800">
+                    <label className="flex min-h-12 flex-1 items-center gap-3 px-2 text-sm text-slate-100">
+                      <input type="checkbox" className="h-5 w-5 accent-amber-500" checked={f.checked.includes(p)} onChange={() => toggle(p)} />
+                      {p}
+                    </label>
+                    {!f.baseP.includes(p) && (
+                      <button type="button" onClick={() => removeP(p)} aria-label={`Remove ${p} from the list`} title="Remove from the list" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg text-red-300 active:bg-red-500/10">
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
               <div className="mt-2 flex gap-2">
@@ -315,10 +330,17 @@ function SportForm({ initial, editing, existingIds, busy, error, onSubmit, onCan
                   {f.allM.map((k) => {
                     const on = f.checkedM.includes(k)
                     return (
-                      <label key={k} className={`flex min-h-12 items-center gap-3 rounded-lg px-2 text-sm hover:bg-slate-800 ${!on && metricKeys.length >= MAX_METRICS ? 'text-slate-500' : 'text-slate-100'}`}>
-                        <input type="checkbox" className="h-5 w-5 accent-amber-500" checked={on} disabled={!on && metricKeys.length >= MAX_METRICS} onChange={() => toggleM(k)} />
-                        {mshow(k)}
-                      </label>
+                      <div key={k} className="flex items-center rounded-lg hover:bg-slate-800">
+                        <label className={`flex min-h-12 flex-1 items-center gap-3 px-2 text-sm ${!on && metricKeys.length >= MAX_METRICS ? 'text-slate-500' : 'text-slate-100'}`}>
+                          <input type="checkbox" className="h-5 w-5 accent-amber-500" checked={on} disabled={!on && metricKeys.length >= MAX_METRICS} onChange={() => toggleM(k)} />
+                          {mshow(k)}
+                        </label>
+                        {!f.baseM.includes(k) && (
+                          <button type="button" onClick={() => removeM(k)} aria-label={`Remove ${mshow(k)} from the list`} title="Remove from the list" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-lg text-red-300 active:bg-red-500/10">
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     )
                   })}
                 </div>
