@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import type { RecruitingData, SportData, SportId } from '../data/recruitingData'
 import { telHref } from './blocks'
 import QrCode from './QrCode'
-import { academicExtras, bodyLine, currentTeam, hasRealPhoto, summaryText, teamsNewestFirst } from './derive'
+import { academicExtras, bodyLine, currentStats, currentTeam, hasRealPhoto, summaryText, teamsNewestFirst } from './derive'
 
 interface Theme {
   dark: string
@@ -12,7 +12,7 @@ interface Theme {
   ink: string
 }
 
-const THEMES: Record<SportId, Theme> = {
+export const THEMES: Record<SportId, Theme> = {
   softball: { dark: '#0d2214', mid: '#153220', accent: '#cde62b', tint: '#f1f7d9', ink: '#1d4a2d' },
   basketball: { dark: '#1e130b', mid: '#2e1d11', accent: '#f97316', tint: '#fff0e3', ink: '#9a3a0a' },
 }
@@ -29,6 +29,7 @@ function Head({ children }: { children: ReactNode }) {
 export default function ProfileSheet({ data, id, className = '' }: { data: RecruitingData; id: SportId; className?: string }) {
   const s: SportData = data[id]
   const t = THEMES[id]
+  const stats = currentStats(s)
   const { athlete, academics, contact, siteUrl } = data
   const pageUrl = `${siteUrl}/${id}/`
   const extras = academicExtras(data)
@@ -110,13 +111,13 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
               <Head>Player profile</Head>
               <p className="text-[11.5px] leading-[1.55]">{summaryText(s)}</p>
             </section>
-            {(s.stats.length > 0 || s.awards.length > 0) && (
+            {(stats.length > 0 || s.awards.length > 0) && (
               <section className="rounded-lg p-3" style={{ background: 'var(--tint)' }}>
-                {s.stats.length > 0 && (
+                {stats.length > 0 && (
                   <>
                     <Head>Season stats</Head>
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-                      {s.stats.map((x, i) => (
+                      {stats.map((x, i) => (
                         <div key={i} className="flex justify-between gap-2">
                           <dt>{x.label}</dt>
                           <dd className="font-extrabold">{x.value}</dd>
@@ -126,7 +127,7 @@ export default function ProfileSheet({ data, id, className = '' }: { data: Recru
                   </>
                 )}
                 {s.awards.length > 0 && (
-                  <div className={s.stats.length ? 'mt-3' : ''}>
+                  <div className={stats.length ? 'mt-3' : ''}>
                     <Head>Awards & honors</Head>
                     <ul className="text-[11px] leading-snug">
                       {s.awards.map((x, i) => (

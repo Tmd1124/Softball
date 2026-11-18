@@ -9,7 +9,7 @@ import Assistant from './Assistant'
 import { useRecruiting } from '../lib/recruiting'
 import { telHref } from '../recruit/blocks'
 
-type Page = 'home' | 'softball' | 'basketball' | 'schedule' | 'admin'
+type Page = 'home' | 'softball' | 'basketball' | 'schedule' | 'teams' | 'admin'
 
 const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void }>({
   openLogin: () => undefined,
@@ -22,6 +22,7 @@ const NAV: { page: Page; href: string; label: string }[] = [
   { page: 'softball', href: '/softball/', label: 'Softball' },
   { page: 'basketball', href: '/basketball/', label: 'Basketball' },
   { page: 'schedule', href: '/schedule/', label: 'Schedule' },
+  { page: 'teams', href: '/teams/', label: 'Teams' },
 ]
 
 export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openLogin: () => void; openProfile: () => void }) {
@@ -34,7 +35,7 @@ export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openL
             key={n.page}
             href={n.href}
             aria-current={page === n.page ? 'page' : undefined}
-            className="flex min-h-12 items-center rounded-full px-2 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
+            className="flex min-h-12 items-center rounded-full px-1.5 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
           >
             {n.label}
           </a>
@@ -100,7 +101,7 @@ export function SiteFooter() {
   )
 }
 
-const PUBLIC_PAGES: Page[] = ['home', 'softball', 'basketball', 'schedule']
+const PUBLIC_PAGES: Page[] = ['home', 'softball', 'basketball', 'schedule', 'teams']
 
 export default function SiteShell({ page, children, footer = true, help, lift = false }: { page: Page; children: ReactNode; footer?: boolean; help?: string; lift?: boolean }) {
   const [hash, setHash] = useState(location.hash)

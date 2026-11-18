@@ -150,6 +150,7 @@ function clean_sport(array $in, string $name): array
                 'phone' => phone($t, 'phone'),
                 'email' => email($t, 'email'),
                 'social' => url($t, 'social'),
+                'stats' => rows($t['stats'] ?? [], 12, fn(array $x) => ['label' => str($x, 'label', 60), 'value' => str($x, 'value', 30), 'note' => str($x, 'note', 60)]),
             ];
         }),
         'trainers' => rows($in['trainers'] ?? [], 10, fn(array $t) => ['name' => str($t, 'name', 80), 'phone' => phone($t, 'phone'), 'email' => email($t, 'email')]),
@@ -179,7 +180,6 @@ function clean_sport(array $in, string $name): array
             'infoUrl' => url($e, 'infoUrl'),
         ]),
         'links' => rows($in['links'] ?? [], 8, fn(array $l) => ['label' => str($l, 'label', 60), 'url' => url($l, 'url')]),
-        'stats' => rows($in['stats'] ?? [], 16, fn(array $x) => ['label' => str($x, 'label', 60), 'value' => str($x, 'value', 30), 'note' => str($x, 'note', 60)]),
         'awards' => rows($in['awards'] ?? [], 16, fn(array $x) => ['title' => str($x, 'title', 120), 'year' => str($x, 'year', 20)]),
     ];
     if (str($in, 'handedness', 60) !== '') {

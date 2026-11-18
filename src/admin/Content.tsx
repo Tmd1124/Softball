@@ -180,17 +180,6 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         <Card title="Scouting summary" hint="Write {popTime} wherever the pop time metric value should appear.">
           <F path={['summary']} label="Player profile text" area />
         </Card>
-        <Card title="Season stats" hint="Optional. Shows on the public page and the profile once you add a row.">
-          <List path={['stats']} noun="stat" max={16} blank={{ label: '', value: '', note: '' }}>
-            {(i) => (
-              <>
-                <F path={['stats', i, 'label']} label="Stat" placeholder="Batting average" />
-                <F path={['stats', i, 'value']} label="Value" placeholder=".412" />
-                <F path={['stats', i, 'note']} label="Season / context (optional)" placeholder="2026 spring" wide />
-              </>
-            )}
-          </List>
-        </Card>
         <Card title="Awards & honors" hint="Optional.">
           <List path={['awards']} noun="award" max={16} blank={{ title: '', year: '' }}>
             {(i) => (
@@ -227,7 +216,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
     return (
       <>
         <Card title="Teams & coaches" hint="One row per team and year, for this sport only. The newest year shows first everywhere on the site.">
-          <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '' }}>
+          <List path={['teams']} noun="team" max={20} blank={{ year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', social: '', stats: [] }}>
             {(i) => (
               <>
                 <F path={['teams', i, 'name']} label="Team name" />
@@ -238,6 +227,16 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
                 <F path={['teams', i, 'phone']} label="Phone" kind="phone" />
                 <F path={['teams', i, 'email']} label="Email" kind="email" />
                 <F path={['teams', i, 'social']} label="Social link (optional)" placeholder="https://instagram.com/..." wide />
+                <p className="text-sm font-semibold text-slate-300 sm:col-span-2">Stats for this team (shown on its PDF)</p>
+                <List path={['teams', i, 'stats']} noun="stat" max={12} blank={{ label: '', value: '', note: '' }}>
+                  {(j) => (
+                    <>
+                      <F path={['teams', i, 'stats', j, 'label']} label="Stat" placeholder="Batting average" />
+                      <F path={['teams', i, 'stats', j, 'value']} label="Value" placeholder=".412" />
+                      <F path={['teams', i, 'stats', j, 'note']} label="Note (optional)" wide />
+                    </>
+                  )}
+                </List>
               </>
             )}
           </List>

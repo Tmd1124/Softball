@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
 import { defaultSite, defaultSports } from '../data/recruitingData'
-import type { RecruitingData, SiteData, SportData, SportId } from '../data/recruitingData'
+import type { RecruitingData, SiteData, SportData, SportId, StatItem } from '../data/recruitingData'
 
 export interface StoredContent {
   site: SiteData | null
@@ -18,16 +18,23 @@ export function mergeSite(site: SiteData | null): SiteData {
   }
 }
 
-const blankTeam = { year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '' }
+const blankTeam = { year: '', name: '', type: '', coach: '', owner: '', phone: '', email: '', stats: [] }
+
+const yearNum = (t: { year: string }) => parseInt(t.year, 10) || 0
 
 export function mergeSport(id: SportId, sport: SportData | null): SportData {
   const merged = { ...defaultSports[id], ...sport }
   if (!sport) return merged
-  const saved = (sport.teams ?? []).filter((t) => t.name).map((t) => ({ ...blankTeam, ...t }))
-  if (saved.length) return { ...merged, teams: saved }
-  const legacyTeam = (sport as { team?: string }).team
-  if (legacyTeam) return { ...merged, teams: [{ ...blankTeam, name: legacyTeam }] }
-  return { ...merged, teams: sport.teams ? [] : defaultSports[id].teams }
+  const legacy = sport as { team?: string; stats?: StatItem[] }
+  let teams = (sport.teams ?? []).filter((t) => t.name).map((t) => ({ ...blankTeam, ...t }))
+  if (!teams.length && legacy.team) teams = [{ ...blankTeam, name: legacy.team }]
+  if (!teams.length && !sport.teams) teams = defaultSports[id].teams
+  if (legacy.stats?.length && teams.length && !teams.some((t) => t.stats.length)) {
+    const top = teams.reduce((m, t) => (yearNum(t) > yearNum(m) ? t : m), teams[0])
+    teams = teams.map((t) => (t === top ? { ...t, stats: legacy.stats! } : t))
+  }
+  const { stats: _stats, ...rest } = merged as SportData & { stats?: StatItem[] }
+  return { ...rest, teams }
 }
 
 export function merge(c: StoredContent): RecruitingData {

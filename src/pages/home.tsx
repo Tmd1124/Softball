@@ -4,7 +4,8 @@ import { mount } from '../site/mount'
 import SiteShell from '../site/SiteShell'
 import { useRecruiting } from '../lib/recruiting'
 import { PdfButton } from '../recruit/blocks'
-import { currentTeam } from '../recruit/derive'
+import type { SportData } from '../data/recruitingData'
+import { rankedTeams } from '../recruit/derive'
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -31,6 +32,24 @@ function JumpCard({ href, title, blurb, icon }: { href: string; title: string; b
   )
 }
 
+function Latest({ sport }: { sport: SportData }) {
+  const t = rankedTeams(sport)[0]?.team
+  if (!t) return null
+  return (
+    <span className="mt-2 block">
+      <span className="text-slate-400">{sport.label}:</span> <strong>{t.name}</strong>
+      {t.year && ` (${t.year})`}
+      {t.coach && ` · Coach ${t.coach}`}
+      {t.social && (
+        <>
+          {' · '}
+          <a href={t.social} target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-400">Social</a>
+        </>
+      )}
+    </span>
+  )
+}
+
 function Home() {
   const data = useRecruiting()
   if (!data) return <SiteShell page="home">{null}</SiteShell>
@@ -50,11 +69,10 @@ function Home() {
           <Fact label="School & teams">
             {athlete.school} ({athlete.location})
             <br />
-            {currentTeam(softball)}
-            <br />
-            {currentTeam(basketball)}
-            <br />
             Jersey #{athlete.jersey}
+            <Latest sport={softball} />
+            <Latest sport={basketball} />
+            <a href="/teams/" className="mt-2 inline-block font-bold text-amber-400 underline">All teams &amp; coaches →</a>
           </Fact>
           <Fact label="Academics">
             GPA: {academics.gpa}

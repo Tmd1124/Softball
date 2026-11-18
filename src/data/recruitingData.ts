@@ -36,6 +36,7 @@ export interface TeamItem {
   phone: string
   email: string
   social?: string
+  stats: StatItem[]
 }
 
 export interface TrainerItem {
@@ -77,7 +78,6 @@ export interface SportData {
   scheduleColumns: { event: string; info: string }
   schedule: ScheduleEvent[]
   links: LinkItem[]
-  stats: StatItem[]
   awards: AwardItem[]
 }
 
@@ -120,7 +120,7 @@ export const defaults = {
     positions: 'Catcher / First Base',
     handedness: 'Bats: R / Throws: R',
     teams: [
-      { year: '2026', name: '[Travel Team Name & Age Division]', type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com' },
+      { year: '2026', name: '[Travel Team Name & Age Division]', type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com', stats: [] },
     ],
     trainers: [{ name: '[Personal Trainer Name]', phone: '(000) 000-0000', email: 'trainer@example.com' }],
     metrics: [
@@ -170,7 +170,6 @@ export const defaults = {
       { label: 'SportsRecruits', url: 'https://sportsrecruits.com' },
       { label: 'X / Twitter', url: 'https://x.com/' },
     ],
-    stats: [],
     awards: [],
   } satisfies SportData,
 
@@ -180,7 +179,7 @@ export const defaults = {
     photoFocus: 20,
     positions: '[Primary Position / Secondary Position, e.g., Point Guard / Shooting Guard]',
     teams: [
-      { year: '2026', name: '[AAU/Club Team Name & Circuit]', type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com' },
+      { year: '2026', name: '[AAU/Club Team Name & Circuit]', type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com', stats: [] },
     ],
     trainers: [{ name: '[Personal Trainer Name]', phone: '(000) 000-0000', email: 'trainer@example.com' }],
     metrics: [
@@ -230,7 +229,6 @@ export const defaults = {
       { label: 'NCSA', url: 'https://www.ncsasports.org' },
       { label: 'X / Twitter', url: 'https://x.com/' },
     ],
-    stats: [],
     awards: [],
   } satisfies SportData,
 }

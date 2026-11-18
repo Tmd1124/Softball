@@ -22,6 +22,14 @@ export const HELP: Record<string, HelpTopic> = {
       'Tap a phone number to call or an email to write to a coach. “Download 1-Page PDF” opens a printable sheet.',
     ],
   },
+  teams: {
+    title: 'Teams & coaches',
+    tips: [
+      'Every team Ever has played for, newest year first. The newest year in each sport is highlighted as Current.',
+      'Tap a phone number to call, an email to write, or Social to open the team’s page.',
+      'Tap Team PDF on any team to print or save a one-page sheet with that team’s stats.',
+    ],
+  },
   schedule: {
     title: 'Schedule',
     tips: [
@@ -75,7 +83,7 @@ export const HELP: Record<string, HelpTopic> = {
       'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR. Next and Back buttons are at the bottom of each step.',
       'Upload a photo of Ever under Bio. It appears on the sport page and in the printed profile header. Choose positions from the checklist and bats/throws from the list. Edit each metric’s value, unit and verified month and year.',
       'For film, paste the embed address (https://…) from YouTube, Vimeo or Hudl.',
-      'Summary & honors also holds optional season stats and awards. They appear on the page and profile once you add them.',
+      'Summary & honors holds optional awards. Season stats are entered per team under Teams & coaches; the newest team’s stats show on the page and profile.',
       'The live preview updates as you type. Save changes publishes to the public page and printable profile.',
     ],
   },
@@ -84,7 +92,7 @@ export const HELP: Record<string, HelpTopic> = {
     tips: [
       'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR.',
       'Pick a primary and optional secondary position, then update the four metric boxes and their verified dates.',
-      'Add season stats and awards under Summary & honors. They show only after you add rows.',
+      'Add awards under Summary & honors, and per-team stats under Teams & coaches. They show only after you add rows.',
       'The live preview shows the printed profile with your unsaved edits. Save changes publishes it.',
     ],
   },

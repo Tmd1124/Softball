@@ -1,13 +1,14 @@
 import { useRecruiting } from '../lib/recruiting'
 import type { SportData, SportId } from '../data/recruitingData'
 import SiteShell from '../site/SiteShell'
-import { academicExtras, bodyLine, currentTeam, summaryText, teamsNewestFirst } from './derive'
+import { academicExtras, bodyLine, currentStats, currentTeam, summaryText, teamsNewestFirst } from './derive'
 import { MetricStrip, TeamCard, TrainerCard, PdfButton, ScheduleTable, Section, VideoEmbed, buttonClass } from './blocks'
 
 export default function SportPage({ id }: { id: SportId }) {
   const data = useRecruiting()
   if (!data) return <SiteShell page={id}>{null}</SiteShell>
   const sport: SportData = data[id]
+  const stats = currentStats(sport)
   const { athlete, academics } = data
   const pdf = `/profile/${id}/?print=1`
   const sub = [sport.positions, sport.handedness, bodyLine(data)].filter(Boolean).join(' | ')
@@ -62,13 +63,13 @@ export default function SportPage({ id }: { id: SportId }) {
         <blockquote className="rounded-2xl border-l-4 border-amber-500 bg-slate-900 p-5 text-base leading-relaxed text-slate-200 sm:p-6 sm:text-lg">
           <strong className="text-slate-50">Player Profile:</strong> {summaryText(sport)}
         </blockquote>
-        {(sport.stats.length > 0 || sport.awards.length > 0) && (
+        {(stats.length > 0 || sport.awards.length > 0) && (
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {sport.stats.length > 0 && (
+            {stats.length > 0 && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Season stats</h3>
                 <dl className="mt-3 space-y-2 text-sm">
-                  {sport.stats.map((x, i) => (
+                  {stats.map((x, i) => (
                     <div key={i} className="flex justify-between gap-4">
                       <dt className="text-slate-300">{x.label}{x.note && <span className="text-slate-500"> ({x.note})</span>}</dt>
                       <dd className="font-extrabold tabular-nums text-slate-50">{x.value}</dd>
