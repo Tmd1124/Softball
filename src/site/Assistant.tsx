@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { HelpCircle, MessageCircle, Printer, Send, X } from 'lucide-react'
+import { HelpCircle, MessageCircle, Printer, Send, Trash2, X } from 'lucide-react'
 import { ApiError, api } from '../lib/api'
 import { HELP } from './helpContent'
 
@@ -168,10 +168,23 @@ export default function Assistant({ helpKey, lift = false, startOn }: { helpKey:
                 )}
                 <div ref={end} />
               </div>
-              {msgs.some((m) => m.role === 'assistant') && (
-                <div className="border-t border-slate-800 px-4 py-2">
-                  <button type="button" onClick={() => printConversation(msgs, ai)} className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800">
-                    <Printer size={16} aria-hidden /> Print this conversation
+              {msgs.length > 0 && (
+                <div className="flex flex-wrap gap-2 border-t border-slate-800 px-4 py-2">
+                  {msgs.some((m) => m.role === 'assistant') && (
+                    <button type="button" onClick={() => printConversation(msgs, ai)} aria-label="Print this conversation" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800">
+                      <Printer size={16} aria-hidden /> Print
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMsgs([])
+                      setError('')
+                      setText('')
+                    }}
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-600 px-4 text-sm font-bold text-slate-100 active:bg-slate-800"
+                  >
+                    <Trash2 size={16} aria-hidden /> Clear conversation
                   </button>
                 </div>
               )}
