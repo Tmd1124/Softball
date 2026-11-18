@@ -8,10 +8,7 @@ const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function sport_param(mixed $v): string
 {
-    if (!is_string($v) || !in_array($v, SPORTS, true)) {
-        respond(400, ['error' => 'Unknown sport']);
-    }
-    return $v;
+    return valid_site_sport($v);
 }
 
 function store_photo(PDO $pdo, string $sport, string $bytes, string $mime): void
@@ -89,6 +86,11 @@ function fetch_remote_image(string $url): string
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $sport = sport_param($_GET['sport'] ?? null);
+    $shown = array_column(site_sports(db(), true), 'id');
+    if (!in_array($sport, $shown, true) && !((current_user()['role'] ?? '') === 'admin')) {
+        http_response_code(404);
+        exit;
+    }
     $q = db()->prepare('SELECT mime, data FROM site_images WHERE name = ?');
     $q->execute([$sport]);
     $row = $q->fetch();

@@ -1,4 +1,4 @@
-import type { SiteData, SportData } from '../data/recruitingData'
+import type { SiteData, SportConfig, SportData } from '../data/recruitingData'
 import { hasRealPhoto } from '../recruit/derive'
 
 export interface Gap {
@@ -66,10 +66,10 @@ export function siteGaps(s: SiteData): Result {
   return g.result
 }
 
-export function sportGaps(id: string, s: SportData): Result {
+export function sportGaps(cfg: SportConfig, s: SportData): Result {
   const g = new Collector()
-  g.check('bio', 'Positions', s.positions)
-  if (id === 'softball') g.check('bio', 'Bats / throws', s.handedness)
+  g.check('bio', cfg.positionLabel, s.positions)
+  if (cfg.handedness) g.check('bio', 'Bats / throws', s.handedness)
   g.check('bio', 'Photo of Ever', hasRealPhoto(s) ? 'set' : '')
   s.metrics.forEach((m) => {
     g.check('bio', `${m.label} value`, m.value)

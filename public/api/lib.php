@@ -114,6 +114,22 @@ function ensure_schema(PDO $pdo): void
             updated_at DATETIME NOT NULL
         )"
     );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS sports (
+            id VARCHAR(32) NOT NULL PRIMARY KEY,
+            label VARCHAR(40) NOT NULL,
+            accent VARCHAR(7) NOT NULL,
+            position_style VARCHAR(8) NOT NULL,
+            position_label VARCHAR(20) NOT NULL,
+            handedness INT NOT NULL DEFAULT 0,
+            positions TEXT NOT NULL,
+            metrics TEXT NOT NULL,
+            visible INT NOT NULL DEFAULT 0,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL
+        )"
+    );
+    seed_sports($pdo);
     $pdo->exec('CREATE TABLE IF NOT EXISTS chat_log (ip VARCHAR(45) NOT NULL, created_at DATETIME NOT NULL)');
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS sessions (
@@ -129,6 +145,67 @@ function ensure_schema(PDO $pdo): void
             attempted_at DATETIME NOT NULL
         )'
     );
+}
+
+function seed_sports(PDO $pdo): void
+{
+    if ((int) $pdo->query('SELECT COUNT(*) FROM sports')->fetchColumn() > 0) {
+        return;
+    }
+    $ins = $pdo->prepare('INSERT INTO sports (id, label, accent, position_style, position_label, handedness, positions, metrics, visible, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
+    $ins->execute([
+        'softball', 'Softball', '#cde62b', 'multi', 'Positions', 1,
+        json_encode(['Pitcher', 'Catcher', 'First Base', 'Second Base', 'Third Base', 'Shortstop', 'Left Field', 'Center Field', 'Right Field', 'Designated Player', 'Utility']),
+        json_encode([
+            ['key' => 'popTime', 'label' => 'Pop Time', 'unit' => 'sec'],
+            ['key' => 'overhandVelo', 'label' => 'Overhand Velo', 'unit' => 'mph'],
+            ['key' => 'exitVelo', 'label' => 'Exit Velocity', 'unit' => 'mph'],
+            ['key' => 'homeToFirst', 'label' => 'Home-to-1st', 'unit' => 'sec'],
+        ]),
+        1, now(),
+    ]);
+    $ins->execute([
+        'basketball', 'Basketball', '#f97316', 'pair', 'Positions', 0,
+        json_encode(['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center', 'Combo Guard', 'Wing', 'Forward']),
+        json_encode([
+            ['key' => 'wingspan', 'label' => 'Wingspan', 'unit' => ''],
+            ['key' => 'standingReach', 'label' => 'Standing Reach', 'unit' => ''],
+            ['key' => 'approachVertical', 'label' => 'Approach Vertical', 'unit' => ''],
+            ['key' => 'sprint', 'label' => '3/4 Court Sprint', 'unit' => 'sec'],
+        ]),
+        2, now(),
+    ]);
+}
+
+function site_sports(PDO $pdo, bool $visibleOnly = false): array
+{
+    $out = [];
+    foreach ($pdo->query('SELECT * FROM sports ORDER BY sort_order, id')->fetchAll() as $r) {
+        if ($visibleOnly && !(int) $r['visible']) {
+            continue;
+        }
+        $out[] = [
+            'id' => $r['id'],
+            'label' => $r['label'],
+            'accent' => $r['accent'],
+            'positionStyle' => $r['position_style'],
+            'positionLabel' => $r['position_label'],
+            'handedness' => (int) $r['handedness'] === 1,
+            'positions' => json_decode((string) $r['positions'], true) ?: [],
+            'metrics' => json_decode((string) $r['metrics'], true) ?: [],
+            'visible' => (int) $r['visible'] === 1,
+            'order' => (int) $r['sort_order'],
+        ];
+    }
+    return $out;
+}
+
+function valid_site_sport(mixed $v): string
+{
+    if (!is_string($v) || !in_array($v, array_column(site_sports(db()), 'id'), true)) {
+        respond(400, ['error' => 'Unknown sport']);
+    }
+    return $v;
 }
 
 function add_column_if_missing(PDO $pdo, string $table, string $column, string $definition): void

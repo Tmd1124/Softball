@@ -1,24 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, api } from '../lib/api'
-import { TEAM_TYPES, defaultSite, defaultSports } from '../data/recruitingData'
-import type { RecruitingData, SiteData, SportData, SportId } from '../data/recruitingData'
+import { TEAM_TYPES, defaultSite, defaultSport } from '../data/recruitingData'
+import type { RecruitingData, SiteData, SportConfig, SportData } from '../data/recruitingData'
 import { mergeSite, mergeSport } from '../lib/recruiting'
-import type { StoredContent } from '../lib/recruiting'
+import type { Store } from '../lib/recruiting'
 import ScrollRow from './ScrollRow'
 import RecordCard from './RecordCard'
+import MetricsGrid from './MetricsGrid'
+import { measurableSuggestions } from '../data/sportCatalog'
 import { FieldsTable, ListTable, SingleCard, useCards } from './cards'
 import type { FieldDef } from './cards'
 import ProfileSheet from '../recruit/ProfileSheet'
-import { BASKETBALL_POSITIONS, BATS_THROWS, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, SOFTBALL_POSITIONS, EventsTable, TeamsTable, TrainersTable } from './fields'
+import { BATS_THROWS, Collapsible, DraftCtx, F, List, Pick, PositionChecklist, PhotoField, PositionPair, VideoUpload, toYoutubeEmbed, QrCard, EventsTable, TeamsTable, TrainersTable } from './fields'
 import { SITE_STEPS, SPORT_STEPS, siteGaps, sportGaps } from './gaps'
 import type { Result } from './gaps'
 
-export type Section = 'site' | SportId
-export type Area = 'overview' | Section
-
-const SPORT_LABEL: Record<SportId, string> = { softball: 'Softball', basketball: 'Basketball' }
-export const AREA_LABEL: Record<Area, string> = { overview: 'Overview', site: 'Athlete & contacts', softball: 'Softball', basketball: 'Basketball' }
+export type Section = string
+export type Area = string
 
 type Drafts = Partial<Record<Section, unknown>>
 
@@ -34,7 +33,7 @@ function useWide() {
   return wide
 }
 
-function Preview({ data, id }: { data: RecruitingData; id: SportId }) {
+function Preview({ data, id }: { data: RecruitingData; id: string }) {
   const box = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(0.5)
   useEffect(() => {
@@ -227,14 +226,13 @@ function SiteStep({ step, siteUrl }: { step: string; siteUrl: string }) {
   )
 }
 
-function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: string }) {
-  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio'] : step === 'summary' ? ['summary'] : [])
+function SportStep({ id, cfg, step, siteUrl }: { id: string; cfg: SportConfig; step: string; siteUrl: string }) {
+  const cards = useCards(id + step, step === 'contacts' ? ['qr'] : step === 'bio' ? ['bio', 'metrics'] : step === 'summary' ? ['summary'] : [])
   const teamsBox = useRef<HTMLElement>(null)
   const trainerBox = useRef<HTMLElement>(null)
   const scheduleBox = useRef<HTMLElement>(null)
   const clipsBox = useRef<HTMLElement>(null)
   const awardsBox = useRef<HTMLElement>(null)
-  const metricsBox = useRef<HTMLElement>(null)
   const linksBox = useRef<HTMLElement>(null)
   const one = (k: string, title: string, hint: string | undefined, fields: FieldDef[], edit: ReactNode, table = true) => (
     <>
@@ -488,7 +486,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         <QrCard url={`${siteUrl}/${id}/`} hint={`Links to the ${id} page. It is also printed on the ${id} recruiting profile.`} file={`everharris-${id}-qr`} {...cards.card('qr')} />
       </>
     )
-  const bioFields: FieldDef[] = [['Positions', ['positions']], ...(id === 'softball' ? [['Bats / throws', ['handedness']] as FieldDef] : []), ['Photo', ['photo'], photoState]]
+  const bioFields: FieldDef[] = [[cfg.positionLabel, ['positions']], ...(cfg.handedness ? [['Bats / throws', ['handedness']] as FieldDef] : []), ['Photo', ['photo'], photoState]]
   return (
     <>
       {one(
@@ -497,46 +495,15 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
         undefined,
         bioFields,
         <>
-          {id === 'softball' ? (
-            <>
-              <PositionChecklist path={['positions']} label="Positions" options={SOFTBALL_POSITIONS} />
-              <Pick path={['handedness']} label="Bats / throws" options={BATS_THROWS} wide />
-            </>
-          ) : (
-            <PositionPair path={['positions']} label="Positions" options={BASKETBALL_POSITIONS} />
-          )}
+          {cfg.positionStyle === 'multi' ? <PositionChecklist path={['positions']} label={cfg.positionLabel} options={cfg.positions} /> : <PositionPair path={['positions']} label={cfg.positionLabel} options={cfg.positions} />}
+          {cfg.handedness && <Pick path={['handedness']} label="Bats / throws" options={BATS_THROWS} wide />}
           <PhotoField sport={id} />
         </>,
         false,
       )}
-      <RecordCard
-        title="Verified metrics"
-        hint="Each box shows “(Verified …)” under the value. Keep the Pop Time box if the summary uses {popTime}."
-        {...cards.card('metrics')}
-        boxRef={metricsBox}
-        listPath={['metrics']}
-        noun="metric"
-        max={8}
-        blank={() => ({ key: `m${Date.now().toString(36)}`, label: '', value: '', unit: '', verified: 'Month/Year' })}
-        rec={cards.rec('metrics')}
-        setRec={cards.setRec('metrics')}
-        focusPrefix="metric-label"
-        edit={(i) => (
-          <>
-            <F id={`metric-label-${i}`} path={['metrics', i, 'label']} label="Label" />
-            <F path={['metrics', i, 'value']} label="Value" help="Only the number, like 1.95 or 68. Put the unit (sec, mph) in the next box." />
-            <F path={['metrics', i, 'unit']} label="Unit (sec, mph…)" />
-            <F path={['metrics', i, 'verified']} label="Verified month / year" help="When this number was measured or confirmed, like Oct 2026. Coaches trust a measurable more when it has a recent date, so it shows under every value." />
-          </>
-        )}
-        view={(r) => [
-          ['Label', String(r.label ?? '')],
-          ['Value', String(r.value ?? '')],
-          ['Unit', String(r.unit ?? '')],
-          ['Verified', String(r.verified ?? '')],
-        ]}
-      />
-      <ListTable title="All verified metrics" listPath={['metrics']} noun="metric" columns={[['Label', 'label'], ['Value', 'value'], ['Unit', 'unit'], ['Verified', 'verified']]} onPick={(n) => cards.pick('metrics', n)} />
+      <Collapsible title="Verified metrics" {...cards.card('metrics')} hint="Type the number and date for each measurable. Each row has its own Edit and Remove, and saving publishes right away. Keep the Pop Time box if the summary uses {popTime}.">
+        <MetricsGrid suggestions={measurableSuggestions(id, cfg.metrics)} />
+      </Collapsible>
     </>
   )
 }
@@ -544,8 +511,7 @@ function SportStep({ id, step, siteUrl }: { id: SportId; step: string; siteUrl: 
 function Overview({ data }: { data: RecruitingData }) {
   const results: { area: Section; title: string; r: Result; steps: typeof SITE_STEPS }[] = [
     { area: 'site', title: 'Athlete & contacts', r: siteGaps(data), steps: SITE_STEPS },
-    { area: 'softball', title: 'Softball profile', r: sportGaps('softball', data.softball), steps: SPORT_STEPS },
-    { area: 'basketball', title: 'Basketball profile', r: sportGaps('basketball', data.basketball), steps: SPORT_STEPS },
+    ...data.sportList.map((c) => ({ area: c.id, title: `${c.label} profile${c.visible ? '' : ' (hidden)'}`, r: sportGaps(c, data.sports[c.id]), steps: SPORT_STEPS })),
   ]
   return (
     <div className="max-w-3xl">
@@ -610,19 +576,20 @@ function Editor({
   dirty: boolean
   stored: boolean
   data: RecruitingData
-  onSaved: (c: StoredContent) => void
+  onSaved: (c: Store) => void
   onReset: () => void
 }) {
   const wide = useWide()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [previewSport, setPreviewSport] = useState<SportId>('softball')
+  const [previewSport, setPreviewSport] = useState(data.sportList[0]?.id ?? '')
   const sport = section !== 'site'
+  const cfg = data.sportList.find((c) => c.id === section)
   const steps = sport ? SPORT_STEPS : SITE_STEPS
   const current = steps.some((s) => s.id === step) ? step : steps[0].id
-  const result = sport ? sportGaps(section, data[section]) : siteGaps(data)
-  const previewId: SportId = sport ? section : previewSport
+  const result = sport && cfg ? sportGaps(cfg, data.sports[section]) : siteGaps(data)
+  const previewId = sport ? section : previewSport
 
   useEffect(() => {
     setNotice('')
@@ -633,7 +600,7 @@ function Editor({
     setError('')
     setNotice('')
     try {
-      return (await api<{ content: StoredContent }>('recruiting.php', { section, ...body })).content
+      return await api<Store>('recruiting.php', { section, ...body })
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not reach the server')
       return null
@@ -648,6 +615,15 @@ function Editor({
       onSaved(c)
       setNotice('Saved. The public pages and printable profile now show this.')
     }
+  }
+
+  const commit = async (update: (d: unknown) => unknown) => {
+    const c = await call({ action: 'save', data: update(draft) })
+    if (c) {
+      onSaved(c)
+      setNotice('Saved. The public pages and printable profile now show this.')
+    }
+    return c !== null
   }
 
   const reset = async () => {
@@ -666,9 +642,9 @@ function Editor({
         <p className="text-sm font-bold text-slate-200">Live preview</p>
         {!sport && (
           <div className="flex gap-1" role="group" aria-label="Preview sport">
-            {(['softball', 'basketball'] as SportId[]).map((s) => (
+            {data.sportList.map((c) => c.id).map((s) => (
               <button key={s} type="button" aria-pressed={previewSport === s} onClick={() => setPreviewSport(s)} className="min-h-10 rounded-full border border-slate-700 px-3 text-xs font-bold text-slate-300 aria-pressed:border-amber-500 aria-pressed:text-amber-400">
-                {SPORT_LABEL[s]}
+                {data.sports[s].label}
               </button>
             ))}
           </div>
@@ -680,11 +656,11 @@ function Editor({
   )
 
   return (
-    <DraftCtx.Provider value={{ draft, setDraft }}>
+    <DraftCtx.Provider value={{ draft, setDraft, commit }}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-8">
         <div className="min-w-0 space-y-5">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">{AREA_LABEL[section]}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">{sport ? cfg?.label : 'Athlete & contacts'}</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-50">{steps.find((s) => s.id === current)?.label}</h1>
           </div>
           <Chips steps={steps} current={current} gaps={result.gaps} base={section} />
@@ -702,8 +678,8 @@ function Editor({
           {error && <p role="alert" className="rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
           {notice && <p role="status" className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-3 text-sm text-emerald-200">{notice}</p>}
 
-          {sport ? <SportStep id={section} step={current} siteUrl={data.siteUrl} /> : <SiteStep step={current} siteUrl={data.siteUrl} />}
-          <StepNav steps={steps} current={current} base={section} label={AREA_LABEL[section]} />
+          {sport && cfg ? <SportStep id={section} cfg={cfg} step={current} siteUrl={data.siteUrl} /> : <SiteStep step={current} siteUrl={data.siteUrl} />}
+          <StepNav steps={steps} current={current} base={section} label={sport ? (cfg?.label ?? '') : 'Athlete & contacts'} />
 
           <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
             <button type="button" disabled={busy || !dirty} onClick={() => void save()} className="min-h-12 flex-1 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 active:bg-amber-400 disabled:opacity-40 sm:flex-none">
@@ -723,31 +699,16 @@ function Editor({
   )
 }
 
-export default function Content({ area, step }: { area: Area; step: string }) {
-  const [content, setContent] = useState<StoredContent | null>(null)
-  const [error, setError] = useState('')
+export default function Content({ area, step, store, setStore }: { area: Area; step: string; store: Store; setStore: (s: Store) => void }) {
   const [drafts, setDrafts] = useState<Drafts>({})
 
-  useEffect(() => {
-    api<{ content: StoredContent }>('recruiting.php')
-      .then((r) => setContent(r.content))
-      .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load content'))
-  }, [])
+  const saved = useMemo(() => {
+    const out: Record<string, unknown> = { site: mergeSite((store.content.site as SiteData | null) ?? null) }
+    for (const c of store.sports) out[c.id] = mergeSport(c, (store.content[c.id] as SportData | null) ?? null)
+    return out
+  }, [store])
 
-  const saved = useMemo(
-    () =>
-      content && {
-        site: mergeSite(content.site),
-        softball: mergeSport('softball', content.softball),
-        basketball: mergeSport('basketball', content.basketball),
-      },
-    [content],
-  )
-
-  const dirtyKeys = useMemo(
-    () => (saved ? (['site', 'softball', 'basketball'] as Section[]).filter((k) => k in drafts && JSON.stringify(drafts[k]) !== JSON.stringify(saved[k])) : []),
-    [drafts, saved],
-  )
+  const dirtyKeys = useMemo(() => Object.keys(drafts).filter((k) => k in saved && JSON.stringify(drafts[k]) !== JSON.stringify(saved[k])), [drafts, saved])
 
   useEffect(() => {
     if (!dirtyKeys.length) return
@@ -756,16 +717,19 @@ export default function Content({ area, step }: { area: Area; step: string }) {
     return () => window.removeEventListener('beforeunload', on)
   }, [dirtyKeys.length])
 
-  if (error) return <p role="alert" className="text-sm text-red-200">{error}</p>
-  if (!content || !saved) return <p className="text-sm text-slate-400">Loading…</p>
-
   const current = (k: Section) => (k in drafts ? drafts[k] : saved[k])
-  const data: RecruitingData = { ...(current('site') as SiteData), softball: current('softball') as SportData, basketball: current('basketball') as SportData }
+  const sports: Record<string, SportData> = {}
+  for (const c of store.sports) sports[c.id] = current(c.id) as SportData
+  const data: RecruitingData = { ...(current('site') as SiteData), sportList: store.sports, sports }
 
   if (area === 'overview') return <Overview data={data} />
+  if (area !== 'site' && !store.sports.some((c) => c.id === area)) return <Overview data={data} />
 
   const setDraft = (u: (d: unknown) => unknown) => setDrafts((d) => ({ ...d, [area]: u(area in d ? d[area] : saved[area]) }))
-  const resetDraft = () => setDrafts((d) => ({ ...d, [area]: area === 'site' ? defaultSite : defaultSports[area] }))
+  const resetDraft = () => {
+    const cfg = store.sports.find((c) => c.id === area)
+    setDrafts((d) => ({ ...d, [area]: area === 'site' || !cfg ? defaultSite : defaultSport(cfg) }))
+  }
 
   return (
     <Editor
@@ -775,10 +739,10 @@ export default function Content({ area, step }: { area: Area; step: string }) {
       draft={current(area)}
       setDraft={setDraft}
       dirty={dirtyKeys.includes(area)}
-      stored={content[area] !== null}
+      stored={store.content[area] != null}
       data={data}
       onSaved={(c) => {
-        setContent(c)
+        setStore(c)
         setDrafts((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== area)))
       }}
       onReset={resetDraft}

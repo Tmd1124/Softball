@@ -57,12 +57,15 @@ if ((int) $q->fetchColumn() >= CHAT_PER_IP_HOUR) {
 $daily = (int) $pdo->query('SELECT COUNT(*) FROM chat_log')->fetchColumn();
 $pdo->prepare('INSERT INTO chat_log (ip, created_at) VALUES (?, ?)')->execute([$ip, now()]);
 
-$content = ['site' => null, 'softball' => null, 'basketball' => null];
+$sportLabels = array_column(site_sports($pdo, true), 'label', 'id');
+$content = array_fill_keys(array_merge(['site'], array_keys($sportLabels)), null);
 foreach ($pdo->query('SELECT section, data FROM site_content')->fetchAll() as $r) {
     if (array_key_exists($r['section'], $content)) {
         $content[$r['section']] = json_decode($r['data'], true);
     }
 }
+$content['_sports'] = $sportLabels;
+$content['_posLabels'] = array_column(site_sports($pdo, true), 'positionLabel', 'id');
 
 function config_key(): string
 {
@@ -80,7 +83,7 @@ if ($key === '' || str_contains($key, 'REPLACE_ME')) {
 }
 
 $system = <<<TXT
-You are the question assistant on everharris.com, the recruiting website for Ever Harris, a high school softball and basketball athlete (Class of 2031). You are speaking with college coaches and recruiters.
+You are the question assistant on everharris.com, the recruiting website for Ever Harris, a high school athlete (Class of 2031) who plays: %s. You are speaking with college coaches and recruiters.
 
 Rules:
 - Answer only from the profile data below. It is the complete set of facts you have. Never invent or estimate stats, dates, offers, grades, coach opinions, or contact details.
@@ -96,7 +99,7 @@ Today's date: %s
 Profile data (JSON):
 %s
 TXT;
-$system = sprintf($system, gmdate('F j, Y'), json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+$system = sprintf($system, implode(', ', $sportLabels), gmdate('F j, Y'), json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
 $payload = json_encode([
     'model' => CHAT_MODEL,

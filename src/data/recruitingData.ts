@@ -234,8 +234,47 @@ export const defaults = {
   } satisfies SportData,
 }
 
-export type SportId = 'softball' | 'basketball'
-export const SPORT_IDS: SportId[] = ['softball', 'basketball']
+export type SportId = string
+
+export interface SportConfig {
+  id: string
+  label: string
+  accent: string
+  positionStyle: 'multi' | 'pair'
+  positionLabel: string
+  handedness: boolean
+  positions: string[]
+  metrics: { key: string; label: string; unit: string }[]
+  visible: boolean
+  order: number
+}
+
+export const builtInSports: SportConfig[] = [
+  {
+    id: 'softball',
+    label: 'Softball',
+    accent: '#cde62b',
+    positionStyle: 'multi',
+    positionLabel: 'Positions',
+    handedness: true,
+    positions: ['Pitcher', 'Catcher', 'First Base', 'Second Base', 'Third Base', 'Shortstop', 'Left Field', 'Center Field', 'Right Field', 'Designated Player', 'Utility'],
+    metrics: [],
+    visible: true,
+    order: 1,
+  },
+  {
+    id: 'basketball',
+    label: 'Basketball',
+    accent: '#f97316',
+    positionStyle: 'pair',
+    positionLabel: 'Positions',
+    handedness: false,
+    positions: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center', 'Combo Guard', 'Wing', 'Forward'],
+    metrics: [],
+    visible: true,
+    order: 2,
+  },
+]
 
 export interface SiteData {
   siteUrl: string
@@ -249,7 +288,7 @@ export interface SiteData {
   }
 }
 
-export type RecruitingData = SiteData & Record<SportId, SportData>
+export type RecruitingData = SiteData & { sportList: SportConfig[]; sports: Record<string, SportData> }
 
 export const defaultSite: SiteData = {
   siteUrl: defaults.siteUrl,
@@ -257,4 +296,29 @@ export const defaultSite: SiteData = {
   academics: defaults.academics,
   contact: defaults.contact,
 }
-export const defaultSports: Record<SportId, SportData> = { softball: defaults.softball, basketball: defaults.basketball }
+export function defaultSport(cfg: SportConfig): SportData {
+  const legacy = (defaults as Record<string, unknown>)[cfg.id] as SportData | undefined
+  if (legacy) return legacy
+  const n = cfg.label
+  return {
+    label: n,
+    photo: '',
+    photoFocus: 20,
+    positions: `[Choose ${cfg.positionLabel.toLowerCase()}]`,
+    teams: [{ year: '2026', name: `[${n} Team Name]`, type: 'Travel / AAU', coach: '[Coach Name]', owner: '[Owner Name]', phone: '(000) 000-0000', email: 'coach@example.com', stats: [] }],
+    trainers: [{ name: '[Personal Trainer Name]', phone: '(000) 000-0000', email: 'trainer@example.com' }],
+    metrics: cfg.metrics.map((m) => ({ key: m.key, label: m.label, value: '[X]', unit: m.unit, verified: 'Month/Year' })),
+    featured: { title: `${n} Highlight Reel`, blurb: `${n} highlights`, length: '', embedUrl: '' },
+    clipsTitle: 'Skill Clips',
+    clips: [
+      { title: 'Skill Clip 1', blurb: '[What this clip shows]', length: '', embedUrl: '' },
+      { title: 'Skill Clip 2', blurb: '[What this clip shows]', length: '', embedUrl: '' },
+    ],
+    summary: `[Write two or three sentences about Ever as a ${n.toLowerCase()} athlete: strengths, work ethic and goals.]`,
+    scheduleTitle: `Upcoming ${n} Schedule`,
+    scheduleColumns: { event: 'Event', info: 'Details' },
+    schedule: [{ date: '[Mon DD, YYYY]', event: '[Event Name]', location: '[City, ST]', team: '[Team]', info: '[Details]' }],
+    links: [],
+    awards: [],
+  }
+}

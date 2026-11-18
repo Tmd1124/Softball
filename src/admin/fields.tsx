@@ -27,7 +27,7 @@ export function setAt<T>(o: T, path: Path, v: unknown): T {
 }
 
 type SetDraft = (update: (d: unknown) => unknown) => void
-export const DraftCtx = createContext<{ draft: unknown; setDraft: SetDraft }>({ draft: null, setDraft: () => undefined })
+export const DraftCtx = createContext<{ draft: unknown; setDraft: SetDraft; commit?: (update: (d: unknown) => unknown) => Promise<boolean> }>({ draft: null, setDraft: () => undefined })
 export const useDraft = () => useContext(DraftCtx)
 
 export function Card({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {

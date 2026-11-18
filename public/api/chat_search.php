@@ -63,12 +63,12 @@ function cs_facts(array $c): array
             cs_clean($so['instagram']['handle'] ?? '') !== '' ? 'Instagram ' . $so['instagram']['handle'] : '',
         ]));
     }
-    foreach (['softball', 'basketball'] as $s) {
+    foreach (array_keys($c['_sports'] ?? []) as $s) {
         $d = $c[$s] ?? null;
         if (!$d) {
             continue;
         }
-        $add($s, 'position positions plays bats throws hand handedness', cs_join([cs_clean($d['positions'] ?? ''), cs_clean($d['handedness'] ?? '')]));
+        $add($s, 'position positions plays bats throws hand handedness ' . strtolower((string) ($c['_posLabels'][$s] ?? '')) . ' ' . rtrim(strtolower((string) ($c['_posLabels'][$s] ?? '')), 's'), cs_join([cs_clean($d['positions'] ?? ''), cs_clean($d['handedness'] ?? '')]));
         foreach ($d['metrics'] ?? [] as $m) {
             $val = cs_clean($m['value'] ?? '');
             if ($val === '') {
@@ -195,10 +195,14 @@ function cs_contact_line(array $c): string
     return cs_join([cs_clean($co['email'] ?? ''), cs_clean($co['phone'] ?? '')]);
 }
 
-function cs_overview(array $facts, string $contact): string
+function cs_overview(array $facts, string $contact, array $labels): string
 {
     $lines = ['Ever Harris at a glance, as published on this site:'];
-    foreach (['' => '', 'softball' => 'SOFTBALL', 'basketball' => 'BASKETBALL'] as $key => $title) {
+    $groups = ['' => ''];
+    foreach ($labels as $id => $label) {
+        $groups[$id] = strtoupper($label);
+    }
+    foreach ($groups as $key => $title) {
         $group = array_filter($facts, fn($f) => $f['sport'] === $key);
         if ($group === []) {
             continue;
@@ -226,7 +230,7 @@ function cs_next_events(array $c, array $sports, string $contact): string
     $today = strtotime(gmdate('Y-m-d'));
     $dated = [];
     $undated = [];
-    foreach (['softball', 'basketball'] as $s) {
+    foreach (array_keys($c['_sports'] ?? []) as $s) {
         if ($sports !== [] && !in_array($s, $sports, true)) {
             continue;
         }
@@ -237,7 +241,7 @@ function cs_next_events(array $c, array $sports, string $contact): string
             }
             $text = cs_join([$date, cs_clean($e['event'] ?? ''), cs_clean($e['location'] ?? ''), cs_clean($e['team'] ?? ''), cs_clean($e['info'] ?? '')]);
             $ts = $date !== '' ? strtotime($date) : false;
-            $line = '- ' . ucfirst($s) . ': ' . $text;
+            $line = '- ' . ($c['_sports'][$s] ?? $s) . ': ' . $text;
             if ($ts === false) {
                 $undated[] = $line;
             } elseif ($ts >= $today) {
@@ -288,18 +292,25 @@ function cs_answer(array $c, string $question): string
     }
     $contact = cs_contact_line($c);
     if (cs_overview_asked($question)) {
-        return cs_overview($facts, $contact);
+        return cs_overview($facts, $contact, $c['_sports'] ?? []);
     }
     $sports = [];
-    foreach (['softball', 'basketball'] as $s) {
-        if (preg_match('/\b' . $s . '\b/i', $question)) {
-            $sports[] = $s;
+    $sportWords = [];
+    foreach ($c['_sports'] ?? [] as $id => $label) {
+        $names = array_unique([strtolower($label), str_replace('-', ' ', $id)]);
+        foreach ($names as $name) {
+            if (preg_match('/\b' . preg_quote($name, '/') . '\b/i', $question)) {
+                $sports[] = $id;
+                foreach (preg_split('/[^a-z0-9]+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $w) {
+                    $sportWords[] = $w;
+                }
+            }
         }
     }
     if (cs_next_intent($question)) {
         return cs_next_events($c, $sports, $contact);
     }
-    $tokens = array_values(array_filter(cs_tokens($question), fn($t) => $t !== 'softball' && $t !== 'basketball'));
+    $tokens = array_values(array_filter(cs_tokens($question), fn($t) => !in_array($t, $sportWords, true)));
     $syn = cs_syn();
     $original = array_values(array_filter(preg_split('/[^a-z0-9\-\']+/', strtolower($question)) ?: [], fn($w) => strlen($w) > 2));
     $scored = [];
@@ -339,7 +350,7 @@ function cs_answer(array $c, string $question): string
     }
     $lines = ['Here is what the site says:'];
     foreach ($scored as $r) {
-        $label = $r['fact']['sport'] === '' ? '' : ucfirst($r['fact']['sport']) . ': ';
+        $label = $r['fact']['sport'] === '' ? '' : ($c['_sports'][$r['fact']['sport']] ?? $r['fact']['sport']) . ': ';
         $lines[] = '- ' . $label . $r['fact']['text'];
     }
     $lines[] = '';

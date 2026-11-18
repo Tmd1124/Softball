@@ -7,9 +7,11 @@ import ProfileDialog from './ProfileDialog'
 import ProfileMenu from './ProfileMenu'
 import Assistant from './Assistant'
 import { useRecruiting } from '../lib/recruiting'
+import { builtInSports } from '../data/recruitingData'
+import ScrollRow from '../admin/ScrollRow'
 import { telHref } from '../recruit/blocks'
 
-type Page = 'home' | 'softball' | 'basketball' | 'schedule' | 'teams' | 'admin'
+type Page = string
 
 const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void }>({
   openLogin: () => undefined,
@@ -17,30 +19,27 @@ const ShellCtx = createContext<{ openLogin: () => void; openProfile: () => void 
 })
 export const useShell = () => useContext(ShellCtx)
 
-const NAV: { page: Page; href: string; label: string }[] = [
-  { page: 'home', href: '/', label: 'Home' },
-  { page: 'softball', href: '/softball/', label: 'Softball' },
-  { page: 'basketball', href: '/basketball/', label: 'Basketball' },
-  { page: 'schedule', href: '/schedule/', label: 'Schedule' },
-  { page: 'teams', href: '/teams/', label: 'Teams' },
-]
-
 export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openLogin: () => void; openProfile: () => void }) {
   const { user, status } = useAuth()
+  const rec = useRecruiting()
+  const sports = rec ? rec.sportList : builtInSports
+  const nav = [{ page: 'home', href: '/', label: 'Home' }, ...sports.map((c) => ({ page: c.id, href: `/${c.id}/`, label: c.label })), { page: 'schedule', href: '/schedule/', label: 'Schedule' }, { page: 'teams', href: '/teams/', label: 'Teams' }]
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-      <nav aria-label="Main" className="mx-auto flex max-w-5xl items-center gap-0.5 px-2 py-1.5 sm:gap-1 sm:px-6">
-        {NAV.map((n) => (
-          <a
-            key={n.page}
-            href={n.href}
-            aria-current={page === n.page ? 'page' : undefined}
-            className="flex min-h-12 items-center rounded-full px-1.5 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
-          >
-            {n.label}
-          </a>
-        ))}
-        <div className="ml-auto">
+      <div className="mx-auto flex max-w-5xl items-center gap-1 px-2 py-1.5 sm:px-6">
+        <ScrollRow label="Main" className="min-w-0 flex-1">
+          {nav.map((n) => (
+            <a
+              key={n.page}
+              href={n.href}
+              aria-current={page === n.page ? 'page' : undefined}
+              className="flex min-h-12 shrink-0 items-center rounded-full px-1.5 text-[13px] font-bold text-slate-300 transition-colors hover:text-slate-50 aria-[current=page]:text-amber-400 sm:px-4 sm:text-sm"
+            >
+              {n.label}
+            </a>
+          ))}
+        </ScrollRow>
+        <div className="shrink-0">
           {status !== 'ready' ? (
             <span className="block h-10 w-20" aria-hidden />
           ) : user ? (
@@ -55,7 +54,7 @@ export function SiteHeader({ page, openLogin, openProfile }: { page: Page; openL
             </button>
           )}
         </div>
-      </nav>
+      </div>
     </header>
   )
 }
@@ -101,7 +100,7 @@ export function SiteFooter() {
   )
 }
 
-const PUBLIC_PAGES: Page[] = ['home', 'softball', 'basketball', 'schedule', 'teams']
+const adminHelp = (seg: string) => (['overview', 'site', 'users', 'sports'].includes(seg) ? `admin-${seg}` : 'admin-sport')
 
 export default function SiteShell({ page, children, footer = true, help, lift = false }: { page: Page; children: ReactNode; footer?: boolean; help?: string; lift?: boolean }) {
   const [hash, setHash] = useState(location.hash)
@@ -131,9 +130,9 @@ export default function SiteShell({ page, children, footer = true, help, lift = 
         {footer && <SiteFooter />}
       </div>
       <Assistant
-        helpKey={help ?? (page === 'admin' ? (user ? `admin-${hash.slice(1).split('/')[0] || 'overview'}` : 'admin-login') : page === 'softball' || page === 'basketball' ? 'sport' : page)}
+        helpKey={help ?? (page === 'admin' ? (user ? adminHelp(hash.slice(1).split('/')[0] || 'overview') : 'admin-login') : ['home', 'schedule', 'teams'].includes(page) ? page : 'sport')}
         lift={lift || page === 'admin'}
-        startOn={!help && PUBLIC_PAGES.includes(page) ? 'ask' : 'help'}
+        startOn={!help && page !== 'admin' ? 'ask' : 'help'}
       />
       {login && (
         <Modal title="Log in" onClose={() => setLogin(false)}>

@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
-import { defaultSite, defaultSports } from '../data/recruitingData'
-import type { RecruitingData, SiteData, SportData, SportId, StatItem } from '../data/recruitingData'
+import { builtInSports, defaultSite, defaultSport } from '../data/recruitingData'
+import type { RecruitingData, SiteData, SportConfig, SportData, StatItem } from '../data/recruitingData'
 
-export interface StoredContent {
-  site: SiteData | null
-  softball: SportData | null
-  basketball: SportData | null
+export interface Store {
+  sports: SportConfig[]
+  content: Record<string, SiteData | SportData | null>
 }
 
 export function mergeSite(site: SiteData | null): SiteData {
@@ -22,13 +21,14 @@ const blankTeam = { year: '', name: '', type: '', coach: '', owner: '', phone: '
 
 const yearNum = (t: { year: string }) => parseInt(t.year, 10) || 0
 
-export function mergeSport(id: SportId, sport: SportData | null): SportData {
-  const merged = { ...defaultSports[id], ...sport }
+export function mergeSport(cfg: SportConfig, sport: SportData | null): SportData {
+  const base = defaultSport(cfg)
+  const merged = { ...base, ...sport, label: cfg.label }
   if (!sport) return merged
   const legacy = sport as { team?: string; stats?: StatItem[] }
   let teams = (sport.teams ?? []).filter((t) => t.name).map((t) => ({ ...blankTeam, ...t }))
   if (!teams.length && legacy.team) teams = [{ ...blankTeam, name: legacy.team }]
-  if (!teams.length && !sport.teams) teams = defaultSports[id].teams
+  if (!teams.length && !sport.teams) teams = base.teams
   if (legacy.stats?.length && teams.length && !teams.some((t) => t.stats.length)) {
     const top = teams.reduce((m, t) => (yearNum(t) > yearNum(m) ? t : m), teams[0])
     teams = teams.map((t) => (t === top ? { ...t, stats: legacy.stats! } : t))
@@ -37,18 +37,20 @@ export function mergeSport(id: SportId, sport: SportData | null): SportData {
   return { ...rest, teams }
 }
 
-export function merge(c: StoredContent): RecruitingData {
-  return { ...mergeSite(c.site), softball: mergeSport('softball', c.softball), basketball: mergeSport('basketball', c.basketball) }
+export function merge(store: Store): RecruitingData {
+  const sports: Record<string, SportData> = {}
+  for (const cfg of store.sports) sports[cfg.id] = mergeSport(cfg, (store.content[cfg.id] as SportData | null) ?? null)
+  return { ...mergeSite((store.content.site as SiteData | null) ?? null), sportList: store.sports, sports }
 }
 
-export const sectionOf = (c: StoredContent, id: 'site' | SportId) => c[id]
+const fallback: Store = { sports: builtInSports, content: {} }
 
 let pending: Promise<RecruitingData> | null = null
 
 function load(): Promise<RecruitingData> {
-  pending ??= api<{ content: StoredContent }>('recruiting.php')
-    .then((r) => merge(r.content))
-    .catch(() => merge({ site: null, softball: null, basketball: null }))
+  pending ??= api<Store>('recruiting.php')
+    .then((r) => merge(r))
+    .catch(() => merge(fallback))
   return pending
 }
 

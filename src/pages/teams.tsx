@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { Globe, Mail, Phone, Printer } from 'lucide-react'
 import { mount } from '../site/mount'
 import SiteShell from '../site/SiteShell'
-import { SPORT_IDS } from '../data/recruitingData'
 import type { RecruitingData, SportId } from '../data/recruitingData'
 import { useRecruiting } from '../lib/recruiting'
 import { telHref, buttonClass } from '../recruit/blocks'
@@ -11,7 +10,7 @@ import type { RankedTeam } from '../recruit/derive'
 import TeamSheet from '../recruit/TeamSheet'
 
 const params = new URLSearchParams(location.search)
-const sportParam = SPORT_IDS.find((s) => s === params.get('sport'))
+const sportParam = params.get('sport')
 const teamParam = Number(params.get('n'))
 if (sportParam) document.documentElement.className = 'theme-profile'
 
@@ -76,11 +75,11 @@ function List({ data }: { data: RecruitingData }) {
         <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-slate-50 sm:text-5xl">Teams & coaches</h1>
         <p className="mt-3 max-w-2xl text-lg text-slate-300">Every team {data.athlete.name} has played for, newest first. The most recent year in each sport is marked Current.</p>
       </div>
-      {SPORT_IDS.map((id) => {
-        const teams = rankedTeams(data[id])
+      {data.sportList.map(({ id }) => {
+        const teams = rankedTeams(data.sports[id])
         return (
           <section key={id} aria-labelledby={`teams-${id}`} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
-            <h2 id={`teams-${id}`} className="text-2xl font-extrabold text-slate-50 sm:text-3xl">{data[id].label}</h2>
+            <h2 id={`teams-${id}`} className="text-2xl font-extrabold text-slate-50 sm:text-3xl">{data.sports[id].label}</h2>
             <div className="mt-5 space-y-4">
               {teams.length === 0 && <p className="text-slate-400">No teams listed yet.</p>}
               {teams.map((r) => (
@@ -95,7 +94,7 @@ function List({ data }: { data: RecruitingData }) {
 }
 
 function Sheet({ data, id, n }: { data: RecruitingData; id: SportId; n: number }) {
-  const r = rankedTeams(data[id]).find((x) => x.n === n)
+  const r = data.sports[id] ? rankedTeams(data.sports[id]).find((x) => x.n === n) : undefined
   useEffect(() => {
     if (r && params.get('print') === '1') {
       let live = true

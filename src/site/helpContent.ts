@@ -77,23 +77,24 @@ export const HELP: Record<string, HelpTopic> = {
       'The live preview shows the printed profile with your unsaved edits. Press Save changes to publish; Reset area discards what was saved.',
     ],
   },
-  'admin-softball': {
-    title: 'Softball profile',
+  'admin-sport': {
+    title: 'Sport profile',
     tips: [
       'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR. Next and Back buttons are at the bottom of each step.',
-      'Upload a photo of Ever under Bio. It appears on the sport page and in the printed profile header. Choose positions from the checklist and bats/throws from the list. Edit each metric’s value, unit and verified month and year.',
-      'For film, paste the embed address (https://…) from YouTube, Vimeo or Hudl, or, for short clips only, upload an MP4, WebM or MOV file. YouTube is recommended: it plays faster, allows any length and costs the site nothing. Tap the ? beside a prompt for the reasons.',
-      'Summary & honors holds optional awards. Season stats are entered per team under Teams & coaches; the newest team’s stats show on the page and profile.',
-      'The live preview updates as you type. Save changes publishes to the public page and printable profile.',
+      'Each card opens minimized. Tap a table row or a card’s header to open it, then use Edit to change it. Save changes publishes it.',
+      'Upload a photo of Ever under Bio and choose her positions or events. Under Verified metrics, type each measurable’s value and verified month in the quick-entry rows. Use Edit all to fill every row at once, or a row’s own Edit, Save and Remove. Saving there publishes right away.',
+      'For film, paste a YouTube link (recommended), or upload a short clip. Tap the ? beside a prompt for the reasons.',
+      'The live preview shows the printed profile with your unsaved edits. A hidden sport can be previewed here but stays off the public site until you turn on Show on the website in Admin → Sports.',
     ],
   },
-  'admin-basketball': {
-    title: 'Basketball profile',
+  'admin-sports': {
+    title: 'Sports',
     tips: [
-      'Step through Bio & metrics, Teams & coaches, Film, Summary & honors, Schedule and Links & QR.',
-      'Pick a primary and optional secondary position, then update the four metric boxes and their verified dates.',
-      'Add awards under Summary & honors, and per-team stats under Teams & coaches. They show only after you add rows.',
-      'The live preview shows the printed profile with your unsaved edits. Save changes publishes it.',
+      'To add a sport: press Add a sport, pick it from the list of common college sports (or choose Other), tick the positions or events to offer, and press Add sport. The name, color, positions and starter measurables fill in for you. It starts hidden.',
+      'Use the sport’s new button at the top of the screen to fill in its photo, measurables, teams, film and schedule.',
+      'When it is ready, press Show on the website. It then appears in the menu, home page, PDF list and search.',
+      'To take a sport off the website, press Hide from the website. Nothing is deleted and you can show it again any time.',
+      'Use the ↑ and ↓ buttons to change the order sports appear in the menu.',
     ],
   },
   'admin-users': {

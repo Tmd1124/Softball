@@ -2,8 +2,6 @@
 declare(strict_types=1);
 require __DIR__ . '/lib.php';
 
-const SECTIONS = ['site', 'softball', 'basketball'];
-
 function obj(mixed $v): array
 {
     if (!is_array($v) || ($v !== [] && array_is_list($v))) {
@@ -137,12 +135,12 @@ function clean_site(array $in): array
     ];
 }
 
-function clean_sport(array $in, string $name): array
+function clean_sport(array $in, string $label): array
 {
     $featured = obj($in['featured'] ?? null);
     $cols = obj($in['scheduleColumns'] ?? null);
     $out = [
-        'label' => ucfirst($name),
+        'label' => $label,
         'photo' => url($in, 'photo'),
         'photoFocus' => is_int($in['photoFocus'] ?? null) ? max(0, min(100, $in['photoFocus'])) : 20,
         'positions' => str($in, 'positions', 160),
@@ -198,9 +196,9 @@ function clean_sport(array $in, string $name): array
     return $out;
 }
 
-function load_sections(PDO $pdo): array
+function load_sections(PDO $pdo, array $ids): array
 {
-    $out = array_fill_keys(SECTIONS, null);
+    $out = array_fill_keys($ids, null);
     foreach ($pdo->query('SELECT section, data FROM site_content')->fetchAll() as $r) {
         if (array_key_exists($r['section'], $out)) {
             $out[$r['section']] = json_decode($r['data'], true);
@@ -209,8 +207,19 @@ function load_sections(PDO $pdo): array
     return $out;
 }
 
+function payload(PDO $pdo, bool $all): array
+{
+    $sports = site_sports($pdo, !$all);
+    return ['sports' => $sports, 'content' => load_sections($pdo, array_merge(['site'], array_column($sports, 'id')))];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    respond(200, ['content' => load_sections(db())]);
+    $all = false;
+    if (isset($_GET['all']) && isset($_COOKIE['ev_session'])) {
+        $viewer = current_user();
+        $all = $viewer !== null && $viewer['role'] === 'admin';
+    }
+    respond(200, payload(db(), $all));
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond(405, ['error' => 'Method not allowed']);
@@ -220,13 +229,15 @@ $me = require_role('admin');
 $pdo = db();
 $in = json_body();
 $section = $in['section'] ?? null;
-if (!is_string($section) || !in_array($section, SECTIONS, true)) {
+$knownSports = site_sports($pdo);
+$sportLabels = array_column($knownSports, 'label', 'id');
+if (!is_string($section) || ($section !== 'site' && !isset($sportLabels[$section]))) {
     respond(400, ['error' => 'Unknown section']);
 }
 
 switch ($in['action'] ?? '') {
     case 'save':
-        $data = $section === 'site' ? clean_site(obj($in['data'] ?? null)) : clean_sport(obj($in['data'] ?? null), $section);
+        $data = $section === 'site' ? clean_site(obj($in['data'] ?? null)) : clean_sport(obj($in['data'] ?? null), $sportLabels[$section]);
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $u = $pdo->prepare('UPDATE site_content SET data = ?, updated_at = ?, updated_by = ? WHERE section = ?');
         $u->execute([$json, now(), $me['id'], $section]);
@@ -236,11 +247,11 @@ switch ($in['action'] ?? '') {
             $pdo->prepare('INSERT INTO site_content (section, data, updated_at, updated_by) VALUES (?, ?, ?, ?)')
                 ->execute([$section, $json, now(), $me['id']]);
         }
-        respond(200, ['content' => load_sections($pdo)]);
+        respond(200, payload($pdo, true));
 
     case 'reset':
         $pdo->prepare('DELETE FROM site_content WHERE section = ?')->execute([$section]);
-        respond(200, ['content' => load_sections($pdo)]);
+        respond(200, payload($pdo, true));
 
     default:
         respond(400, ['error' => 'Unknown action']);

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'node:path'
-import { rmSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 
 export default defineConfig({
   server: { proxy: { '/api': 'http://localhost:8000' } },
@@ -17,6 +17,7 @@ export default defineConfig({
         admin: resolve(import.meta.dirname, 'admin/index.html'),
         schedule: resolve(import.meta.dirname, 'schedule/index.html'),
         teams: resolve(import.meta.dirname, 'teams/index.html'),
+        sport: resolve(import.meta.dirname, 'sport/index.html'),
         profile: resolve(import.meta.dirname, 'profile/index.html'),
         profileSoftball: resolve(import.meta.dirname, 'profile/softball/index.html'),
         profileBasketball: resolve(import.meta.dirname, 'profile/basketball/index.html'),
@@ -25,6 +26,19 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: 'new-sport-pages-in-dev',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const url = (req.url ?? '').split('?')
+          const m = url[0].match(/^\/(?:profile\/)?([a-z0-9-]+)\/?$/)
+          if (m && !existsSync(resolve(import.meta.dirname, url[0].replace(/^\/|\/$/g, ''), 'index.html')) && !existsSync(resolve(import.meta.dirname, 'public', url[0].replace(/^\//, '')))) {
+            req.url = (url[0].startsWith('/profile/') ? '/profile/index.html' : '/sport/index.html') + (url[1] ? `?${url[1]}` : '')
+          }
+          next()
+        })
+      },
+    },
     {
       name: 'keep-uploads-out-of-dist',
       closeBundle() {

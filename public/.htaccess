@@ -4,3 +4,15 @@ AddType video/mp4 .mp4
     Header set Cache-Control "public, max-age=2592000"
   </FilesMatch>
 </IfModule>
+
+# Sports added in the admin share one page template.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^sitemap\.xml$ api/sitemap.php [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^profile/([a-z0-9-]+)/?$ profile/index.html [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^([a-z0-9-]+)/?$ sport/index.html [L]
+</IfModule>

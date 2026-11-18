@@ -58,9 +58,7 @@ if ($ext === null) {
 }
 
 $sport = $_POST['sport'] ?? '';
-if (!is_string($sport) || !in_array($sport, SPORTS, true)) {
-    respond(400, ['error' => 'Unknown sport']);
-}
+$sport = valid_site_sport($sport);
 $root = dirname(__DIR__) . '/uploads/videos';
 $dir = "$root/$sport";
 if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {

@@ -1,21 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { RecruitingData, SportData, SportId } from '../data/recruitingData'
+import { sheetTheme } from '../lib/sportTheme'
 import { telHref } from './blocks'
 import QrCode from './QrCode'
 import { academicExtras, bodyLine, currentStats, currentTeam, hasRealPhoto, summaryText, teamsNewestFirst } from './derive'
-
-interface Theme {
-  dark: string
-  mid: string
-  accent: string
-  tint: string
-  ink: string
-}
-
-export const THEMES: Record<SportId, Theme> = {
-  softball: { dark: '#0d2214', mid: '#153220', accent: '#cde62b', tint: '#f1f7d9', ink: '#1d4a2d' },
-  basketball: { dark: '#1e130b', mid: '#2e1d11', accent: '#f97316', tint: '#fff0e3', ink: '#9a3a0a' },
-}
 
 function Head({ children }: { children: ReactNode }) {
   return (
@@ -27,8 +15,8 @@ function Head({ children }: { children: ReactNode }) {
 }
 
 export default function ProfileSheet({ data, id, className = '' }: { data: RecruitingData; id: SportId; className?: string }) {
-  const s: SportData = data[id]
-  const t = THEMES[id]
+  const s: SportData = data.sports[id]
+  const t = sheetTheme(data.sportList.find((c) => c.id === id)!)
   const stats = currentStats(s)
   const { athlete, academics, contact, siteUrl } = data
   const pageUrl = `${siteUrl}/${id}/`

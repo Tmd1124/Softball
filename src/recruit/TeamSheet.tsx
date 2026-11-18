@@ -2,12 +2,12 @@ import type { CSSProperties } from 'react'
 import type { RecruitingData, SportId, TeamItem } from '../data/recruitingData'
 import { telHref } from './blocks'
 import { bodyLine, hasRealPhoto } from './derive'
-import { THEMES } from './ProfileSheet'
+import { sheetTheme } from '../lib/sportTheme'
 import QrCode from './QrCode'
 
 export default function TeamSheet({ data, id, team, current }: { data: RecruitingData; id: SportId; team: TeamItem; current: boolean }) {
-  const s = data[id]
-  const t = THEMES[id]
+  const s = data.sports[id]
+  const t = sheetTheme(data.sportList.find((c) => c.id === id)!)
   const { athlete, academics, contact, siteUrl } = data
   const vars = { '--dark': t.dark, '--mid': t.mid, '--accent': t.accent, '--tint': t.tint, '--ink': t.ink } as CSSProperties
   const link = 'underline decoration-1 underline-offset-2'

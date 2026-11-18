@@ -1,13 +1,23 @@
+import { useEffect } from 'react'
 import { useRecruiting } from '../lib/recruiting'
-import type { SportData, SportId } from '../data/recruitingData'
+import { applySportTheme } from '../lib/sportTheme'
+import type { RecruitingData, SportData, SportId } from '../data/recruitingData'
 import SiteShell from '../site/SiteShell'
 import { academicExtras, bodyLine, currentStats, currentTeam, summaryText, teamsNewestFirst } from './derive'
 import { MetricStrip, TeamCard, TrainerCard, PdfButton, ScheduleTable, Section, VideoEmbed, buttonClass } from './blocks'
 
-export default function SportPage({ id }: { id: SportId }) {
-  const data = useRecruiting()
-  if (!data) return <SiteShell page={id}>{null}</SiteShell>
-  const sport: SportData = data[id]
+export default function SportPage({ id, data: given, hiddenNotice = false }: { id: SportId; data?: RecruitingData; hiddenNotice?: boolean }) {
+  const fetched = useRecruiting()
+  const data = given ?? fetched
+  const cfg = data?.sportList.find((c) => c.id === id)
+  useEffect(() => {
+    if (!cfg) return
+    applySportTheme(cfg)
+    document.title = `${cfg.label} | Everharris`
+    if (hiddenNotice) document.head.insertAdjacentHTML('beforeend', '<meta name="robots" content="noindex">')
+  }, [cfg, hiddenNotice])
+  if (!data || !cfg) return <SiteShell page={id}>{null}</SiteShell>
+  const sport: SportData = data.sports[id]
   const stats = currentStats(sport)
   const { athlete, academics } = data
   const pdf = `/profile/${id}/?print=1`
@@ -16,10 +26,15 @@ export default function SportPage({ id }: { id: SportId }) {
 
   return (
     <SiteShell page={id}>
+      {hiddenNotice && (
+        <p role="status" className="bg-amber-500 px-4 py-2 text-center text-sm font-bold text-slate-950">
+          Preview: this sport is hidden. Only you can see this page. Turn on Show on the website in Admin → Sports to publish it.
+        </p>
+      )}
       <section aria-labelledby="hero-title" className="mx-auto max-w-5xl px-4 pb-4 pt-6 sm:px-6 sm:pt-10">
         <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 md:aspect-auto md:min-h-80">
-            <img src={sport.photo || `/img/hero-${id}.svg`} alt={`${athlete.name} playing ${sport.label.toLowerCase()}`} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: `50% ${sport.photoFocus}%` }} />
+            <img src={sport.photo || (id === "softball" || id === "basketball" ? `/img/hero-${id}.svg` : "/img/hero-home.svg")} alt={`${athlete.name} playing ${sport.label.toLowerCase()}`} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: `50% ${sport.photoFocus}%` }} />
           </div>
           <div className="flex flex-col justify-center rounded-3xl border border-slate-700 bg-slate-900 p-6 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-400">{sport.label}</p>

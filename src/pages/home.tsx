@@ -53,7 +53,9 @@ function Latest({ sport }: { sport: SportData }) {
 function Home() {
   const data = useRecruiting()
   if (!data) return <SiteShell page="home">{null}</SiteShell>
-  const { athlete, academics, softball, basketball } = data
+  const { athlete, academics, sportList, sports } = data
+  const photoSports = sportList.filter((c) => hasRealPhoto(sports[c.id]))
+  const small = photoSports.length > 2
   return (
   <SiteShell page="home">
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden border-b border-slate-800">
@@ -67,15 +69,15 @@ function Home() {
             <span className="mt-2 block text-3xl text-amber-400 sm:text-4xl">Class of {athlete.classYear}</span>
           </h1>
           <div className="flex shrink-0 gap-2 sm:gap-3">
-            {([softball, basketball] as SportData[]).filter(hasRealPhoto).map((s) => (
-              <a key={s.label} href={`/${s.label.toLowerCase()}/`} className="block text-center">
+            {photoSports.map((c) => (
+              <a key={c.id} href={`/${c.id}/`} className="block text-center">
                 <img
-                  src={s.photo}
-                  alt={`${athlete.name}, ${s.label}`}
-                  className="h-24 w-[4.75rem] rounded-xl border-2 border-amber-400 object-cover sm:h-40 sm:w-32"
-                  style={{ objectPosition: `50% ${s.photoFocus}%` }}
+                  src={sports[c.id].photo}
+                  alt={`${athlete.name}, ${c.label}`}
+                  className={`rounded-xl border-2 border-amber-400 object-cover ${small ? 'h-20 w-14 sm:h-32 sm:w-24' : 'h-24 w-[4.75rem] sm:h-40 sm:w-32'}`}
+                  style={{ objectPosition: `50% ${sports[c.id].photoFocus}%` }}
                 />
-                <span className="mt-1 block text-xs font-bold uppercase tracking-widest text-slate-300">{s.label}</span>
+                <span className="mt-1 block text-xs font-bold uppercase tracking-widest text-slate-300">{c.label}</span>
               </a>
             ))}
           </div>
@@ -85,8 +87,9 @@ function Home() {
             {athlete.school} ({athlete.location})
             <br />
             Jersey #{athlete.jersey}
-            <Latest sport={softball} />
-            <Latest sport={basketball} />
+            {sportList.map((c) => (
+              <Latest key={c.id} sport={sports[c.id]} />
+            ))}
             <a href="/teams/" className="mt-2 inline-block font-bold text-amber-400 underline">All teams &amp; coaches →</a>
           </Fact>
           <Fact label="Academics">
@@ -94,29 +97,43 @@ function Home() {
             <br />
             {academics.courses}
           </Fact>
-          <Fact label="Softball">
-            {softball.positions}
-            <br />
-            {softball.handedness} | {athlete.height}
-          </Fact>
-          <Fact label="Basketball">
-            {basketball.positions}
-            <br />
-            {athlete.height}
-          </Fact>
+          {sportList.map((c) => (
+            <Fact key={c.id} label={c.label}>
+              {sports[c.id].positions}
+              <br />
+              {c.handedness && sports[c.id].handedness ? `${sports[c.id].handedness} | ` : ''}
+              {athlete.height}
+            </Fact>
+          ))}
         </dl>
         <div className="mt-6">
           <div className="flex flex-wrap gap-3">
-            <PdfButton href="/profile/softball/?print=1">Softball Recruiting Profile (PDF)</PdfButton>
-            <PdfButton href="/profile/basketball/?print=1">Basketball Recruiting Profile (PDF)</PdfButton>
+            {sportList.map((c) => (
+              <PdfButton key={c.id} href={`/profile/${c.id}/?print=1`}>{c.label} Recruiting Profile (PDF)</PdfButton>
+            ))}
           </div>
         </div>
       </div>
     </section>
 
     <section aria-label="Quick links" className="mx-auto grid max-w-5xl gap-4 px-4 py-10 sm:px-6 md:grid-cols-3">
-      <JumpCard href="/softball/" title="Softball" blurb="Metrics, film and references" icon={<img src="/img/softball.svg" alt="" width={56} height={56} />} />
-      <JumpCard href="/basketball/" title="Basketball" blurb="Metrics, film and references" icon={<img src="/img/basketball.svg" alt="" width={56} height={56} />} />
+      {sportList.map((c) => (
+        <JumpCard
+          key={c.id}
+          href={`/${c.id}/`}
+          title={c.label}
+          blurb="Metrics, film and references"
+          icon={
+            c.id === 'softball' || c.id === 'basketball' ? (
+              <img src={`/img/${c.id}.svg`} alt="" width={56} height={56} />
+            ) : (
+              <span aria-hidden className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-2xl font-extrabold text-slate-950">
+                {c.label.charAt(0).toUpperCase()}
+              </span>
+            )
+          }
+        />
+      ))}
       <JumpCard href="/schedule/" title="Schedule" blurb="Upcoming events to watch" icon={<CalendarDays size={56} className="text-amber-400" aria-hidden />} />
     </section>
   </SiteShell>
